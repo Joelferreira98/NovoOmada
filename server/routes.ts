@@ -38,12 +38,13 @@ export function registerRoutes(app: Express): Server {
     try {
       const validatedData = insertOmadaCredentialsSchema.parse({
         ...req.body,
-        createdBy: req.user.id
+        createdBy: req.user!.id
       });
       const credentials = await storage.createOmadaCredentials(validatedData);
       res.status(201).json(credentials);
     } catch (error) {
-      res.status(400).json({ message: "Invalid data" });
+      console.error("Validation error:", error);
+      res.status(400).json({ message: "Invalid data", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -51,10 +52,10 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/sites", requireAuth, async (req, res) => {
     try {
       let sites;
-      if (req.user.role === "master") {
+      if (req.user!.role === "master") {
         sites = await storage.getAllSites();
       } else {
-        sites = await storage.getUserSites(req.user.id);
+        sites = await storage.getUserSites(req.user!.id);
       }
       res.json(sites);
     } catch (error) {
@@ -131,7 +132,7 @@ export function registerRoutes(app: Express): Server {
       const validatedData = insertPlanSchema.parse({
         ...req.body,
         siteId,
-        createdBy: req.user.id
+        createdBy: req.user!.id
       });
       const plan = await storage.createPlan(validatedData);
       res.status(201).json(plan);
@@ -179,14 +180,14 @@ export function registerRoutes(app: Express): Server {
           code,
           planId,
           siteId: plan.siteId,
-          createdBy: req.user.id,
+          createdBy: req.user!.id,
           status: "available"
         });
 
         // Create sale record
         await storage.createSale({
           voucherId: voucher.id,
-          sellerId: req.user.id,
+          sellerId: req.user!.id,
           siteId: plan.siteId,
           amount: plan.unitPrice
         });
@@ -204,7 +205,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/vouchers", requireAuth, async (req, res) => {
     try {
       const { siteId } = req.query;
-      const vouchers = await storage.getVouchersByUser(req.user.id, siteId as string);
+      const vouchers = await storage.getVouchersByUser(req.user!.id, siteId as string);
       res.json(vouchers);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch vouchers" });
@@ -215,7 +216,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/stats/daily", requireAuth, async (req, res) => {
     try {
       const { siteId } = req.query;
-      const stats = await storage.getDailyStats(req.user.id, siteId as string);
+      const stats = await storage.getDailyStats(req.user!.id, siteId as string);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch daily stats" });
