@@ -225,7 +225,7 @@ export default function MasterDashboard() {
                       type="button"
                       variant="outline"
                       onClick={() => testCredentialsMutation.mutate()}
-                      disabled={testCredentialsMutation.isPending || !existingCredentials}
+                      disabled={testCredentialsMutation.isPending || !omadaCredentials}
                     >
                       <ShieldQuestion className="w-4 h-4 mr-2" />
                       {testCredentialsMutation.isPending ? "Testando..." : "Testar Conexão"}
