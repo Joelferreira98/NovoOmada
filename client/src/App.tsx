@@ -1,0 +1,43 @@
+import { Switch, Route } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "./hooks/use-auth";
+import { ProtectedRoute } from "./lib/protected-route";
+import NotFound from "@/pages/not-found";
+import AuthPage from "@/pages/auth-page";
+import MasterDashboard from "@/pages/master-dashboard";
+import AdminDashboard from "@/pages/admin-dashboard";
+import VendedorDashboard from "@/pages/vendedor-dashboard";
+
+function Router() {
+  return (
+    <Switch>
+      <ProtectedRoute path="/" component={() => {
+        // Redirect based on user role will be handled in the components
+        return <div>Loading...</div>;
+      }} />
+      <ProtectedRoute path="/master" component={MasterDashboard} />
+      <ProtectedRoute path="/admin" component={AdminDashboard} />
+      <ProtectedRoute path="/vendedor" component={VendedorDashboard} />
+      <Route path="/auth" component={AuthPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
