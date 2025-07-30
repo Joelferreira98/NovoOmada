@@ -64,6 +64,52 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Test Omada credentials connectivity
+  app.post("/api/omada-credentials/test", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(400).json({ success: false, message: "Nenhuma credencial configurada" });
+      }
+
+      const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token`;
+      const tokenResponse = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          'grant_type': 'client_credentials',
+          'client_id': credentials.clientId,
+          'client_secret': credentials.clientSecret
+        })
+      });
+
+      const tokenData = await tokenResponse.json();
+      
+      if (tokenResponse.ok && tokenData.errorCode === 0) {
+        res.json({ 
+          success: true, 
+          message: "✅ Credenciais válidas! API conectada com sucesso.",
+          details: `Conectado ao Omada ID: ${credentials.omadacId}` 
+        });
+      } else {
+        res.json({ 
+          success: false, 
+          message: "❌ Credenciais inválidas ou problema de conectividade",
+          error: tokenData.msg || `HTTP ${tokenResponse.status}`,
+          details: `URL: ${credentials.omadaUrl}, Omada ID: ${credentials.omadacId}`
+        });
+      }
+    } catch (error) {
+      res.json({ 
+        success: false, 
+        message: "❌ Erro ao conectar com a API Omada",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      });
+    }
+  });
+
   // Site Management
   app.get("/api/sites", requireAuth, async (req, res) => {
     try {
@@ -104,6 +150,10 @@ export function registerRoutes(app: Express): Server {
       try {
         // First, get access token using client credentials mode
         const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token`;
+        console.log(`Token URL: ${tokenUrl}`);
+        console.log(`Client ID: ${credentials.clientId}`);
+        console.log(`Client Secret: ${credentials.clientSecret.substring(0, 8)}...`);
+        
         const tokenResponse = await fetch(tokenUrl, {
           method: 'POST',
           headers: {
@@ -117,10 +167,14 @@ export function registerRoutes(app: Express): Server {
         });
 
         if (!tokenResponse.ok) {
-          throw new Error(`Token request failed: ${tokenResponse.status}`);
+          const errorText = await tokenResponse.text();
+          console.log(`Token response error (${tokenResponse.status}):`, errorText);
+          throw new Error(`Token request failed: ${tokenResponse.status} - ${errorText}`);
         }
 
         const tokenData = await tokenResponse.json();
+        console.log('Token response:', tokenData);
+        
         if (tokenData.errorCode !== 0) {
           throw new Error(`Token error: ${tokenData.msg || 'Authentication failed'}`);
         }
@@ -134,58 +188,14 @@ export function registerRoutes(app: Express): Server {
 
       } catch (tokenError) {
         console.error("Failed to get access token:", tokenError);
-        console.log("Will demonstrate with sample sites since API connection failed");
         
-        // For demonstration purposes, show sample sites when API is not accessible
-        const sampleSites = [
-          {
-            siteId: "demo_site_001", 
-            name: "Loja Matriz - Demo",
-            address: "Av. Paulista, 1000 - São Paulo"
-          },
-          {
-            siteId: "demo_site_002",
-            name: "Filial Norte - Demo", 
-            address: "Rua das Flores, 500 - Zona Norte"
-          },
-          {
-            siteId: "demo_site_003",
-            name: "Filial Sul - Demo",
-            address: "Av. Ibirapuera, 200 - Zona Sul"
-          }
-        ];
-
-        let syncedCount = 0;
-        let updatedCount = 0;
-
-        for (const site of sampleSites) {
-          const existingSites = await storage.getAllSites();
-          const existingSite = existingSites.find(s => s.omadaSiteId === site.siteId);
-          
-          if (existingSite) {
-            await storage.updateSite(existingSite.id, {
-              name: site.name,
-              location: site.address,
-              status: "active"
-            });
-            updatedCount++;
-          } else {
-            await storage.createSite({
-              name: site.name,
-              location: site.address,
-              omadaSiteId: site.siteId,
-              status: "active"
-            });
-            syncedCount++;
-          }
-        }
-
         return res.json({
-          message: `Demonstração: ${syncedCount} novos sites criados, ${updatedCount} atualizados. Para conectar API real, configure credenciais válidas.`,
-          error: `API Connection: ${tokenError instanceof Error ? tokenError.message : "Token request failed"}`,
-          syncedCount,
-          updatedCount,
-          isDemo: true
+          message: "Falha na autenticação com a API Omada. Verifique as credenciais configuradas.",
+          error: `API Connection Error: ${tokenError instanceof Error ? tokenError.message : "Token request failed"}`,
+          syncedCount: 0,
+          updatedCount: 0,
+          isDemo: false,
+          needsValidCredentials: true
         });
       }
 
@@ -213,7 +223,7 @@ export function registerRoutes(app: Express): Server {
         let syncedCount = 0;
         let updatedCount = 0;
 
-        console.log(`Found ${omadaSites.length} sites from Omada API`);
+        console.log(`Found ${omadaSites.length} sites from Omada API:`, omadaSites);
 
         for (const omadaSite of omadaSites) {
           // Check if site already exists
@@ -252,7 +262,9 @@ export function registerRoutes(app: Express): Server {
         res.json({ 
           message: "Erro ao buscar sites da API Omada. Verifique conectividade e permissões.",
           error: apiError instanceof Error ? apiError.message : "Erro desconhecido da API",
-          syncedCount: 0
+          syncedCount: 0,
+          updatedCount: 0,
+          isDemo: false
         });
       }
 

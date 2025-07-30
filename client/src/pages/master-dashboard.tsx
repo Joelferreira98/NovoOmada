@@ -68,6 +68,20 @@ export default function MasterDashboard() {
     },
   });
 
+  const testCredentialsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/omada-credentials/test", {});
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: data.success ? "Teste de Conexão" : "Erro na Conexão",
+        description: data.message + (data.details ? ` ${data.details}` : ''),
+        variant: data.success ? "default" : "destructive"
+      });
+    },
+  });
+
   const syncSitesMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/sites/sync", {});
@@ -75,13 +89,13 @@ export default function MasterDashboard() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      const isDemo = data.isDemo;
+      const hasError = data.error && !data.isDemo;
       toast({
-        title: isDemo ? "Modo Demonstração" : "Sincronização Concluída",
-        description: isDemo 
-          ? `${data.syncedCount || 0} novos sites demo, ${data.updatedCount || 0} atualizados. Configure credenciais válidas para API real.`
+        title: hasError ? "Erro na Sincronização" : "Sincronização Concluída",
+        description: hasError 
+          ? `${data.message}. Erro: ${data.error}`
           : `${data.syncedCount || 0} novos sites, ${data.updatedCount || 0} atualizados`,
-        variant: data.error && !isDemo ? "destructive" : "default"
+        variant: hasError ? "destructive" : "default"
       });
     },
     onError: () => {
@@ -205,6 +219,16 @@ export default function MasterDashboard() {
                     >
                       <Save className="w-4 h-4 mr-2" />
                       {saveCredentialsMutation.isPending ? "Salvando..." : "Salvar Credenciais"}
+                    </Button>
+                    
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      onClick={() => testCredentialsMutation.mutate()}
+                      disabled={testCredentialsMutation.isPending || !existingCredentials}
+                    >
+                      <ShieldQuestion className="w-4 h-4 mr-2" />
+                      {testCredentialsMutation.isPending ? "Testando..." : "Testar Conexão"}
                     </Button>
                     
                     <Button 
