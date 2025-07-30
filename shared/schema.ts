@@ -4,10 +4,10 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const userRoleEnum = mysqlEnum("user_role", ["master", "admin", "vendedor"]);
-export const planStatusEnum = mysqlEnum("plan_status", ["active", "inactive"]);
-export const voucherStatusEnum = mysqlEnum("voucher_status", ["available", "used", "expired"]);
-export const siteStatusEnum = mysqlEnum("site_status", ["active", "inactive", "syncing"]);
+export const userRoleEnum = mysqlEnum("role", ["master", "admin", "vendedor"]);
+export const planStatusEnum = mysqlEnum("status", ["active", "inactive"]);
+export const voucherStatusEnum = mysqlEnum("status", ["available", "used", "expired"]);
+export const siteStatusEnum = mysqlEnum("status", ["active", "inactive", "syncing"]);
 
 export const users = mysqlTable("users", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
