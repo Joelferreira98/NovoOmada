@@ -9,6 +9,102 @@ import https from "https";
 // Temporarily disable SSL verification for development (self-signed certs)
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 
+// Token cache to avoid multiple rapid requests to Omada
+let tokenCache: { token: string; expires: number; omadacId: string } | null = null;
+
+async function getValidOmadaToken(credentials: any): Promise<string> {
+  const now = Date.now();
+  
+  // Check if we have a valid cached token for this omadacId
+  if (tokenCache && 
+      tokenCache.omadacId === credentials.omadacId && 
+      tokenCache.expires > now + 60000) { // 1 minute buffer
+    console.log('Using cached token');
+    return tokenCache.token;
+  }
+  
+  // Get new token
+  console.log('Getting fresh token from Omada API');
+  const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
+  const requestBody = {
+    'omadacId': credentials.omadacId,
+    'client_id': credentials.clientId,
+    'client_secret': credentials.clientSecret
+  };
+  
+  const tokenResponse = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!tokenResponse.ok) {
+    const errorText = await tokenResponse.text();
+    throw new Error(`Token request failed: ${tokenResponse.status} - ${errorText}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  
+  if (tokenData.errorCode !== 0) {
+    throw new Error(`Token error: ${tokenData.msg || 'Authentication failed'}`);
+  }
+
+  const accessToken = tokenData.result?.accessToken;
+  if (!accessToken) {
+    throw new Error('No access token received from Omada API');
+  }
+
+  // Cache the token
+  tokenCache = {
+    token: accessToken,
+    expires: now + (tokenData.result.expiresIn * 1000) - 300000, // 5 minutes before actual expiry
+    omadacId: credentials.omadacId
+  };
+
+  return accessToken;
+}
+
+async function processOmadaSites(omadaSites: any[], res: any) {
+  let syncedCount = 0;
+  let updatedCount = 0;
+
+  console.log(`Found ${omadaSites.length} sites from Omada API:`, omadaSites);
+
+  for (const omadaSite of omadaSites) {
+    // Check if site already exists
+    const existingSites = await storage.getAllSites();
+    const existingSite = existingSites.find(site => site.omadaSiteId === omadaSite.siteId);
+    
+    if (existingSite) {
+      // Update existing site
+      await storage.updateSite(existingSite.id, {
+        name: omadaSite.name,
+        location: omadaSite.address || omadaSite.region || existingSite.location,
+        status: "active"
+      });
+      updatedCount++;
+    } else {
+      // Create new site
+      await storage.createSite({
+        name: omadaSite.name,
+        location: omadaSite.address || omadaSite.region || "Localização não informada",
+        omadaSiteId: omadaSite.siteId,
+        status: "active"
+      });
+      syncedCount++;
+    }
+  }
+
+  res.json({ 
+    message: `Sites sincronizados com sucesso. ${syncedCount} novos sites, ${updatedCount} atualizados.`,
+    syncedCount,
+    updatedCount,
+    totalSites: omadaSites.length
+  });
+}
+
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
@@ -140,56 +236,22 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Omada credentials not configured" });
       }
 
-      // Call Omada API to get sites list
-      const omadaApiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites`;
+      // Try both OpenAPI and traditional API approaches
+      console.log(`Attempting to sync sites for Omada ID: ${credentials.omadacId}`);
+      
+      // First try with OpenAPI (current approach)
+      const openApiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites`;
       const params = new URLSearchParams({
         page: '1',
         pageSize: '1000'
       });
 
-      console.log(`Attempting to sync sites from: ${omadaApiUrl}?${params}`);
-      console.log(`Using Omada ID: ${credentials.omadacId}`);
+      console.log(`Trying OpenAPI: ${openApiUrl}?${params}`);
       
-      // Step 1: Get access token using OAuth2 flow
+      // Step 1: Get access token using cached token system
       let accessToken;
       try {
-        // First, get access token using client credentials mode
-        const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
-        const requestBody = {
-          'omadacId': credentials.omadacId,
-          'client_id': credentials.clientId,
-          'client_secret': credentials.clientSecret
-        };
-        
-        console.log(`Token URL: ${tokenUrl}`);
-        console.log(`Request Body:`, JSON.stringify(requestBody, null, 2));
-        
-        const tokenResponse = await fetch(tokenUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-        if (!tokenResponse.ok) {
-          const errorText = await tokenResponse.text();
-          console.log(`Token response error (${tokenResponse.status}):`, errorText);
-          throw new Error(`Token request failed: ${tokenResponse.status} - ${errorText}`);
-        }
-
-        const tokenData = await tokenResponse.json();
-        console.log('Token response:', JSON.stringify(tokenData, null, 2));
-        
-        if (tokenData.errorCode !== 0) {
-          throw new Error(`Token error: ${tokenData.msg || 'Authentication failed'}`);
-        }
-
-        accessToken = tokenData.result?.accessToken;
-        if (!accessToken) {
-          throw new Error('No access token received from Omada API');
-        }
-
+        accessToken = await getValidOmadaToken(credentials);
         console.log('Successfully obtained access token');
 
       } catch (tokenError) {
@@ -207,7 +269,12 @@ export function registerRoutes(app: Express): Server {
 
       // Step 2: Get sites list with valid access token
       try {
-        const response = await fetch(`${omadaApiUrl}?${params}`, {
+        // Add small delay to ensure token is fully active
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        console.log(`Making sites API call with token: ${accessToken.substring(0, 10)}...`);
+        
+        const response = await fetch(`${openApiUrl}?${params}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -215,63 +282,102 @@ export function registerRoutes(app: Express): Server {
           }
         });
 
+        console.log(`Sites API response status: ${response.status}`);
+        
         if (!response.ok) {
-          throw new Error(`Omada API error: ${response.status} ${response.statusText}`);
+          const errorText = await response.text();
+          console.log(`Sites API error response:`, errorText);
+          
+          // If token expired, clear cache and try once more
+          if (errorText.includes("access token has expired")) {
+            console.log("Token expired, clearing cache and retrying...");
+            tokenCache = null;
+            
+            // Get a fresh token and retry
+            const newAccessToken = await getValidOmadaToken(credentials);
+            const retryResponse = await fetch(`${openApiUrl}?${params}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${newAccessToken}`
+              }
+            });
+            
+            if (!retryResponse.ok) {
+              const retryErrorText = await retryResponse.text();
+              throw new Error(`Omada API retry failed: ${retryResponse.status} ${retryResponse.statusText} - ${retryErrorText}`);
+            }
+            
+            // Use the retry response for processing
+            const retryResponseData = await retryResponse.json();
+            console.log('Retry Sites API full response:', JSON.stringify(retryResponseData, null, 2));
+            
+            if (retryResponseData.errorCode !== 0) {
+              throw new Error(`Omada API retry error: ${retryResponseData.msg || 'Unknown error'}`);
+            }
+            
+            // Process the retry response
+            const omadaSites = retryResponseData.result?.data || [];
+            return await processOmadaSites(omadaSites, res);
+          }
+          
+          throw new Error(`Omada API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         const omadaResponse = await response.json();
+        console.log('Sites API full response:', JSON.stringify(omadaResponse, null, 2));
         
         if (omadaResponse.errorCode !== 0) {
           throw new Error(`Omada API error: ${omadaResponse.msg || 'Unknown error'}`);
         }
 
         const omadaSites = omadaResponse.result?.data || [];
-        let syncedCount = 0;
-        let updatedCount = 0;
-
-        console.log(`Found ${omadaSites.length} sites from Omada API:`, omadaSites);
-
-        for (const omadaSite of omadaSites) {
-          // Check if site already exists
-          const existingSites = await storage.getAllSites();
-          const existingSite = existingSites.find(site => site.omadaSiteId === omadaSite.siteId);
-          
-          if (existingSite) {
-            // Update existing site
-            await storage.updateSite(existingSite.id, {
-              name: omadaSite.name,
-              location: omadaSite.address || omadaSite.region || existingSite.location,
-              status: "active"
-            });
-            updatedCount++;
-          } else {
-            // Create new site
-            await storage.createSite({
-              name: omadaSite.name,
-              location: omadaSite.address || omadaSite.region || "Localização não informada",
-              omadaSiteId: omadaSite.siteId,
-              status: "active"
-            });
-            syncedCount++;
-          }
-        }
-
-        res.json({ 
-          message: `Sites sincronizados com sucesso. ${syncedCount} novos sites, ${updatedCount} atualizados.`,
-          syncedCount,
-          updatedCount,
-          totalSites: omadaSites.length
-        });
+        return await processOmadaSites(omadaSites, res);
 
       } catch (apiError) {
-        console.error("Sites API call failed:", apiError);
-        res.json({ 
-          message: "Erro ao buscar sites da API Omada. Verifique conectividade e permissões.",
-          error: apiError instanceof Error ? apiError.message : "Erro desconhecido da API",
-          syncedCount: 0,
-          updatedCount: 0,
-          isDemo: false
-        });
+        console.error("OpenAPI sites call failed:", apiError);
+        
+        // If OpenAPI fails, try traditional controller API as fallback
+        try {
+          console.log("Trying fallback: traditional controller API");
+          
+          // Try to get controller info first
+          const infoResponse = await fetch(`${credentials.omadaUrl}/api/info`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (infoResponse.ok) {
+            const infoData = await infoResponse.json();
+            console.log('Controller info:', infoData);
+            
+            // If we can get controller info, it means the controller is accessible
+            // but the OpenAPI might have authentication issues
+            res.json({ 
+              message: "Controlador Omada acessível, mas API requer configuração adicional. Verifique permissões OpenAPI no controlador.",
+              error: `OpenAPI Error: ${apiError instanceof Error ? apiError.message : "Erro desconhecido"}`,
+              suggestion: "Verifique se as credenciais OpenAPI estão corretas e se o acesso OpenAPI está habilitado no controlador Omada.",
+              syncedCount: 0,
+              updatedCount: 0,
+              isDemo: false,
+              needsValidCredentials: true
+            });
+          } else {
+            throw new Error("Controller not accessible");
+          }
+          
+        } catch (fallbackError) {
+          console.error("Fallback API also failed:", fallbackError);
+          res.json({ 
+            message: "Erro ao buscar sites da API Omada. Verifique conectividade e permissões.",
+            error: `OpenAPI Error: ${apiError instanceof Error ? apiError.message : "Erro desconhecido"}`,
+            syncedCount: 0,
+            updatedCount: 0,
+            isDemo: false
+          });
+        }
       }
 
     } catch (error) {
