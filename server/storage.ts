@@ -91,7 +91,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    await db.insert(users).values(insertUser);
+    const [user] = await db.select().from(users).where(eq(users.username, insertUser.username));
     return user;
   }
 
@@ -143,7 +144,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSite(site: InsertSite): Promise<Site> {
-    const [newSite] = await db.insert(sites).values(site).returning();
+    await db.insert(sites).values(site);
+    const [newSite] = await db.select().from(sites).where(eq(sites.name, site.name));
     return newSite;
   }
 
@@ -192,16 +194,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOmadaCredentials(credentials: InsertOmadaCredentials): Promise<OmadaCredentials> {
-    const [newCredentials] = await db.insert(omadaCredentials).values(credentials).returning();
+    await db.insert(omadaCredentials).values(credentials);
+    const [newCredentials] = await db.select().from(omadaCredentials).orderBy(desc(omadaCredentials.createdAt)).limit(1);
     return newCredentials;
   }
 
   async updateOmadaCredentials(id: string, credentials: Partial<OmadaCredentials>): Promise<OmadaCredentials | undefined> {
-    const [updatedCredentials] = await db
+    await db
       .update(omadaCredentials)
       .set(credentials)
-      .where(eq(omadaCredentials.id, id))
-      .returning();
+      .where(eq(omadaCredentials.id, id));
+    const [updatedCredentials] = await db.select().from(omadaCredentials).where(eq(omadaCredentials.id, id));
     return updatedCredentials;
   }
 
@@ -215,7 +218,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPlan(plan: InsertPlan): Promise<Plan> {
-    const [newPlan] = await db.insert(plans).values(plan).returning();
+    await db.insert(plans).values(plan);
+    const [newPlan] = await db.select().from(plans).orderBy(desc(plans.createdAt)).limit(1);
     return newPlan;
   }
 
@@ -266,19 +270,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateVoucherStatus(id: string, status: string): Promise<Voucher | undefined> {
-    const [updatedVoucher] = await db
+    await db
       .update(vouchers)
       .set({ status: status as any, usedAt: status === 'used' ? new Date() : undefined })
-      .where(eq(vouchers.id, id))
-      .returning();
+      .where(eq(vouchers.id, id));
+    const [updatedVoucher] = await db.select().from(vouchers).where(eq(vouchers.id, id));
     return updatedVoucher;
   }
 
   async createSale(sale: Omit<Sale, 'id' | 'createdAt'>): Promise<Sale> {
-    const [newSale] = await db.insert(sales).values({
+    await db.insert(sales).values({
       ...sale,
       createdAt: new Date()
-    } as any).returning();
+    } as any);
+    const [newSale] = await db.select().from(sales).orderBy(desc(sales.createdAt)).limit(1);
     return newSale;
   }
 
