@@ -4,6 +4,10 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertSiteSchema, insertPlanSchema, insertOmadaCredentialsSchema } from "@shared/schema";
 import { z } from "zod";
+import https from "https";
+
+// Temporarily disable SSL verification for development (self-signed certs)
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -85,47 +89,173 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Omada credentials not configured" });
       }
 
-      // Simulate Omada API call to get sites
-      // In a real implementation, this would make HTTP calls to Omada API
-      const mockOmadaSites = [
-        {
-          siteId: "site_001",
-          name: "Loja Principal",
-          location: "Centro da Cidade"
-        },
-        {
-          siteId: "site_002", 
-          name: "Filial Norte",
-          location: "Zona Norte"
-        },
-        {
-          siteId: "site_003",
-          name: "Filial Sul", 
-          location: "Zona Sul"
-        }
-      ];
+      // Call Omada API to get sites list
+      const omadaApiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites`;
+      const params = new URLSearchParams({
+        page: '1',
+        pageSize: '1000'
+      });
 
-      let syncedCount = 0;
-      for (const omadaSite of mockOmadaSites) {
-        // Check if site already exists
-        const existingSites = await storage.getAllSites();
-        const exists = existingSites.some(site => site.omadaSiteId === omadaSite.siteId);
-        
-        if (!exists) {
-          await storage.createSite({
-            name: omadaSite.name,
-            location: omadaSite.location,
-            omadaSiteId: omadaSite.siteId,
-            status: "active"
-          });
-          syncedCount++;
+      console.log(`Attempting to sync sites from: ${omadaApiUrl}?${params}`);
+      console.log(`Using Omada ID: ${credentials.omadacId}`);
+      
+      // Step 1: Get access token using OAuth2 flow
+      let accessToken;
+      try {
+        // First, get access token using client credentials mode
+        const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token`;
+        const tokenResponse = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            'grant_type': 'client_credentials',
+            'client_id': credentials.clientId,
+            'client_secret': credentials.clientSecret
+          })
+        });
+
+        if (!tokenResponse.ok) {
+          throw new Error(`Token request failed: ${tokenResponse.status}`);
         }
+
+        const tokenData = await tokenResponse.json();
+        if (tokenData.errorCode !== 0) {
+          throw new Error(`Token error: ${tokenData.msg || 'Authentication failed'}`);
+        }
+
+        accessToken = tokenData.result?.accessToken;
+        if (!accessToken) {
+          throw new Error('No access token received from Omada API');
+        }
+
+        console.log('Successfully obtained access token');
+
+      } catch (tokenError) {
+        console.error("Failed to get access token:", tokenError);
+        console.log("Will demonstrate with sample sites since API connection failed");
+        
+        // For demonstration purposes, show sample sites when API is not accessible
+        const sampleSites = [
+          {
+            siteId: "demo_site_001", 
+            name: "Loja Matriz - Demo",
+            address: "Av. Paulista, 1000 - São Paulo"
+          },
+          {
+            siteId: "demo_site_002",
+            name: "Filial Norte - Demo", 
+            address: "Rua das Flores, 500 - Zona Norte"
+          },
+          {
+            siteId: "demo_site_003",
+            name: "Filial Sul - Demo",
+            address: "Av. Ibirapuera, 200 - Zona Sul"
+          }
+        ];
+
+        let syncedCount = 0;
+        let updatedCount = 0;
+
+        for (const site of sampleSites) {
+          const existingSites = await storage.getAllSites();
+          const existingSite = existingSites.find(s => s.omadaSiteId === site.siteId);
+          
+          if (existingSite) {
+            await storage.updateSite(existingSite.id, {
+              name: site.name,
+              location: site.address,
+              status: "active"
+            });
+            updatedCount++;
+          } else {
+            await storage.createSite({
+              name: site.name,
+              location: site.address,
+              omadaSiteId: site.siteId,
+              status: "active"
+            });
+            syncedCount++;
+          }
+        }
+
+        return res.json({
+          message: `Demonstração: ${syncedCount} novos sites criados, ${updatedCount} atualizados. Para conectar API real, configure credenciais válidas.`,
+          error: `API Connection: ${tokenError instanceof Error ? tokenError.message : "Token request failed"}`,
+          syncedCount,
+          updatedCount,
+          isDemo: true
+        });
       }
 
-      res.json({ 
-        message: `Sites synchronized successfully. ${syncedCount} new sites added.`,
-        syncedCount 
-      });
+      // Step 2: Get sites list with valid access token
+      try {
+        const response = await fetch(`${omadaApiUrl}?${params}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Omada API error: ${response.status} ${response.statusText}`);
+        }
+
+        const omadaResponse = await response.json();
+        
+        if (omadaResponse.errorCode !== 0) {
+          throw new Error(`Omada API error: ${omadaResponse.msg || 'Unknown error'}`);
+        }
+
+        const omadaSites = omadaResponse.result?.data || [];
+        let syncedCount = 0;
+        let updatedCount = 0;
+
+        console.log(`Found ${omadaSites.length} sites from Omada API`);
+
+        for (const omadaSite of omadaSites) {
+          // Check if site already exists
+          const existingSites = await storage.getAllSites();
+          const existingSite = existingSites.find(site => site.omadaSiteId === omadaSite.siteId);
+          
+          if (existingSite) {
+            // Update existing site
+            await storage.updateSite(existingSite.id, {
+              name: omadaSite.name,
+              location: omadaSite.address || omadaSite.region || existingSite.location,
+              status: "active"
+            });
+            updatedCount++;
+          } else {
+            // Create new site
+            await storage.createSite({
+              name: omadaSite.name,
+              location: omadaSite.address || omadaSite.region || "Localização não informada",
+              omadaSiteId: omadaSite.siteId,
+              status: "active"
+            });
+            syncedCount++;
+          }
+        }
+
+        res.json({ 
+          message: `Sites sincronizados com sucesso. ${syncedCount} novos sites, ${updatedCount} atualizados.`,
+          syncedCount,
+          updatedCount,
+          totalSites: omadaSites.length
+        });
+
+      } catch (apiError) {
+        console.error("Sites API call failed:", apiError);
+        res.json({ 
+          message: "Erro ao buscar sites da API Omada. Verifique conectividade e permissões.",
+          error: apiError instanceof Error ? apiError.message : "Erro desconhecido da API",
+          syncedCount: 0
+        });
+      }
+
     } catch (error) {
       console.error("Sync error:", error);
       res.status(500).json({ message: "Failed to sync sites" });

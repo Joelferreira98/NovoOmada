@@ -12,13 +12,21 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 - All CRUD operations now working correctly with MySQL
 
 ✓ **Omada Integration**: 
-- Fixed credential saving functionality 
-- Implemented site synchronization from Omada controllers
-- Created mock sites: Loja Principal, Filial Norte, Filial Sul
+- Fixed credential saving functionality (persistent updates, no duplicates)
+- Implemented real Omada API integration following official documentation
+- OAuth2 client credentials flow for authentication
+- SSL certificate handling for self-signed certificates
+- Fallback to demonstration sites when API connection fails
+- Sites are synchronized from Omada API, not created manually
 
 ✓ **Authentication System**: 
 - Master user account created and functional
 - Session-based authentication working with MySQL backend
+
+✓ **System Architecture**: 
+- Removed manual site creation - sites only synchronized from Omada
+- Credentials persist and update existing records
+- Demo mode with clear user feedback when API unavailable
 
 ## User Preferences
 

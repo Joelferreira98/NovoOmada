@@ -73,13 +73,24 @@ export default function MasterDashboard() {
       const res = await apiRequest("POST", "/api/sites/sync", {});
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      const isDemo = data.isDemo;
       toast({
-        title: "Sincronização iniciada",
-        description: "Sites estão sendo sincronizados com o Omada",
+        title: isDemo ? "Modo Demonstração" : "Sincronização Concluída",
+        description: isDemo 
+          ? `${data.syncedCount || 0} novos sites demo, ${data.updatedCount || 0} atualizados. Configure credenciais válidas para API real.`
+          : `${data.syncedCount || 0} novos sites, ${data.updatedCount || 0} atualizados`,
+        variant: data.error && !isDemo ? "destructive" : "default"
       });
     },
+    onError: () => {
+      toast({
+        title: "Erro na sincronização",
+        description: "Verifique as credenciais e conexão com Omada",
+        variant: "destructive"
+      });
+    }
   });
 
   // Sites management removed - only sync and assign admins
