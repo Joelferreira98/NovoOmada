@@ -40,8 +40,20 @@ export function registerRoutes(app: Express): Server {
         ...req.body,
         createdBy: req.user!.id
       });
-      const credentials = await storage.createOmadaCredentials(validatedData);
-      res.status(201).json(credentials);
+      
+      // Check if credentials already exist
+      const existingCredentials = await storage.getOmadaCredentials();
+      let credentials;
+      
+      if (existingCredentials) {
+        // Update existing credentials
+        credentials = await storage.updateOmadaCredentials(existingCredentials.id, validatedData);
+      } else {
+        // Create new credentials
+        credentials = await storage.createOmadaCredentials(validatedData);
+      }
+      
+      res.status(200).json(credentials);
     } catch (error) {
       console.error("Validation error:", error);
       res.status(400).json({ message: "Invalid data", error: error instanceof Error ? error.message : "Unknown error" });
@@ -63,15 +75,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/sites", requireAuth, requireRole(["master"]), async (req, res) => {
-    try {
-      const validatedData = insertSiteSchema.parse(req.body);
-      const site = await storage.createSite(validatedData);
-      res.status(201).json(site);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid data" });
-    }
-  });
+  // Sites are only created via sync, not manually created
 
   app.post("/api/sites/sync", requireAuth, requireRole(["master"]), async (req, res) => {
     try {

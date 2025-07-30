@@ -8,16 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Crown, FolderSync, Building, ShieldQuestion, Settings, Save, Plus, Edit, Trash2 } from "lucide-react";
+import { Crown, FolderSync, Building, ShieldQuestion, Settings, Save, Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertOmadaCredentialsSchema, insertSiteSchema } from "@shared/schema";
+import { insertOmadaCredentialsSchema } from "@shared/schema";
 import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 type OmadaCredentialsForm = z.infer<typeof insertOmadaCredentialsSchema>;
-type SiteForm = z.infer<typeof insertSiteSchema>;
 
 export default function MasterDashboard() {
   const { user } = useAuth();
@@ -46,15 +45,7 @@ export default function MasterDashboard() {
     },
   });
 
-  const siteForm = useForm<SiteForm>({
-    resolver: zodResolver(insertSiteSchema),
-    defaultValues: {
-      name: "",
-      location: "",
-      omadaSiteId: "",
-      status: "active",
-    },
-  });
+  // Sites are only synchronized from Omada, not created manually
 
   const saveCredentialsMutation = useMutation({
     mutationFn: async (data: OmadaCredentialsForm) => {
@@ -91,20 +82,7 @@ export default function MasterDashboard() {
     },
   });
 
-  const createSiteMutation = useMutation({
-    mutationFn: async (data: SiteForm) => {
-      const res = await apiRequest("POST", "/api/sites", data);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      siteForm.reset();
-      toast({
-        title: "Site criado",
-        description: "Site foi criado com sucesso",
-      });
-    },
-  });
+  // Sites management removed - only sync and assign admins
 
   const sidebarItems = [
     { 
@@ -143,9 +121,7 @@ export default function MasterDashboard() {
     saveCredentialsMutation.mutate(data);
   };
 
-  const onCreateSite = (data: SiteForm) => {
-    createSiteMutation.mutate(data);
-  };
+  // Site creation removed - only sync functionality
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -239,71 +215,22 @@ export default function MasterDashboard() {
 
         {activeTab === "sites" && (
           <div className="space-y-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-slate-800">Gerenciar Sites</h1>
-                <p className="text-slate-600 mt-2">Adicione e gerencie sites do sistema</p>
-              </div>
-              <Button onClick={() => siteForm.reset()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Site
-              </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-800">Sites Sincronizados</h1>
+              <p className="text-slate-600 mt-2">Sites obtidos via sincronização com Omada</p>
             </div>
-
-            {/* Add Site Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Adicionar Novo Site</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={siteForm.handleSubmit(onCreateSite)} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="siteName">Nome do Site</Label>
-                      <Input
-                        id="siteName"
-                        {...siteForm.register("name")}
-                        placeholder="Ex: Loja Shopping Center"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="location">Localização</Label>
-                      <Input
-                        id="location"
-                        {...siteForm.register("location")}
-                        placeholder="São Paulo - SP"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="omadaSiteId">Omada Site ID</Label>
-                      <Input
-                        id="omadaSiteId"
-                        {...siteForm.register("omadaSiteId")}
-                        placeholder="Site ID do Omada"
-                      />
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    disabled={createSiteMutation.isPending}
-                  >
-                    {createSiteMutation.isPending ? "Criando..." : "Criar Site"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
 
             {/* Sites List */}
             <Card>
               <CardHeader>
-                <CardTitle>Sites Cadastrados</CardTitle>
+                <CardTitle>Sites Disponíveis</CardTitle>
               </CardHeader>
               <CardContent>
                 {(sites as any[]).length === 0 ? (
-                  <p className="text-slate-600 text-center py-8">Nenhum site cadastrado</p>
+                  <div className="text-center py-8">
+                    <p className="text-slate-600">Nenhum site sincronizado</p>
+                    <p className="text-sm text-slate-400 mt-2">Execute a sincronização na aba "Sincronização Omada"</p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {(sites as any[]).map((site: any) => (
@@ -315,6 +242,7 @@ export default function MasterDashboard() {
                           <div>
                             <p className="font-medium text-slate-800">{site.name}</p>
                             <p className="text-sm text-slate-500">{site.location}</p>
+                            <p className="text-xs text-slate-400">ID Omada: {site.omadaSiteId}</p>
                           </div>
                         </div>
                         
@@ -323,13 +251,8 @@ export default function MasterDashboard() {
                             {site.status === "active" ? "Ativo" : "Inativo"}
                           </Badge>
                           
-                          <div className="flex space-x-2">
-                            <Button size="sm" variant="ghost">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="text-emerald-600">
-                              <FolderSync className="w-4 h-4" />
-                            </Button>
+                          <div className="text-xs text-slate-400">
+                            {site.lastSync ? `Última sync: ${new Date(site.lastSync).toLocaleDateString()}` : "Nunca sincronizado"}
                           </div>
                         </div>
                       </div>
