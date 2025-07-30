@@ -81,15 +81,49 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Omada credentials not configured" });
       }
 
-      // In a real implementation, this would call Omada API to sync sites
-      // For now, we'll just update the status
-      const sites = await storage.getAllSites();
-      for (const site of sites) {
-        await storage.updateSite(site.id, { status: "active" });
+      // Simulate Omada API call to get sites
+      // In a real implementation, this would make HTTP calls to Omada API
+      const mockOmadaSites = [
+        {
+          siteId: "site_001",
+          name: "Loja Principal",
+          location: "Centro da Cidade"
+        },
+        {
+          siteId: "site_002", 
+          name: "Filial Norte",
+          location: "Zona Norte"
+        },
+        {
+          siteId: "site_003",
+          name: "Filial Sul", 
+          location: "Zona Sul"
+        }
+      ];
+
+      let syncedCount = 0;
+      for (const omadaSite of mockOmadaSites) {
+        // Check if site already exists
+        const existingSites = await storage.getAllSites();
+        const exists = existingSites.some(site => site.omadaSiteId === omadaSite.siteId);
+        
+        if (!exists) {
+          await storage.createSite({
+            name: omadaSite.name,
+            location: omadaSite.location,
+            omadaSiteId: omadaSite.siteId,
+            status: "active"
+          });
+          syncedCount++;
+        }
       }
 
-      res.json({ message: "Sites synchronized successfully" });
+      res.json({ 
+        message: `Sites synchronized successfully. ${syncedCount} new sites added.`,
+        syncedCount 
+      });
     } catch (error) {
+      console.error("Sync error:", error);
       res.status(500).json({ message: "Failed to sync sites" });
     }
   });

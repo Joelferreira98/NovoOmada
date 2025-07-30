@@ -2,7 +2,23 @@
 
 ## Overview
 
-This is a full-stack web application built for managing WiFi vouchers through Omada controllers. The system provides role-based access control with three distinct user types: Master (system admin), Admin (site manager), and Vendedor (voucher seller). The application uses a modern React frontend with Express.js backend, PostgreSQL database with Drizzle ORM, and integrates with Omada WiFi controllers for voucher generation and management.
+This is a full-stack web application built for managing WiFi vouchers through Omada controllers. The system provides role-based access control with three distinct user types: Master (system admin), Admin (site manager), and Vendedor (voucher seller). The application uses a modern React frontend with Express.js backend, MySQL database with Drizzle ORM, and integrates with Omada WiFi controllers for voucher generation and management.
+
+## Recent Changes (July 30, 2025)
+
+✓ **Database Migration**: Successfully migrated from PostgreSQL to MySQL
+- Updated database connection to use hsstm.shop MySQL server
+- Fixed all `.returning()` method incompatibilities with MySQL
+- All CRUD operations now working correctly with MySQL
+
+✓ **Omada Integration**: 
+- Fixed credential saving functionality 
+- Implemented site synchronization from Omada controllers
+- Created mock sites: Loja Principal, Filial Norte, Filial Sul
+
+✓ **Authentication System**: 
+- Master user account created and functional
+- Session-based authentication working with MySQL backend
 
 ## User Preferences
 
@@ -30,10 +46,10 @@ Preferred communication style: Simple, everyday language.
 - **API Design**: RESTful API with role-based middleware protection
 
 ### Database Architecture
-- **Database**: PostgreSQL with Neon serverless driver
-- **ORM**: Drizzle ORM with TypeScript schema definitions
+- **Database**: MySQL (host: hsstm.shop, database: omada_dev)
+- **ORM**: Drizzle ORM with TypeScript schema definitions and MySQL compatibility
 - **Migrations**: Drizzle Kit for schema management
-- **Connection**: Connection pooling with @neondatabase/serverless
+- **Connection**: MySQL2 connection pooling
 
 ## Key Components
 

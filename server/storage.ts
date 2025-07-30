@@ -150,11 +150,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSite(id: string, site: Partial<Site>): Promise<Site | undefined> {
-    const [updatedSite] = await db
+    await db
       .update(sites)
       .set({ ...site, lastSync: new Date() })
-      .where(eq(sites.id, id))
-      .returning();
+      .where(eq(sites.id, id));
+    const [updatedSite] = await db.select().from(sites).where(eq(sites.id, id));
     return updatedSite;
   }
 
