@@ -72,17 +72,22 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ success: false, message: "Nenhuma credencial configurada" });
       }
 
-      const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token`;
+      const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
+      const requestBody = {
+        'omadacId': credentials.omadacId,
+        'client_id': credentials.clientId,
+        'client_secret': credentials.clientSecret
+      };
+      
+      console.log(`Test Request - URL: ${tokenUrl}`);
+      console.log(`Test Request - Body:`, JSON.stringify(requestBody, null, 2));
+      
       const tokenResponse = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
-          'grant_type': 'client_credentials',
-          'client_id': credentials.clientId,
-          'client_secret': credentials.clientSecret
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const tokenData = await tokenResponse.json();
@@ -149,21 +154,22 @@ export function registerRoutes(app: Express): Server {
       let accessToken;
       try {
         // First, get access token using client credentials mode
-        const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token`;
+        const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
+        const requestBody = {
+          'omadacId': credentials.omadacId,
+          'client_id': credentials.clientId,
+          'client_secret': credentials.clientSecret
+        };
+        
         console.log(`Token URL: ${tokenUrl}`);
-        console.log(`Client ID: ${credentials.clientId}`);
-        console.log(`Client Secret: ${credentials.clientSecret.substring(0, 8)}...`);
+        console.log(`Request Body:`, JSON.stringify(requestBody, null, 2));
         
         const tokenResponse = await fetch(tokenUrl, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
           },
-          body: new URLSearchParams({
-            'grant_type': 'client_credentials',
-            'client_id': credentials.clientId,
-            'client_secret': credentials.clientSecret
-          })
+          body: JSON.stringify(requestBody)
         });
 
         if (!tokenResponse.ok) {
@@ -173,7 +179,7 @@ export function registerRoutes(app: Express): Server {
         }
 
         const tokenData = await tokenResponse.json();
-        console.log('Token response:', tokenData);
+        console.log('Token response:', JSON.stringify(tokenData, null, 2));
         
         if (tokenData.errorCode !== 0) {
           throw new Error(`Token error: ${tokenData.msg || 'Authentication failed'}`);

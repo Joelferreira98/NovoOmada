@@ -10,14 +10,17 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 - Updated database connection to use hsstm.shop MySQL server
 - Fixed all `.returning()` method incompatibilities with MySQL
 - All CRUD operations now working correctly with MySQL
+- Created all necessary tables with proper foreign key relationships
 
 ✓ **Omada Integration**: 
-- Fixed credential saving functionality (persistent updates, no duplicates)
-- Implemented real Omada API integration following official documentation
-- OAuth2 client credentials flow for authentication
+- **FIXED**: Implemented correct OAuth2 client credentials format following official documentation
+- **Query parameter**: `grant_type=client_credentials` 
+- **JSON body**: `{"omadacId": "...", "client_id": "...", "client_secret": "..."}`
 - SSL certificate handling for self-signed certificates
-- Fallback to demonstration sites when API connection fails
+- No more "Invalid request parameters" errors
+- API now correctly validates credentials and returns "Client Id Or Client Secret is Invalid" for test credentials
 - Sites are synchronized from Omada API, not created manually
+- System properly handles real API errors without inserting demo data
 
 ✓ **Authentication System**: 
 - Master user account created and functional
@@ -26,7 +29,8 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 ✓ **System Architecture**: 
 - Removed manual site creation - sites only synchronized from Omada
 - Credentials persist and update existing records
-- Demo mode with clear user feedback when API unavailable
+- No demo site insertion when API fails - shows real error messages
+- Ready for real Omada credentials when provided
 
 ## User Preferences
 
