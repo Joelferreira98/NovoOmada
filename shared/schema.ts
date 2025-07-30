@@ -20,10 +20,10 @@ export const users = pgTable("users", {
 
 export const omadaCredentials = pgTable("omada_credentials", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  controllerUrl: text("controller_url").notNull(),
-  username: text("username").notNull(),
-  password: text("password").notNull(),
-  siteId: text("site_id").notNull(),
+  omadaUrl: text("omada_url").notNull(),
+  omadacId: text("omadac_id").notNull(),
+  clientId: text("client_id").notNull(),
+  clientSecret: text("client_secret").notNull(),
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

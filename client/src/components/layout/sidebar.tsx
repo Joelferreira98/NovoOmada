@@ -1,9 +1,10 @@
-import { LogOut } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { LucideIcon } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface SidebarItem {
-  icon: React.ComponentType<any>;
+  icon: LucideIcon;
   label: string;
   active: boolean;
   onClick: () => void;
@@ -12,7 +13,7 @@ interface SidebarItem {
 interface SidebarProps {
   title: string;
   subtitle: string;
-  icon: React.ComponentType<any>;
+  icon: LucideIcon;
   iconBg: string;
   items: SidebarItem[];
   extraContent?: React.ReactNode;
@@ -22,45 +23,54 @@ export function Sidebar({ title, subtitle, icon: Icon, iconBg, items, extraConte
   const { logoutMutation } = useAuth();
 
   return (
-    <div className="fixed inset-y-0 left-0 w-64 bg-slate-800">
-      <div className="flex items-center px-6 py-4 border-b border-slate-700">
-        <div className={`${iconBg} w-10 h-10 rounded-lg flex items-center justify-center`}>
-          <Icon className="text-white" />
-        </div>
-        <div className="ml-3">
-          <p className="text-white font-semibold">{title}</p>
-          <p className="text-slate-400 text-sm">{subtitle}</p>
+    <div className="w-64 bg-slate-800 text-white flex flex-col">
+      {/* Header */}
+      <div className="p-6 border-b border-slate-700">
+        <div className="flex items-center space-x-3">
+          <div className={`${iconBg} p-2 rounded-lg`}>
+            <Icon className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-white">{title}</h2>
+            <p className="text-slate-400 text-sm">{subtitle}</p>
+          </div>
         </div>
       </div>
-      
+
+      {/* Extra Content */}
       {extraContent}
-      
-      <nav className="mt-6">
-        {items.map((item, index) => (
-          <button
-            key={index}
-            onClick={item.onClick}
-            className={`w-full flex items-center px-6 py-3 transition-colors ${
-              item.active 
-                ? "text-white bg-slate-700" 
-                : "text-slate-300 hover:bg-slate-700 hover:text-white"
-            }`}
-          >
-            <item.icon className="w-5 h-5" />
-            <span className="ml-3">{item.label}</span>
-          </button>
-        ))}
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          {items.map((item, index) => (
+            <li key={index}>
+              <Button
+                onClick={item.onClick}
+                variant={item.active ? "secondary" : "ghost"}
+                className={`w-full justify-start ${
+                  item.active 
+                    ? "bg-slate-700 text-white" 
+                    : "text-slate-300 hover:text-white hover:bg-slate-700"
+                }`}
+              >
+                <item.icon className="w-4 h-4 mr-3" />
+                {item.label}
+              </Button>
+            </li>
+          ))}
+        </ul>
       </nav>
-      
-      <div className="absolute bottom-0 w-64 p-6">
+
+      {/* Logout */}
+      <div className="p-4 border-t border-slate-700">
         <Button
-          variant="ghost"
           onClick={() => logoutMutation.mutate()}
-          disabled={logoutMutation.isPending}
-          className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-700"
+          variant="ghost"
+          className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
         >
-          <LogOut className="w-5 h-5 mr-3" />
-          {logoutMutation.isPending ? "Saindo..." : "Sair"}
+          <LogOut className="w-4 h-4 mr-3" />
+          Sair
         </Button>
       </div>
     </div>

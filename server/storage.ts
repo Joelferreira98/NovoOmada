@@ -64,11 +64,11 @@ export interface IStorage {
     activePlans: number;
   }>;
 
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
@@ -98,25 +98,41 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdminsBySite(siteId: string): Promise<User[]> {
-    return await db
-      .select()
+    const result = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        role: users.role,
+        createdAt: users.createdAt
+      })
       .from(users)
       .innerJoin(userSiteAccess, eq(users.id, userSiteAccess.userId))
       .where(and(
         eq(userSiteAccess.siteId, siteId),
         eq(users.role, 'admin')
       ));
+    return result;
   }
 
   async getVendedoresBySite(siteId: string): Promise<User[]> {
-    return await db
-      .select()
+    const result = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        role: users.role,
+        createdAt: users.createdAt
+      })
       .from(users)
       .innerJoin(userSiteAccess, eq(users.id, userSiteAccess.userId))
       .where(and(
         eq(userSiteAccess.siteId, siteId),
         eq(users.role, 'vendedor')
       ));
+    return result;
   }
 
   async getAllSites(): Promise<Site[]> {
@@ -143,11 +159,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserSites(userId: string): Promise<Site[]> {
-    return await db
-      .select()
+    const result = await db
+      .select({
+        id: sites.id,
+        name: sites.name,
+        location: sites.location,
+        omadaSiteId: sites.omadaSiteId,
+        status: sites.status,
+        lastSync: sites.lastSync,
+        createdAt: sites.createdAt
+      })
       .from(sites)
       .innerJoin(userSiteAccess, eq(sites.id, userSiteAccess.siteId))
       .where(eq(userSiteAccess.userId, userId));
+    return result;
   }
 
   async assignUserToSite(userId: string, siteId: string): Promise<void> {
@@ -207,7 +232,7 @@ export class DatabaseStorage implements IStorage {
 
   async deletePlan(id: string): Promise<boolean> {
     const result = await db.delete(plans).where(eq(plans.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async createVoucher(voucher: InsertVoucher): Promise<Voucher> {
@@ -216,20 +241,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getVouchersByUser(userId: string, siteId?: string): Promise<Voucher[]> {
-    let query = db
+    if (siteId) {
+      return await db
+        .select()
+        .from(vouchers)
+        .where(and(
+          eq(vouchers.createdBy, userId),
+          eq(vouchers.siteId, siteId)
+        ))
+        .orderBy(desc(vouchers.createdAt));
+    }
+
+    return await db
       .select()
       .from(vouchers)
       .where(eq(vouchers.createdBy, userId))
       .orderBy(desc(vouchers.createdAt));
-
-    if (siteId) {
-      query = query.where(and(
-        eq(vouchers.createdBy, userId),
-        eq(vouchers.siteId, siteId)
-      ));
-    }
-
-    return await query;
   }
 
   async getVouchersBySite(siteId: string): Promise<Voucher[]> {

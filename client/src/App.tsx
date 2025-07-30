@@ -14,10 +14,7 @@ import VendedorDashboard from "@/pages/vendedor-dashboard";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={() => {
-        // Redirect based on user role will be handled in the components
-        return <div>Loading...</div>;
-      }} />
+      <ProtectedRoute path="/" component={MasterDashboard} />
       <ProtectedRoute path="/master" component={MasterDashboard} />
       <ProtectedRoute path="/admin" component={AdminDashboard} />
       <ProtectedRoute path="/vendedor" component={VendedorDashboard} />

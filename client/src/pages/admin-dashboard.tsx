@@ -43,8 +43,8 @@ export default function AdminDashboard() {
   });
 
   // Set default site if user has sites and no site is selected
-  if (userSites.length > 0 && !selectedSite) {
-    setSelectedSite(userSites[0].id);
+  if ((userSites as any[]).length > 0 && !selectedSite) {
+    setSelectedSite((userSites as any[])[0].id);
   }
 
   const deletePlanMutation = useMutation({
@@ -94,7 +94,7 @@ export default function AdminDashboard() {
     },
   ];
 
-  const selectedSiteName = userSites.find((site: any) => site.id === selectedSite)?.name || "";
+  const selectedSiteName = (userSites as any[]).find((site: any) => site.id === selectedSite)?.name || "";
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -111,7 +111,7 @@ export default function AdminDashboard() {
                 <SelectValue placeholder="Selecione um site" />
               </SelectTrigger>
               <SelectContent>
-                {userSites.map((site: any) => (
+                {(userSites as any[]).map((site: any) => (
                   <SelectItem key={site.id} value={site.id}>
                     {site.name}
                   </SelectItem>
@@ -213,7 +213,7 @@ export default function AdminDashboard() {
 
             <Card>
               <CardContent className="p-6">
-                {plans.length === 0 ? (
+                {(plans as any[]).length === 0 ? (
                   <p className="text-slate-600 text-center py-8">
                     Nenhum plano criado para este site
                   </p>
@@ -231,7 +231,7 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {plans.map((plan: any) => (
+                        {(plans as any[]).map((plan: any) => (
                           <tr key={plan.id} className="border-b border-slate-100">
                             <td className="py-3 px-4">
                               <div>
@@ -293,13 +293,13 @@ export default function AdminDashboard() {
 
             <Card>
               <CardContent className="p-6">
-                {sellers.length === 0 ? (
+                {(sellers as any[]).length === 0 ? (
                   <p className="text-slate-600 text-center py-8">
                     Nenhum vendedor cadastrado para este site
                   </p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sellers.map((seller: any) => (
+                    {(sellers as any[]).map((seller: any) => (
                       <div key={seller.id} className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center mb-4">
                           <div className="bg-amber-100 w-12 h-12 rounded-full flex items-center justify-center">

@@ -10,7 +10,7 @@ export function registerRoutes(app: Express): Server {
 
   // Middleware to check authentication
   const requireAuth = (req: any, res: any, next: any) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Authentication required" });
     }
     next();
@@ -72,14 +72,24 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/sites/:id/sync", requireAuth, requireRole(["master"]), async (req, res) => {
+  app.post("/api/sites/sync", requireAuth, requireRole(["master"]), async (req, res) => {
     try {
-      const { id } = req.params;
-      // In a real implementation, this would sync with Omada API
-      const site = await storage.updateSite(id, { status: "active" });
-      res.json(site);
+      // Get Omada credentials
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(400).json({ message: "Omada credentials not configured" });
+      }
+
+      // In a real implementation, this would call Omada API to sync sites
+      // For now, we'll just update the status
+      const sites = await storage.getAllSites();
+      for (const site of sites) {
+        await storage.updateSite(site.id, { status: "active" });
+      }
+
+      res.json({ message: "Sites synchronized successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Failed to sync site" });
+      res.status(500).json({ message: "Failed to sync sites" });
     }
   });
 

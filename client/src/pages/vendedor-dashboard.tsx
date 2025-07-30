@@ -28,7 +28,7 @@ export default function VendedorDashboard() {
     queryKey: ["/api/sites"],
   });
 
-  const userSite = userSites[0]; // Vendedor só tem acesso a um site
+  const userSite = (userSites as any[])[0]; // Vendedor só tem acesso a um site
 
   const { data: dailyStats } = useQuery({
     queryKey: ["/api/stats/daily", userSite?.id],
@@ -68,7 +68,20 @@ export default function VendedorDashboard() {
     },
   });
 
-  const selectedPlanData = plans.find((plan: any) => plan.id === selectedPlan);
+  const selectedPlanData = (plans as any[]).find((plan: any) => plan.id === selectedPlan);
+  const totalPrice = selectedPlanData ? (selectedPlanData.unitPrice * quantity).toFixed(2) : "0.00";
+
+  const onGenerateVouchers = () => {
+    if (!selectedPlan) {
+      toast({
+        title: "Erro",
+        description: "Selecione um plano",
+        variant: "destructive",
+      });
+      return;
+    }
+    generateVouchersMutation.mutate({ planId: selectedPlan, quantity });
+  };
 
   const sidebarItems = [
     { 
@@ -90,24 +103,6 @@ export default function VendedorDashboard() {
       onClick: () => setActiveTab("history")
     },
   ];
-
-  const onGenerateVouchers = () => {
-    if (!selectedPlan) {
-      toast({
-        title: "Erro",
-        description: "Selecione um plano",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    generateVouchersMutation.mutate({
-      planId: selectedPlan,
-      quantity: quantity,
-    });
-  };
-
-  const totalPrice = selectedPlanData ? (parseFloat(selectedPlanData.unitPrice) * quantity).toFixed(2) : "0.00";
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -188,7 +183,7 @@ export default function VendedorDashboard() {
                         <SelectValue placeholder="Escolha um plano" />
                       </SelectTrigger>
                       <SelectContent>
-                        {plans.map((plan: any) => (
+                        {(plans as any[]).map((plan: any) => (
                           <SelectItem key={plan.id} value={plan.id}>
                             {plan.nome} - R$ {plan.unitPrice}
                           </SelectItem>
@@ -268,7 +263,7 @@ export default function VendedorDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                {vouchers.length === 0 ? (
+                {(vouchers as any[]).length === 0 ? (
                   <p className="text-slate-600 text-center py-8">
                     Nenhum voucher gerado ainda
                   </p>
@@ -285,7 +280,7 @@ export default function VendedorDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {vouchers.slice(0, 10).map((voucher: any) => (
+                        {(vouchers as any[]).slice(0, 10).map((voucher: any) => (
                           <tr key={voucher.id} className="border-b border-slate-100">
                             <td className="py-3 px-4">
                               <div className="font-mono text-sm bg-slate-100 px-2 py-1 rounded">

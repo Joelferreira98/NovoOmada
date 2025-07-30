@@ -39,10 +39,10 @@ export default function MasterDashboard() {
   const credentialsForm = useForm<OmadaCredentialsForm>({
     resolver: zodResolver(insertOmadaCredentialsSchema.omit({ createdBy: true })),
     defaultValues: {
-      controllerUrl: omadaCredentials?.controllerUrl || "",
-      username: omadaCredentials?.username || "",
-      password: "",
-      siteId: omadaCredentials?.siteId || "",
+      omadaUrl: (omadaCredentials as any)?.omadaUrl || "",
+      omadacId: (omadaCredentials as any)?.omadacId || "",
+      clientId: (omadaCredentials as any)?.clientId || "",
+      clientSecret: "",
     },
   });
 
@@ -79,7 +79,6 @@ export default function MasterDashboard() {
 
   const syncSitesMutation = useMutation({
     mutationFn: async () => {
-      // In a real implementation, this would call Omada API
       const res = await apiRequest("POST", "/api/sites/sync", {});
       return await res.json();
     },
@@ -175,39 +174,39 @@ export default function MasterDashboard() {
                 <form onSubmit={credentialsForm.handleSubmit(onSaveCredentials)} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="controllerUrl">URL do Controller</Label>
+                      <Label htmlFor="omadaUrl">URL do Omada</Label>
                       <Input
-                        id="controllerUrl"
-                        {...credentialsForm.register("controllerUrl")}
-                        placeholder="https://controller.omada.com"
+                        id="omadaUrl"
+                        {...credentialsForm.register("omadaUrl")}
+                        placeholder="https://omada.tplinkcloud.com"
                       />
                     </div>
                     
                     <div>
-                      <Label htmlFor="username">Username</Label>
+                      <Label htmlFor="omadacId">Omada ID</Label>
                       <Input
-                        id="username"
-                        {...credentialsForm.register("username")}
-                        placeholder="admin"
+                        id="omadacId"
+                        {...credentialsForm.register("omadacId")}
+                        placeholder="MSP ID ou Customer ID"
                       />
                     </div>
                     
                     <div>
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="clientId">Client ID</Label>
                       <Input
-                        id="password"
+                        id="clientId"
+                        {...credentialsForm.register("clientId")}
+                        placeholder="Client ID da aplicação"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="clientSecret">Client Secret</Label>
+                      <Input
+                        id="clientSecret"
                         type="password"
-                        {...credentialsForm.register("password")}
+                        {...credentialsForm.register("clientSecret")}
                         placeholder="••••••••"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="siteId">Site ID</Label>
-                      <Input
-                        id="siteId"
-                        {...credentialsForm.register("siteId")}
-                        placeholder="Default"
                       />
                     </div>
                   </div>
@@ -303,11 +302,11 @@ export default function MasterDashboard() {
                 <CardTitle>Sites Cadastrados</CardTitle>
               </CardHeader>
               <CardContent>
-                {sites.length === 0 ? (
+                {(sites as any[]).length === 0 ? (
                   <p className="text-slate-600 text-center py-8">Nenhum site cadastrado</p>
                 ) : (
                   <div className="space-y-4">
-                    {sites.map((site: any) => (
+                    {(sites as any[]).map((site: any) => (
                       <div key={site.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
                         <div className="flex items-center space-x-4">
                           <div className="bg-emerald-100 p-2 rounded-lg">
