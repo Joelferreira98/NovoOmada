@@ -186,6 +186,12 @@ export default function AdminDashboard() {
       label: "Relatórios", 
       active: activeTab === "reports",
       onClick: () => setActiveTab("reports")
+    },
+    { 
+      icon: History, 
+      label: "Histórico Impressões", 
+      active: activeTab === "print-history",
+      onClick: () => setActiveTab("print-history")
     }
   ];
 
@@ -301,6 +307,7 @@ export default function AdminDashboard() {
               )}
               {activeTab === "vouchers" && <VouchersSection siteId={selectedSiteId!} />}
               {activeTab === "reports" && <ReportsSection siteId={selectedSiteId!} />}
+              {activeTab === "print-history" && <PrintHistorySection siteId={selectedSiteId!} />}
             </div>
           </div>
         </div>
@@ -314,7 +321,7 @@ export default function AdminDashboard() {
 // Overview Section Component
 function OverviewSection({ selectedSite, setActiveTab }: { 
   selectedSite: Site; 
-  setActiveTab: React.Dispatch<React.SetStateAction<"overview" | "vendedores" | "plans" | "vouchers" | "reports">>; 
+  setActiveTab: React.Dispatch<React.SetStateAction<"overview" | "vendedores" | "plans" | "vouchers" | "reports" | "print-history">>; 
 }) {
   const { data: vendedores = [] } = useQuery<any[]>({
     queryKey: ["/api/sites", selectedSite.id, "vendedores"],
@@ -1179,25 +1186,47 @@ function VouchersSection({ siteId }: { siteId: string }) {
                       </div>
                       
                       <button 
+                        type="button"
                         onClick={() => {
-                          printVouchers(lastGeneratedVouchers);
-                          setLastGeneratedVouchers([]);
+                          console.log('🖨️ A4 print button clicked!');
+                          if (lastGeneratedVouchers && lastGeneratedVouchers.length > 0) {
+                            printVouchers(lastGeneratedVouchers);
+                            setLastGeneratedVouchers([]);
+                          }
                         }}
-                        className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center"
+                        className="btn btn-primary w-100"
                         style={{ height: '48px' }}
                       >
                         <Printer className="me-2" size={20} />
-                        <div className="text-start">
-                          <div>Imprimir A4</div>
-                          <small className="text-muted">Formato padrão ({lastGeneratedVouchers.length} vouchers)</small>
-                        </div>
+                        Imprimir A4 ({lastGeneratedVouchers?.length || 0} vouchers)
                       </button>
                       
                       <button 
-                        onClick={() => setLastGeneratedVouchers([])}
-                        className="btn btn-outline-secondary w-100"
+                        type="button"
+                        onClick={() => {
+                          console.log('🧾 Thermal print button clicked!');
+                          if (lastGeneratedVouchers && lastGeneratedVouchers.length > 0) {
+                            printVouchersRoll(lastGeneratedVouchers);
+                            setLastGeneratedVouchers([]);
+                          }
+                        }}
+                        className="btn btn-secondary w-100"
+                        style={{ height: '48px' }}
                       >
-                        Cancelar
+                        <Printer className="me-2" size={20} />
+                        Cupom Térmico ({lastGeneratedVouchers?.length || 0} vouchers)
+                      </button>
+                      
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          console.log('❌ Cancel button clicked!');
+                          setLastGeneratedVouchers([]);
+                        }}
+                        className="btn btn-danger w-100"
+                        style={{ height: '40px' }}
+                      >
+                        Cancelar Impressão
                       </button>
                     </div>
                   </div>
@@ -1236,6 +1265,155 @@ function ReportsSection({ siteId }: { siteId: string }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Print History Section Component
+function PrintHistorySection({ siteId }: { siteId: string }) {
+  const { toast } = useToast();
+  
+  const { data: printHistory = [], isLoading } = useQuery({
+    queryKey: ["/api/print-history"],
+    refetchInterval: 30000,
+  });
+
+  const reprintVoucher = (voucherCodes: string[], printType: string, htmlContent: string) => {
+    if (!voucherCodes || voucherCodes.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Códigos de vouchers não encontrados",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Erro na impressão",
+        description: "Não foi possível abrir a janela de impressão",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 1000);
+    
+    toast({
+      title: `Preparando reimpressão ${printType}`,
+      description: "A janela de impressão foi aberta com sucesso!",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="d-flex justify-content-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Carregando histórico...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container-fluid px-0">
+      <div className="mb-4">
+        <h1 className="h2 h1-lg fw-bold text-dark mb-2">Histórico de Impressões</h1>
+        <p className="text-muted">Visualize e reimprima vouchers anteriores</p>
+      </div>
+
+      {printHistory && printHistory.length > 0 ? (
+        <div className="row g-3">
+          {printHistory.map((print: any, index: number) => (
+            <div key={index} className="col-12 col-md-6 col-xl-4">
+              <div className="card shadow-sm h-100">
+                <div className="card-header d-flex justify-content-between align-items-center">
+                  <h6 className="mb-0 fw-semibold text-truncate">
+                    {print.printTitle || `Impressão ${index + 1}`}
+                  </h6>
+                  <span className={`badge ${print.printType === 'thermal' ? 'bg-secondary' : 'bg-primary'}`}>
+                    {print.printType === 'thermal' ? 'Térmico' : 'A4'}
+                  </span>
+                </div>
+                <div className="card-body">
+                  <div className="mb-3">
+                    <small className="text-muted d-block">
+                      <strong>Data:</strong> {new Date(print.createdAt).toLocaleString('pt-BR')}
+                    </small>
+                    <small className="text-muted d-block">
+                      <strong>Vouchers:</strong> {print.voucherCodes?.length || 0} códigos
+                    </small>
+                  </div>
+                  
+                  <div className="d-flex gap-2 align-items-center">
+                    <div className="btn-group flex-grow-1" role="group">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (print.voucherCodes && print.voucherCodes.length > 0 && print.htmlContent) {
+                            reprintVoucher(print.voucherCodes, print.printType, print.htmlContent);
+                          } else {
+                            toast({
+                              title: "Erro",
+                              description: "Dados de impressão não encontrados",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        className="btn btn-primary btn-sm"
+                        title="Reimprimir com formato original"
+                      >
+                        <Printer className="me-1" size={16} />
+                        Reimprimir
+                      </button>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const dataStr = JSON.stringify(print.voucherCodes, null, 2);
+                        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                        const url = URL.createObjectURL(dataBlob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `vouchers-${print.printTitle.replace(/[^a-zA-Z0-9]/g, '-')}.json`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        
+                        toast({
+                          title: "Download iniciado",
+                          description: "Arquivo de códigos foi baixado com sucesso!",
+                        });
+                      }}
+                      className="btn btn-outline-secondary btn-sm"
+                      title="Baixar códigos"
+                    >
+                      <FileText size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-5">
+          <div className="bg-light rounded-circle mx-auto mb-4 d-flex align-items-center justify-content-center" style={{width: '80px', height: '80px'}}>
+            <History size={40} className="text-muted" />
+          </div>
+          <h5 className="fw-semibold text-dark mb-2">Nenhuma impressão encontrada</h5>
+          <p className="text-muted mb-4">Quando você imprimir vouchers, eles aparecerão aqui para reimpressão</p>
+        </div>
+      )}
     </div>
   );
 }
