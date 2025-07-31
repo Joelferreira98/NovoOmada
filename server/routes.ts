@@ -624,15 +624,22 @@ export function registerRoutes(app: Express): Server {
       }
       
       // Role-based restrictions: Master can delete anyone, Admin can delete vendedores
+      console.log("Delete request - Requesting user:", requestingUser.role, requestingUser.username);
+      
       if (requestingUser.role === "master") {
+        console.log("Master user - allowing deletion");
         // Master can delete any user
       } else if (requestingUser.role === "admin") {
+        console.log("Admin user - checking target user");
         // Admin can only delete vendedores
         const targetUser = await storage.getUser(userId);
+        console.log("Target user:", targetUser ? targetUser.role : "not found", targetUser ? targetUser.username : "N/A");
         if (!targetUser || targetUser.role !== "vendedor") {
           return res.status(403).json({ message: "Admins só podem excluir vendedores" });
         }
+        console.log("Admin allowed to delete vendedor");
       } else {
+        console.log("Insufficient permissions for role:", requestingUser.role);
         return res.status(403).json({ message: "Sem permissão para excluir usuários" });
       }
       
