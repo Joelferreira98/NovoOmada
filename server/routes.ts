@@ -2169,19 +2169,45 @@ export function registerRoutes(app: Express): Server {
         return res.status(500).json({ message: "Credenciais Omada não configuradas" });
       }
 
-      // Obter token de acesso
-      const accessToken = await getValidOmadaToken(credentials);
-
       // Deletar voucher via API Omada se tiver omadaVoucherId
       if (voucher.omadaVoucherId) {
         console.log(`Deleting voucher ${voucher.omadaVoucherId} from Omada API...`);
+        
+        // Obter token de acesso fresco para delete
+        console.log('Getting fresh token for voucher deletion...');
+        const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            grant_type: 'client_credentials',
+            client_id: credentials.clientId,
+            client_secret: credentials.clientSecret,
+          }),
+          // Ignore SSL certificate issues for self-signed certificates
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({
+              rejectUnauthorized: false
+            })
+          })
+        });
+
+        if (!tokenResponse.ok) {
+          console.error('Failed to get fresh token for delete operation');
+          return res.status(500).json({ message: "Erro ao obter token para deletar voucher" });
+        }
+
+        const tokenData = await tokenResponse.json();
+        const freshAccessToken = tokenData.access_token;
+        console.log(`Using fresh token for delete: ${freshAccessToken.substring(0, 10)}...`);
         
         const deleteResponse = await fetch(
           `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/${voucher.omadaVoucherId}`,
           {
             method: 'DELETE',
             headers: {
-              'Authorization': `Bearer ${accessToken}`,
+              'Authorization': `Bearer ${freshAccessToken}`,
               'Content-Type': 'application/x-www-form-urlencoded',
             },
             // Ignore SSL certificate issues for self-signed certificates
