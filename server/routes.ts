@@ -143,47 +143,87 @@ async function renewOmadaToken(credentials: any): Promise<string> {
   return renewOmadaTokenWithCallbacks(credentials);
 }
 
+// Function to validate token by making a test API call
+async function validateToken(token: string, credentials: any): Promise<boolean> {
+  try {
+    console.log('Validating token with test API call...');
+    
+    // Make a simple API call to verify token works
+    const testResponse = await fetch(`${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `AccessToken=${token}`,
+        'Content-Type': 'application/json'
+      },
+      // Ignore SSL certificate issues for development
+      ...(process.env.NODE_ENV === 'development' && {
+        agent: new (await import('https')).Agent({
+          rejectUnauthorized: false
+        })
+      })
+    });
+
+    if (!testResponse.ok) {
+      console.log(`Token validation failed: ${testResponse.status}`);
+      return false;
+    }
+
+    const testData = await testResponse.json();
+    const isValid = testData.errorCode === 0;
+    
+    console.log(`Token validation result: ${isValid ? 'VALID' : 'INVALID'} (errorCode: ${testData.errorCode})`);
+    return isValid;
+    
+  } catch (error) {
+    console.error('Token validation error:', error);
+    return false;
+  }
+}
+
 // Function to get token with guaranteed freshness for critical operations
 async function getCriticalToken(credentials: any, operationName: string): Promise<string> {
   console.log(`Getting critical token for operation: ${operationName}`);
   
-  return new Promise((resolve, reject) => {
-    const callbackId = `critical_${operationName}_${Date.now()}`;
+  let attempts = 0;
+  const maxAttempts = 3;
+  
+  while (attempts < maxAttempts) {
+    attempts++;
+    console.log(`Critical token attempt ${attempts}/${maxAttempts} for ${operationName}`);
     
-    // Register high-priority callback
-    tokenRenewalCallbacks.set(callbackId, {
-      id: callbackId,
-      callback: (newToken) => {
-        console.log(`✓ Critical token obtained for ${operationName}`);
-        tokenRenewalCallbacks.delete(callbackId);
-        resolve(newToken);
-      },
-      priority: 'high'
-    });
-    
-    // Force token renewal
+    // Force fresh token generation
     tokenCache = null;
-    renewOmadaTokenWithCallbacks(credentials).then(token => {
-      // If callback wasn't triggered yet, trigger it now
-      if (tokenRenewalCallbacks.has(callbackId)) {
-        const callback = tokenRenewalCallbacks.get(callbackId)!;
-        callback.callback(token);
-      }
-    }).catch(error => {
-      if (tokenRenewalCallbacks.has(callbackId)) {
-        tokenRenewalCallbacks.delete(callbackId);
-      }
-      reject(error);
-    });
     
-    // Timeout after 15 seconds for critical operations
-    setTimeout(() => {
-      if (tokenRenewalCallbacks.has(callbackId)) {
-        tokenRenewalCallbacks.delete(callbackId);
-        reject(new Error(`Critical token timeout for ${operationName}`));
+    try {
+      // Get new token
+      const newToken = await renewOmadaTokenWithCallbacks(credentials);
+      
+      // Validate token immediately
+      const isValid = await validateToken(newToken, credentials);
+      
+      if (isValid) {
+        console.log(`✓ Valid critical token obtained for ${operationName} on attempt ${attempts}`);
+        return newToken;
+      } else {
+        console.log(`✗ Token validation failed for ${operationName} on attempt ${attempts}`);
+        if (attempts === maxAttempts) {
+          throw new Error(`Failed to get valid token after ${maxAttempts} attempts`);
+        }
+        // Wait 2 seconds before retry
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
-    }, 15000);
-  });
+      
+    } catch (error) {
+      console.error(`Critical token attempt ${attempts} failed:`, error);
+      if (attempts === maxAttempts) {
+        throw error;
+      }
+      // Wait 2 seconds before retry
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+  
+  throw new Error(`Failed to obtain critical token for ${operationName}`);
 }
 
 // Função para sincronizar status dos vouchers com a API do Omada
@@ -2285,8 +2325,10 @@ export function registerRoutes(app: Express): Server {
       if (voucher.omadaVoucherId) {
         console.log(`Deleting voucher ${voucher.omadaVoucherId} from Omada API...`);
         
-        // Usar sistema de callback para obter token crítico
+        // Usar sistema de callback para obter token crítico validado
         const freshAccessToken = await getCriticalToken(credentials, `delete_voucher_${voucher.omadaVoucherId}`);
+        
+        console.log(`Using validated token for delete: ${freshAccessToken.substring(0, 15)}...`);
         
         const deleteResponse = await fetch(
           `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/${voucher.omadaVoucherId}`,
