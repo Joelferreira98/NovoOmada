@@ -345,23 +345,50 @@ export class DatabaseStorage implements IStorage {
 
   async createVoucher(voucher: InsertVoucher): Promise<Voucher> {
     const voucherId = crypto.randomUUID();
-    const voucherWithId = { 
-      ...voucher,
-      id: voucherId,
-      voucherCode: voucher.code, // Map code to voucher_code column
-      createdBy: voucher.vendedorId, // Use vendedorId as createdBy
-      createdAt: new Date()
-    };
     
-    // Map code field to both code and voucherCode for compatibility
+    // Create the voucher data with correct field mapping for MySQL
     const voucherData = {
-      ...voucherWithId,
-      code: voucher.code, // Keep both fields
-      voucherCode: voucher.code
+      id: voucherId,
+      plan_id: voucher.planId,
+      site_id: voucher.siteId,
+      voucher_code: voucher.code, // Required field in DB
+      code: voucher.code, // Keep for compatibility 
+      status: voucher.status || 'available',
+      created_by: voucher.vendedorId,
+      vendedor_id: voucher.vendedorId,
+      omada_group_id: voucher.omadaGroupId,
+      omada_voucher_id: voucher.omadaVoucherId,
+      unit_price: voucher.unitPrice,
+      used_at: null,
+      created_at: new Date()
     };
     
     console.log('Creating voucher with mapped data:', voucherData);
-    await db.insert(vouchers).values(voucherData);
+    
+    // Use raw SQL to ensure exact field mapping with pool connection
+    const { pool } = await import("./db");
+    await pool.execute(`
+      INSERT INTO vouchers (
+        id, plan_id, site_id, voucher_code, code, status, 
+        created_by, vendedor_id, omada_group_id, omada_voucher_id, 
+        unit_price, used_at, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      voucherData.id,
+      voucherData.plan_id,
+      voucherData.site_id,
+      voucherData.voucher_code,
+      voucherData.code,
+      voucherData.status,
+      voucherData.created_by,
+      voucherData.vendedor_id,
+      voucherData.omada_group_id,
+      voucherData.omada_voucher_id,
+      voucherData.unit_price,
+      voucherData.used_at,
+      voucherData.created_at
+    ]);
+    
     const [newVoucher] = await db.select().from(vouchers).where(eq(vouchers.id, voucherId));
     return newVoucher;
   }
