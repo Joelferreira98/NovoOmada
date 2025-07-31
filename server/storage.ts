@@ -100,9 +100,24 @@ export class DatabaseStorage implements IStorage {
     const userId = crypto.randomUUID();
     const userWithId = { ...insertUser, id: userId };
     
-    await db.insert(users).values(userWithId);
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    return user;
+    console.log('Creating user with data:', userWithId);
+    
+    try {
+      const insertResult = await db.insert(users).values(userWithId);
+      console.log('Insert result:', insertResult);
+      
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      console.log('Created user retrieved:', user);
+      
+      if (!user) {
+        throw new Error('User was not created properly');
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   }
 
   async getAllUsers(): Promise<User[]> {

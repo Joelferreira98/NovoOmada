@@ -488,7 +488,20 @@ export function registerRoutes(app: Express): Server {
       const userId = req.params.userId;
       const { siteIds } = req.body;
       
-      console.log(`Assigning sites to user ${userId}:`, siteIds);
+      console.log(`Route: Assigning sites to user ${userId}:`, siteIds);
+      console.log(`Request body:`, req.body);
+      
+      // Validate user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Validate siteIds format
+      if (siteIds && !Array.isArray(siteIds)) {
+        return res.status(400).json({ message: "siteIds must be an array" });
+      }
+      
       await storage.assignSitesToUser(userId, siteIds || []);
       res.json({ message: "Sites atribuídos com sucesso" });
     } catch (error) {
