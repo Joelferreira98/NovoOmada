@@ -46,7 +46,7 @@ export const userSiteAccess = mysqlTable("user_site_access", {
 });
 
 export const plans = mysqlTable("plans", {
-  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
+  id: varchar("id", { length: 36 }).primaryKey(),
   siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
   nome: varchar("nome", { length: 100 }).notNull(),
   comprimentoVoucher: int("comprimento_voucher").notNull(),
@@ -57,7 +57,7 @@ export const plans = mysqlTable("plans", {
   downLimit: int("down_limit").default(0),
   upLimit: int("up_limit").default(0),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  createdBy: varchar("created_by", { length: 36 }).notNull().references(() => users.id),
+  createdBy: varchar("created_by", { length: 36 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -290,8 +290,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPlan(plan: InsertPlan): Promise<Plan> {
-    await db.insert(plans).values(plan);
-    const [newPlan] = await db.select().from(plans).orderBy(desc(plans.createdAt)).limit(1);
+    // Generate UUID for MySQL since it doesn't support default UUID()
+    const planWithId = {
+      ...plan,
+      id: crypto.randomUUID(),
+    };
+    
+    await db.insert(plans).values(planWithId);
+    const [newPlan] = await db.select().from(plans).where(eq(plans.id, planWithId.id));
     return newPlan;
   }
 
