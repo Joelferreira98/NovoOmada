@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Site } from "@shared/schema";
+import { VendedorModal } from "@/components/modals/vendedor-modal";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -203,7 +204,7 @@ export default function AdminDashboard() {
 
         {/* Quick Actions */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Users className="h-5 w-5 mr-2" />
@@ -214,9 +215,10 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" disabled>
-                Em Breve
-              </Button>
+              <VendedorModal 
+                siteId={selectedSite.id} 
+                siteName={selectedSite.name}
+              />
             </CardContent>
           </Card>
 

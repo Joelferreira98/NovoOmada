@@ -427,10 +427,16 @@ export function registerRoutes(app: Express): Server {
 
   // IMPORTANT: More specific routes must come BEFORE general routes
   // Site Access Management for users - BULK assignment (must come before /:siteId)
-  app.post("/api/users/:userId/sites/assign", requireAuth, requireRole(["master"]), async (req, res) => {
+  app.post("/api/users/:userId/sites/assign", requireAuth, async (req, res) => {
     try {
+      const requestingUser = req.user!;
       const userId = req.params.userId;
       const { siteIds } = req.body;
+      
+      // Role-based restrictions
+      if (requestingUser.role !== "master" && requestingUser.role !== "admin") {
+        return res.status(403).json({ message: "Sem permissão para atribuir sites" });
+      }
       
       console.log(`Route: Assigning sites to user ${userId}:`, siteIds);
       console.log(`Request body:`, req.body);
@@ -508,9 +514,24 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/users", requireAuth, requireRole(["master"]), async (req, res) => {
+  app.post("/api/users", requireAuth, async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
+      const requestingUser = req.user!;
+      
+      // Role-based restrictions
+      if (requestingUser.role === "master") {
+        // Master can create any role
+      } else if (requestingUser.role === "admin") {
+        // Admin can only create vendedores
+        if (userData.role !== "vendedor") {
+          return res.status(403).json({ message: "Admins só podem criar vendedores" });
+        }
+      } else {
+        // Vendedores cannot create users
+        return res.status(403).json({ message: "Sem permissão para criar usuários" });
+      }
+      
       const existingUser = await storage.getUserByUsername(userData.username);
       
       if (existingUser) {
