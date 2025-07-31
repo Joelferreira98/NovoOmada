@@ -13,14 +13,15 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 - **Smart JSON Handling**: Sistema robusto de parsing JSON para códigos de vouchers
 - **Debug Logging**: Logs detalhados para monitoramento do sistema
 
-✓ **Sistema de Relatórios por Preço com Consulta por Data - NEW**: Nova funcionalidade de análise de vouchers
-- **Price Distribution API**: Endpoint `/api/reports/voucher-price-distribution` usando documentação Omada oficial
-- **Date Range Filter**: Filtros por data start/end timestamp conforme especificação da API
-- **Price Analysis Tab**: Nova aba "Por Preço" no sistema de relatórios com interface completa
-- **Real-time Data**: Consulta direta à API Omada com parâmetros `filters.timeStart` e `filters.timeEnd`
-- **Currency Support**: Exibição de moeda e valores formatados corretamente
-- **Usage Statistics**: Percentual de vouchers utilizados por faixa de preço
-- **Period Summary**: Resumo consolidado do período selecionado
+✓ **Sistema de Relatórios Avançado por Preço e Duração - NEW**: Funcionalidades completas de análise temporal
+- **Price Distribution API**: Endpoint `/api/reports/voucher-price-distribution` com filtros de data
+- **Duration Distribution API**: Endpoint `/api/reports/voucher-duration-distribution` com análise temporal
+- **Date Range Filtering**: Ambas APIs usam `filters.timeStart` e `filters.timeEnd` conforme documentação Omada
+- **Enhanced UI**: Abas "Por Preço" e "Distribuição" atualizadas com períodos selecionáveis
+- **Price Correction**: Corrigido envio de preço decimal para API Omada (não mais em centavos)
+- **Duration Analysis**: Análise detalhada por tipo de duração (cliente vs voucher) com aproveitamento
+- **Real-time Data**: Consultas diretas à API Omada com dados autênticos
+- **Period Summaries**: Resumos consolidados para ambos os tipos de distribuição
 
 ✓ **Menu Atualizado**: Substituído "Caixa" por "Relatórios" no dashboard do vendedor
 - **Direct Access**: Link direto para o sistema completo de relatórios

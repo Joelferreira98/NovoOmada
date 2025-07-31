@@ -1605,6 +1605,71 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get voucher distribution by duration with date range
+  app.get("/api/reports/voucher-duration-distribution/:siteId/:timeStart/:timeEnd", requireAuth, async (req, res) => {
+    try {
+      const { siteId, timeStart, timeEnd } = req.params;
+      const site = await storage.getSiteById(siteId);
+      
+      if (!site) {
+        return res.status(404).json({ message: "Site not found" });
+      }
+
+      // Check if user has access to this site
+      const userSites = await storage.getUserSites(req.user!.id);
+      const hasAccess = userSites.some(s => s.id === siteId);
+      
+      if (!hasAccess && req.user!.role !== "master") {
+        return res.status(403).json({ message: "Access denied to this site" });
+      }
+
+      // Get Omada credentials
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Omada credentials not configured" });
+      }
+
+      console.log('⏱️ Fetching duration distribution for site:', site.name, 'from:', new Date(Number(timeStart) * 1000), 'to:', new Date(Number(timeEnd) * 1000));
+
+      // Get access token
+      const accessToken = await getAccessToken(credentials);
+      
+      // Call Omada API for duration distribution with date range
+      const apiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history/distribution/duration?filters.timeStart=${timeStart}&filters.timeEnd=${timeEnd}`;
+      
+      console.log('📡 Calling Omada Duration API:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch duration distribution from Omada: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('⏱️ Duration distribution response:', JSON.stringify(data, null, 2));
+      
+      if (data.errorCode !== 0) {
+        throw new Error(data.msg || 'Omada API error');
+      }
+
+      res.json(data.result);
+    } catch (error: any) {
+      console.error("❌ Error fetching voucher duration distribution:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch voucher duration distribution" });
+    }
+  });
+
   app.get("/api/reports/voucher-distribution/:siteId/:timeStart/:timeEnd", requireAuth, async (req, res) => {
     try {
       const { siteId, timeStart, timeEnd } = req.params;
@@ -2167,7 +2232,7 @@ export function registerRoutes(app: Express): Server {
           }
         },
         trafficLimitEnable: false,
-        unitPrice: Math.round(parseFloat(plan.unitPrice) * 100), // em centavos
+        unitPrice: parseFloat(plan.unitPrice), // preço decimal direto
         currency: "BRL",
         applyToAllPortals: true,
         portals: [],

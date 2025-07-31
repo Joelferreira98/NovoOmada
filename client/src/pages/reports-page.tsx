@@ -98,6 +98,12 @@ export default function ReportsPage() {
     enabled: !!selectedSiteId,
   });
 
+  // Get voucher duration distribution with date range
+  const { data: durationDistributionWithDates, isLoading: durationLoading } = useQuery<{ data: VoucherDurationDistribution[] }>({
+    queryKey: ["/api/reports/voucher-duration-distribution", selectedSiteId, Math.floor(dateRange.from.getTime() / 1000), Math.floor(dateRange.to.getTime() / 1000)],
+    enabled: !!selectedSiteId,
+  });
+
   // Get voucher distribution by duration
   const { data: durationDistribution, isLoading: distributionLoading } = useQuery<VoucherDurationDistribution[]>({
     queryKey: ["/api/reports/voucher-distribution", selectedSiteId, dateRange.from.getTime(), dateRange.to.getTime()],
@@ -381,35 +387,66 @@ export default function ReportsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Distribuição por Duração</CardTitle>
-              <CardDescription>Análise de vouchers por tempo de uso</CardDescription>
+              <CardDescription>
+                Análise de vouchers por tempo de uso no período de {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} até {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {distributionLoading ? (
-                <div className="text-center py-8">Carregando distribuição...</div>
-              ) : durationDistribution && durationDistribution.length > 0 ? (
+              {durationLoading ? (
+                <div className="text-center py-8">Carregando distribuição por duração...</div>
+              ) : durationDistributionWithDates?.data && durationDistributionWithDates.data.length > 0 ? (
                 <div className="space-y-4">
-                  {durationDistribution.map((item, index) => (
+                  {durationDistributionWithDates.data.map((item, index) => (
                     <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                       <div>
-                        <div className="font-medium">
-                          Duração: {formatDuration(item.duration)}
+                        <div className="font-medium text-lg">
+                          {formatDuration(item.duration)}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Tipo: {item.durationType === 0 ? "Por cliente" : "Por voucher"}
+                          Tipo: {item.durationType === 0 ? "Por cliente (cada cliente expira após a duração)" : "Por voucher (cliente expira quando voucher expira)"}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-medium">{item.usedCount} utilizados</div>
                         <div className="text-sm text-muted-foreground">
-                          Total: {formatDuration(item.totalDuration)}
+                          Duração total: {formatDuration(item.totalDuration)}
                         </div>
+                        <Badge variant="outline" className="mt-1">
+                          {item.usedCount > 0 ? 
+                            `${((item.usedCount / Math.max(item.totalDuration / item.duration, 1)) * 100).toFixed(1)}% aproveitamento` : 
+                            'Não utilizado'
+                          }
+                        </Badge>
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Summary Card */}
+                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">Resumo do Período</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Tipos de duração:</span>
+                        <span className="ml-2 font-medium">{durationDistributionWithDates.data.length}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Total utilizado:</span>
+                        <span className="ml-2 font-medium">
+                          {durationDistributionWithDates.data.reduce((sum, item) => sum + item.usedCount, 0)} vouchers
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  Nenhum dado de distribuição encontrado
+                  <div className="mb-4">
+                    <PieChart className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                  </div>
+                  <p>Nenhum dado de distribuição por duração encontrado para o período selecionado</p>
+                  <p className="text-sm mt-2">
+                    Tente selecionar um período diferente ou verifique se há vouchers utilizados no site
+                  </p>
                 </div>
               )}
             </CardContent>
