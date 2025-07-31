@@ -1494,19 +1494,35 @@ export function registerRoutes(app: Express): Server {
       // Obter token de acesso
       const accessToken = await getValidOmadaToken(credentials);
 
-      // Criar grupo de vouchers na API do Omada
+      // Criar grupo de vouchers na API do Omada seguindo a documentação oficial
       const voucherData = {
         name: `${plan.nome} - ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`,
-        type: 1, // Voucher group type (1 = voucher group)
-        note: `Gerado por ${req.user!.username}`,
-        voucherNum: quantity,
-        limitType: 1, // Limited Online Users
-        userLimit: plan.userLimit || 1,
-        duration: plan.duration,
-        downLimit: plan.downLimit,
-        upLimit: plan.upLimit,
-        trafficLimit: 0, // Unlimited traffic
-        remainTrafficLimit: 0
+        amount: parseInt(quantity), // quantidade de vouchers
+        codeLength: plan.comprimentoVoucher, // 6-10 characters
+        codeForm: plan.codeForm === '[0,1]' ? [0, 1] : [0], // 0=Number, 1=Letter
+        limitType: 1, // 0=Limited Usage, 1=Limited Online Users, 2=Unlimited  
+        limitNum: plan.userLimit || 1, // número de usuários simultâneos  
+        durationType: 0, // 0=Client duration, 1=Voucher duration
+        duration: plan.duration, // em minutos
+        timingType: 0, // 0=Timing by time, 1=Timing by usage
+        rateLimit: {
+          mode: 0, // 0=customRateLimit, 1=rateLimitProfileId
+          customRateLimit: {
+            downLimitEnable: plan.downLimit > 0,
+            downLimit: plan.downLimit || 0,
+            upLimitEnable: plan.upLimit > 0,
+            upLimit: plan.upLimit || 0
+          }
+        },
+        trafficLimitEnable: false,
+        unitPrice: Math.round(parseFloat(plan.unitPrice) * 100), // em centavos
+        currency: "BRL",
+        applyToAllPortals: true,
+        portals: [],
+        logout: true,
+        description: `Plano ${plan.nome} - ${plan.duration} minutos`,
+        printComments: `Gerado por ${req.user!.username}`,
+        validityType: 0 // 0=qualquer hora, 1=entre datas específicas, 2=horário agendado
       };
 
       console.log('Creating voucher group with data:', voucherData);
