@@ -493,6 +493,51 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.put("/api/users/:userId", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const userData = req.body;
+      
+      // If password is being updated, hash it
+      if (userData.password) {
+        userData.password = await hashPassword(userData.password);
+      }
+      
+      const updatedUser = await storage.updateUser(userId, userData);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Remove password from response
+      const { password, ...userResponse } = updatedUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Update user error:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/users/:userId", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      
+      // Don't allow master to delete themselves
+      if (userId === req.user!.id) {
+        return res.status(400).json({ message: "Não é possível deletar sua própria conta" });
+      }
+      
+      const deleted = await storage.deleteUser(userId);
+      if (!deleted) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ message: "Usuário deletado com sucesso" });
+    } catch (error) {
+      console.error("Delete user error:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   // Plan Management (Admin only)
   app.get("/api/sites/:siteId/plans", requireAuth, requireRole(["admin", "vendedor"]), async (req, res) => {
     try {

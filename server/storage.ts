@@ -18,6 +18,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, user: Partial<User>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<boolean>;
   getAllUsers(): Promise<User[]>;
   getAdminsBySite(siteId: string): Promise<User[]>;
   getVendedoresBySite(siteId: string): Promise<User[]>;
@@ -107,6 +109,20 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users).orderBy(users.username);
   }
 
+  async updateUser(id: string, user: Partial<User>): Promise<User | undefined> {
+    await db
+      .update(users)
+      .set(user)
+      .where(eq(users.id, id));
+    const [updatedUser] = await db.select().from(users).where(eq(users.id, id));
+    return updatedUser;
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return (result.affectedRows || 0) > 0;
+  }
+
   async getAdminsBySite(siteId: string): Promise<User[]> {
     const result = await db
       .select({
@@ -187,7 +203,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async assignUserToSite(userId: string, siteId: string): Promise<void> {
-    await db.insert(userSiteAccess).values({ userId, siteId });
+    await db.insert(userSiteAccess).values({ 
+      id: crypto.randomUUID(),
+      userId, 
+      siteId 
+    });
   }
 
   async assignSitesToUser(userId: string, siteIds: string[]): Promise<void> {
@@ -196,7 +216,11 @@ export class DatabaseStorage implements IStorage {
     
     // Add new assignments
     if (siteIds.length > 0) {
-      const assignments = siteIds.map(siteId => ({ userId, siteId }));
+      const assignments = siteIds.map(siteId => ({ 
+        id: crypto.randomUUID(),
+        userId, 
+        siteId 
+      }));
       await db.insert(userSiteAccess).values(assignments);
     }
   }

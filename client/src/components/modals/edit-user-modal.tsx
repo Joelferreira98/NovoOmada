@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -6,29 +6,36 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-const userFormSchema = insertUserSchema.extend({
-  confirmPassword: z.string().min(6, "Senha deve ter pelo menos 6 caracteres")
-}).refine((data) => data.password === data.confirmPassword, {
+const editUserSchema = z.object({
+  username: z.string().min(3, "Username deve ter pelo menos 3 caracteres"),
+  email: z.string().email("Email inválido"),
+  password: z.string().optional(),
+  confirmPassword: z.string().optional()
+}).refine((data) => {
+  if (data.password && data.password !== data.confirmPassword) {
+    return false;
+  }
+  return true;
+}, {
   message: "Senhas não coincidem",
   path: ["confirmPassword"]
 });
 
-type UserFormData = z.infer<typeof userFormSchema>;
+type EditUserFormData = z.infer<typeof editUserSchema>;
 
-interface UserModalProps {
+interface EditUserModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  user: any;
 }
 
-export function UserModal({ open, onOpenChange }: UserModalProps) {
+export function EditUserModal({ open, onOpenChange, user }: EditUserModalProps) {
   const { toast } = useToast();
   const [selectedSites, setSelectedSites] = useState<string[]>([]);
 
@@ -36,51 +43,76 @@ export function UserModal({ open, onOpenChange }: UserModalProps) {
     queryKey: ["/api/sites"],
   });
 
-  const form = useForm<UserFormData>({
-    resolver: zodResolver(userFormSchema),
+  const { data: userSites = [] } = useQuery({
+    queryKey: ["/api/users", user?.id, "sites"],
+    enabled: !!user?.id
+  });
+
+  const form = useForm<EditUserFormData>({
+    resolver: zodResolver(editUserSchema),
     defaultValues: {
       username: "",
       email: "",
       password: "",
-      confirmPassword: "",
-      role: "admin"
+      confirmPassword: ""
     }
   });
 
-  const createUserMutation = useMutation({
-    mutationFn: async (userData: UserFormData) => {
-      const { confirmPassword, ...userToCreate } = userData;
-      const res = await apiRequest("POST", "/api/users", userToCreate);
-      return await res.json();
-    },
-    onSuccess: async (newUser) => {
-      // Assign sites if any selected
-      if (selectedSites.length > 0) {
-        await apiRequest("POST", `/api/users/${newUser.id}/sites/assign`, {
-          siteIds: selectedSites
-        });
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        username: user.username,
+        email: user.email,
+        password: "",
+        confirmPassword: ""
+      });
+      
+      // Set selected sites
+      const siteIds = (userSites as any[]).map((site: any) => site.id);
+      setSelectedSites(siteIds);
+    }
+  }, [user, userSites, form]);
+
+  const updateUserMutation = useMutation({
+    mutationFn: async (userData: EditUserFormData) => {
+      const updateData: any = {
+        username: userData.username,
+        email: userData.email
+      };
+      
+      // Only include password if it's provided
+      if (userData.password && userData.password.length > 0) {
+        updateData.password = userData.password;
       }
       
+      const res = await apiRequest("PUT", `/api/users/${user.id}`, updateData);
+      return await res.json();
+    },
+    onSuccess: async () => {
+      // Update site assignments
+      await apiRequest("POST", `/api/users/${user.id}/sites/assign`, {
+        siteIds: selectedSites
+      });
+      
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user.id, "sites"] });
       toast({
-        title: "Usuário criado",
-        description: `${newUser.role === 'admin' ? 'Administrador' : 'Vendedor'} criado com sucesso`
+        title: "Usuário atualizado",
+        description: "Administrador atualizado com sucesso"
       });
       onOpenChange(false);
-      form.reset();
-      setSelectedSites([]);
     },
     onError: (error: any) => {
       toast({
         title: "Erro",
-        description: error.message || "Falha ao criar usuário",
+        description: error.message || "Falha ao atualizar usuário",
         variant: "destructive"
       });
     }
   });
 
-  const onSubmit = (data: UserFormData) => {
-    createUserMutation.mutate(data);
+  const onSubmit = (data: EditUserFormData) => {
+    updateUserMutation.mutate(data);
   };
 
   const toggleSite = (siteId: string) => {
@@ -91,11 +123,13 @@ export function UserModal({ open, onOpenChange }: UserModalProps) {
     );
   };
 
+  if (!user) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Criar Novo Usuário</DialogTitle>
+          <DialogTitle>Editar Administrador - {user.username}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -126,12 +160,12 @@ export function UserModal({ open, onOpenChange }: UserModalProps) {
             </div>
 
             <div>
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password">Nova Senha (opcional)</Label>
               <Input
                 id="password"
                 type="password"
                 {...form.register("password")}
-                placeholder="Digite a senha"
+                placeholder="Deixe vazio para manter atual"
               />
               {form.formState.errors.password && (
                 <p className="text-sm text-red-500 mt-1">{form.formState.errors.password.message}</p>
@@ -139,31 +173,15 @@ export function UserModal({ open, onOpenChange }: UserModalProps) {
             </div>
 
             <div>
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 {...form.register("confirmPassword")}
-                placeholder="Confirme a senha"
+                placeholder="Confirme a nova senha"
               />
               {form.formState.errors.confirmPassword && (
                 <p className="text-sm text-red-500 mt-1">{form.formState.errors.confirmPassword.message}</p>
-              )}
-            </div>
-
-            <div className="md:col-span-2">
-              <Label htmlFor="role">Tipo de Usuário</Label>
-              <Select value={form.watch("role")} onValueChange={(value) => form.setValue("role", value as "admin" | "vendedor")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-500 mt-1">Master só pode criar administradores. Vendedores são criados pelos admins.</p>
-              {form.formState.errors.role && (
-                <p className="text-sm text-red-500 mt-1">{form.formState.errors.role.message}</p>
               )}
             </div>
           </div>
@@ -171,7 +189,7 @@ export function UserModal({ open, onOpenChange }: UserModalProps) {
           {/* Site Assignment */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Atribuição de Sites</CardTitle>
+              <CardTitle className="text-lg">Sites Atribuídos</CardTitle>
             </CardHeader>
             <CardContent>
               {(sites as any[]).length === 0 ? (
@@ -205,12 +223,12 @@ export function UserModal({ open, onOpenChange }: UserModalProps) {
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={createUserMutation.isPending}
+              disabled={updateUserMutation.isPending}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={createUserMutation.isPending}>
-              {createUserMutation.isPending ? "Criando..." : "Criar Usuário"}
+            <Button type="submit" disabled={updateUserMutation.isPending}>
+              {updateUserMutation.isPending ? "Atualizando..." : "Atualizar Administrador"}
             </Button>
           </div>
         </form>

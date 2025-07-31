@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Crown, FolderSync, Building, ShieldQuestion, Settings, Save, Plus, Users, Mail, Calendar } from "lucide-react";
+import { Crown, FolderSync, Building, ShieldQuestion, Settings, Save, Plus, Users, Mail, Calendar, Edit, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertOmadaCredentialsSchema } from "@shared/schema";
@@ -16,6 +16,8 @@ import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { UserModal } from "@/components/modals/user-modal";
+import { EditUserModal } from "@/components/modals/edit-user-modal";
+
 
 type OmadaCredentialsForm = z.infer<typeof insertOmadaCredentialsSchema>;
 
@@ -24,6 +26,8 @@ export default function MasterDashboard() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("sync");
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [editUserModalOpen, setEditUserModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
 
   if (!user || user.role !== "master") {
     return <Redirect to="/auth" />;
@@ -40,6 +44,38 @@ export default function MasterDashboard() {
   const { data: users = [] } = useQuery({
     queryKey: ["/api/users"],
   });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("DELETE", `/api/users/${userId}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Usuário deletado",
+        description: "Administrador removido com sucesso"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao deletar usuário",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleEditUser = (user: any) => {
+    setSelectedUser(user);
+    setEditUserModalOpen(true);
+  };
+
+  const handleDeleteUser = (user: any) => {
+    if (confirm(`Tem certeza que deseja deletar o administrador "${user.username}"? Esta ação não pode ser desfeita.`)) {
+      deleteUserMutation.mutate(user.id);
+    }
+  };
 
   const credentialsForm = useForm<OmadaCredentialsForm>({
     resolver: zodResolver(insertOmadaCredentialsSchema.omit({ createdBy: true })),
@@ -356,10 +392,24 @@ export default function MasterDashboard() {
                           </div>
                         </div>
                         
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
                           <Badge variant="default">Administrador</Badge>
-                          <Button variant="outline" size="sm">
-                            Gerenciar Sites
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditUser(admin)}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDeleteUser(admin)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Deletar
                           </Button>
                         </div>
                       </div>
@@ -423,6 +473,12 @@ export default function MasterDashboard() {
       <UserModal 
         open={userModalOpen} 
         onOpenChange={setUserModalOpen} 
+      />
+      
+      <EditUserModal 
+        open={editUserModalOpen} 
+        onOpenChange={setEditUserModalOpen}
+        user={selectedUser}
       />
     </div>
   );
