@@ -1262,7 +1262,7 @@ export function registerRoutes(app: Express): Server {
         throw new Error(voucherResult.msg || 'Failed to create vouchers via Omada API');
       }
 
-      const omadaGroupId = voucherResult.result;
+      const omadaGroupId = voucherResult.result.id;
       console.log('Admin voucher group created successfully:', omadaGroupId);
 
       // Get voucher details from Omada
