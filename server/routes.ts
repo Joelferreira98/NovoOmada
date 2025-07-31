@@ -932,13 +932,20 @@ export function registerRoutes(app: Express): Server {
 
       const voucherGroupId = createData.result.id;
 
-      // Buscar os vouchers gerados pelo grupo
+      // Get voucher group details with pagination (required parameters)
+      const voucherGroupParams = new URLSearchParams({
+        page: '1',
+        pageSize: '1000' // Get all vouchers
+      });
+      const voucherGroupUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${voucherGroupId}?${voucherGroupParams}`;
+      console.log(`Fetching voucher group details from: ${voucherGroupUrl}`);
+      
       const vouchersResponse = await fetch(
-        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${voucherGroupId}/vouchers`,
+        voucherGroupUrl,
         {
           method: 'GET',
           headers: {
-            'Authorization': `AccessToken=${accessToken}`, // Use same format as site sync
+            'Authorization': `AccessToken=${accessToken}`,
           },
           ...(process.env.NODE_ENV === 'development' && {
             agent: new (await import('https')).Agent({
@@ -948,18 +955,24 @@ export function registerRoutes(app: Express): Server {
         }
       );
 
+      console.log(`Voucher group response status: ${vouchersResponse.status}`);
+
       if (!vouchersResponse.ok) {
-        throw new Error(`Failed to fetch vouchers: ${vouchersResponse.status}`);
+        const errorText = await vouchersResponse.text();
+        console.error('Voucher group fetch error:', errorText);
+        throw new Error(`Failed to fetch voucher group: ${vouchersResponse.status} - ${errorText}`);
       }
 
       const vouchersData = await vouchersResponse.json();
-      console.log('Vouchers data:', vouchersData);
+      console.log('Voucher group data:', JSON.stringify(vouchersData, null, 2));
 
       if (vouchersData.errorCode !== 0) {
         throw new Error(`Omada API error: ${vouchersData.msg}`);
       }
 
-      const generatedVouchers = vouchersData.result.data || [];
+      // Extract voucher codes from the group details
+      const generatedVouchers = vouchersData.result?.data || [];
+      console.log(`Found ${generatedVouchers.length} vouchers in group ${voucherGroupId}`);
 
       // Salvar vouchers no banco local para controle
       const savedVouchers = [];
