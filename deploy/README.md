@@ -2,6 +2,13 @@
 
 Este guia fornece instruções completas para instalação do Sistema de Vouchers Omada em seu servidor pessoal.
 
+## 📚 Documentação Disponível
+
+- **[Guia Rápido](GUIA_RAPIDO.md)** - Instalação em 5 minutos
+- **[Manual Completo](MANUAL_INSTALLATION.md)** - Instalação passo a passo detalhada
+- **[Solução de Problemas](TROUBLESHOOTING.md)** - Diagnóstico e correção de erros
+- **[README Principal](README.md)** - Visão geral e opções de instalação
+
 ## 📋 Opções de Instalação
 
 ### Opção 1: Instalação Tradicional (Recomendada para Produção)
