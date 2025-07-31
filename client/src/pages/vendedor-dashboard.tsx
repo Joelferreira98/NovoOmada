@@ -529,7 +529,7 @@ export default function VendedorDashboard() {
                           <SelectContent>
                             {(plans as any[]).map((plan) => (
                               <SelectItem key={plan.id} value={plan.id}>
-                                {plan.nome} - R$ {plan.preco} ({plan.duracao}min)
+                                {plan.nome} - R$ {parseFloat(plan.unitPrice || 0).toFixed(2)} ({plan.duration}min)
                               </SelectItem>
                             ))}
                           </SelectContent>

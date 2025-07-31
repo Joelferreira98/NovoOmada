@@ -686,12 +686,12 @@ function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) 
                           <div className="bg-success bg-opacity-10 p-2 rounded-circle me-3">
                             <Settings size={16} className="text-success" />
                           </div>
-                          {plan.name}
+                          {plan.nome}
                         </div>
                       </td>
-                      <td>R$ {(plan.price || 0).toFixed(2)}</td>
+                      <td>R$ {parseFloat(plan.unitPrice || 0).toFixed(2)}</td>
                       <td>{plan.duration} min</td>
-                      <td>{plan.concurrentUsers}</td>
+                      <td>{plan.userLimit}</td>
                       <td>{new Date(plan.createdAt).toLocaleDateString('pt-BR')}</td>
                       <td>
                         <div className="btn-group" role="group">
