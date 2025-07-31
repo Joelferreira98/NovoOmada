@@ -763,8 +763,31 @@ export function registerRoutes(app: Express): Server {
         return res.status(500).json({ message: "Omada credentials not configured" });
       }
 
-      // Obter token de acesso
-      const accessToken = await getValidOmadaToken(credentials);
+      // Obter token de acesso (sempre novo para evitar expiração)
+      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'client_credentials',
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+        }),
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
 
       // Criar grupo de vouchers via API do Omada
       const voucherGroupData = {

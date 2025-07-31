@@ -353,8 +353,12 @@ export class DatabaseStorage implements IStorage {
       createdAt: new Date()
     };
     
-    // Remove the code field as it's mapped to voucherCode
-    const { code, ...voucherData } = voucherWithId;
+    // Map code field to both code and voucherCode for compatibility
+    const voucherData = {
+      ...voucherWithId,
+      code: voucher.code, // Keep both fields
+      voucherCode: voucher.code
+    };
     
     console.log('Creating voucher with mapped data:', voucherData);
     await db.insert(vouchers).values(voucherData);
