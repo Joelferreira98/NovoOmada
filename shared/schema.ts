@@ -38,7 +38,7 @@ export const sites = mysqlTable("sites", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const userSiteAccess = mysqlTable("user_site_access", {
+export const userSiteAccess = mysqlTable("user_sites", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
