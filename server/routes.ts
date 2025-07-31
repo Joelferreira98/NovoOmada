@@ -322,22 +322,30 @@ async function syncVoucherStatus(vouchers: any[], siteId: string) {
                 break;
             }
             
+            // Log detalhado para debug
+            console.log(`Voucher sync: ${localVoucher.code} - Local: ${localVoucher.status} | Omada: ${omadaVoucher.status} -> ${newStatus}`);
+            
             // Atualizar apenas se o status mudou
             if (localVoucher.status !== newStatus) {
-              console.log(`Updating voucher ${localVoucher.code} status from ${localVoucher.status} to ${newStatus}`);
+              console.log(`⚠️ UPDATING voucher ${localVoucher.code} status from ${localVoucher.status} to ${newStatus}`);
               await storage.updateVoucherStatus(localVoucher.id, newStatus);
               
               // Se o voucher foi usado, criar uma venda
               if (newStatus === 'used' && localVoucher.status !== 'used') {
+                console.log(`💰 Creating sale record for voucher ${localVoucher.code} (used)`);
                 await storage.createSale({
                   voucherId: localVoucher.id,
                   sellerId: localVoucher.vendedorId,
                   siteId: localVoucher.siteId,
                   amount: localVoucher.unitPrice
                 });
-                console.log(`Created sale record for voucher ${localVoucher.code}`);
+                console.log(`✓ Sale record created for voucher ${localVoucher.code}`);
               }
+            } else {
+              console.log(`✓ Voucher ${localVoucher.code} status unchanged: ${localVoucher.status}`);
             }
+          } else {
+            console.log(`⚠️ Voucher ${localVoucher.code} not found in Omada response for group ${groupId}`);
           }
         }
       } catch (groupError) {
