@@ -1,0 +1,24 @@
+0|omada-vo | 2025-07-31T20:08:11: 8:08:11 PM [express] serving on port 3000
+0|omada-vo | 2025-07-31T20:09:35: 8:09:35 PM [express] GET /api/user 401 in 2ms
+0|omada-vo | 2025-07-31T20:09:44: 8:09:44 PM [express] POST /api/login 500 in 1119ms :: {"message":"Internal Server Error"}
+0|omada-vo | 2025-07-31T20:10:15: 8:10:15 PM [express] serving on port 3000
+0|omada-vo | 2025-07-31T20:21:34: 8:21:34 PM [express] serving on port 3000
+0|omada-vo | 2025-07-31T20:21:37: 8:21:37 PM [express] GET /api/user 401 in 3ms
+0|omada-vo | 2025-07-31T20:21:48: 8:21:48 PM [express] POST /api/login 500 in 1162ms :: {"message":"Internal Server Error"}
+
+/opt/omada-voucher/logs/err-0.log last 15 lines:
+0|omada-vo |     at file:///opt/omada-voucher/dist/index.js:3449:3
+0|omada-vo |     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+0|omada-vo |     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+0|omada-vo | 2025-07-31T20:21:48: AggregateError [ECONNREFUSED]:
+0|omada-vo |     at /opt/omada-voucher/node_modules/pg-pool/index.js:45:11
+0|omada-vo |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|omada-vo |     at async PGStore._asyncQuery (/opt/omada-voucher/node_modules/connect-pg-simple/index.js:322:21)
+0|omada-vo |     at async PGStore._rawEnsureSessionStoreTable (/opt/omada-voucher/node_modules/connect-pg-simple/index.js:177:19)
+0|omada-vo |     at async PGStore._asyncQuery (/opt/omada-voucher/node_modules/connect-pg-simple/index.js:315:7)
+0|omada-vo | 2025-07-31T20:21:48: AggregateError [ECONNREFUSED]:
+0|omada-vo |     at /opt/omada-voucher/node_modules/pg-pool/index.js:45:11
+0|omada-vo |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|omada-vo |     at async PGStore._asyncQuery (/opt/omada-voucher/node_modules/connect-pg-simple/index.js:322:21)
+0|omada-vo |     at async PGStore._rawEnsureSessionStoreTable (/opt/omada-voucher/node_modules/connect-pg-simple/index.js:177:19)
+0|omada-vo |     at async PGStore._asyncQuery (/opt/omada-voucher/node_modules/connect-pg-simple/index.js:315:7)

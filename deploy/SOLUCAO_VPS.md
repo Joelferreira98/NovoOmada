@@ -1,11 +1,18 @@
-# 🚨 Solução para Erro de Database no VPS
+# 🚨 Solução para Erros de Database e Session Store no VPS
 
-## Problema Identificado
-O erro `received invalid response: 5b` indica que o Drizzle está tentando se conectar ao PostgreSQL, mas o sistema está configurado para MySQL.
+## Problemas Identificados
+1. **Database Error**: `received invalid response: 5b` - Drizzle tentando conectar ao PostgreSQL
+2. **Session Store Error**: `ECONNREFUSED` - Erro na conexão PostgreSQL para sessões
 
-## ✅ Solução Rápida
+## ✅ Solução Rápida para Session Store
 
-### 1. Execute o script de correção:
+### 1. Execute o script de correção para sessões:
+```bash
+# Baixar e executar script de correção de sessões
+curl -fsSL https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/fix-session-store.sh | bash
+```
+
+### 2. Execute o script de correção de database (se necessário):
 ```bash
 # Baixar e executar script de correção
 curl -fsSL https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/fix-database.sh | bash

@@ -13,18 +13,12 @@ import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
 import session from "express-session";
-import connectPg from "connect-pg-simple";
-import { Pool } from 'pg';
+import createMemoryStore from "memorystore";
 
-// Session store using PostgreSQL
-const PostgresSessionStore = connectPg(session);
-const pgPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const sessionStore = new PostgresSessionStore({
-  pool: pgPool,
-  createTableIfMissing: true,
+// Use memory store for sessions in production
+const MemoryStore = createMemoryStore(session);
+const sessionStore = new MemoryStore({
+  checkPeriod: 86400000, // 24 hours
 });
 
 export interface IStorage {
