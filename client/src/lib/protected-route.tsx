@@ -15,9 +15,11 @@ export function ProtectedRoute({
   const [location] = useLocation();
 
   // Get user sites for role-based routing
-  const { data: userSites, isLoading: sitesLoading } = useQuery<Site[]>({
+  const { data: userSites, isLoading: sitesLoading, error: sitesError } = useQuery<Site[]>({
     queryKey: ["/api/users", user?.id, "sites"],
     enabled: !!user?.id && user?.role === "admin",
+    retry: 2,
+    retryDelay: 1000,
   });
 
   if (isLoading || (user?.role === "admin" && sitesLoading)) {

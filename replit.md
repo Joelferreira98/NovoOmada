@@ -4,7 +4,7 @@
 
 This is a full-stack web application built for managing WiFi vouchers through Omada controllers. The system provides role-based access control with three distinct user types: Master (system admin), Admin (site manager), and Vendedor (voucher seller). The application uses a modern React frontend with Express.js backend, MySQL database with Drizzle ORM, and integrates with Omada WiFi controllers for voucher generation and management.
 
-## Recent Changes (July 30, 2025)
+## Recent Changes (July 31, 2025)
 
 ✓ **Database Migration**: Successfully migrated from PostgreSQL to MySQL
 - Updated database connection to use hsstm.shop MySQL server
@@ -21,9 +21,24 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 - **Error handling**: SSL certificate and authentication properly configured
 - **Production ready**: System working with real Omada credentials and data
 
+✓ **User Management & Site Assignment - COMPLETE**: 
+- **Site assignment system fully functional**: Masters can assign sites to admin users
+- **Fixed schema issues**: Corrected user_site_access table structure and relationships
+- **Permission system working**: Role-based access controls implemented and tested
+- **Admin user management**: Can create, edit, and assign sites to admin users via interface
+
+✓ **Admin Dashboard with Site Selection - COMPLETE**:
+- **Multi-site admin support**: Admins with multiple sites get site selection page
+- **Automatic redirection**: Single site admins go directly to dashboard
+- **Site switching**: Admins can change sites using "Trocar Site" button
+- **LocalStorage integration**: Selected site persists across sessions
+- **Smart routing**: Role-based redirection system implemented
+
 ✓ **Authentication System**: 
-- Master user account created and functional
+- Master user account: username "master", password "master123"
+- Admin test user: username "admin", password "admin123" 
 - Session-based authentication working with MySQL backend
+- Protected routes with role-based access control
 
 ✓ **System Architecture**: 
 - Removed manual site creation - sites only synchronized from Omada

@@ -533,62 +533,24 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Site Access Management for users
-  app.get("/api/users/:userId/sites", requireAuth, requireRole(["master"]), async (req, res) => {
+  app.get("/api/users/:userId/sites", requireAuth, async (req, res) => {
     try {
       const userId = req.params.userId;
-      console.log(`Fetching sites for user: ${userId}`);
+      const requestingUser = req.user!;
+      
+      // Allow masters to view any user's sites, and users to view their own sites
+      if (requestingUser.role !== "master" && requestingUser.id !== userId) {
+        console.log(`Access denied: ${requestingUser.role} user ${requestingUser.id} trying to access sites for user ${userId}`);
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      console.log(`Fetching sites for user: ${userId} by ${requestingUser.role} user ${requestingUser.id}`);
       const userSites = await storage.getUserSites(userId);
       console.log(`Found sites:`, userSites);
       res.json(userSites);
     } catch (error) {
       console.error("Get user sites error:", error);
       res.status(500).json({ message: "Failed to fetch user sites", error: error instanceof Error ? error.message : "Unknown error" });
-    }
-  });
-
-  app.post("/api/users/:userId/sites/assign", requireAuth, requireRole(["master"]), async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const { siteIds } = req.body;
-      
-      console.log(`Route: Assigning sites to user ${userId}:`, siteIds);
-      console.log(`Request body:`, req.body);
-      console.log(`User ID type:`, typeof userId);
-      console.log(`SiteIds type:`, typeof siteIds, Array.isArray(siteIds));
-      
-      // Validate user exists
-      const user = await storage.getUser(userId);
-      if (!user) {
-        console.log(`User not found: ${userId}`);
-        return res.status(404).json({ message: "User not found" });
-      }
-      console.log(`User found:`, user.username);
-      
-      // Validate siteIds format
-      if (siteIds && !Array.isArray(siteIds)) {
-        console.log(`Invalid siteIds format:`, siteIds);
-        return res.status(400).json({ message: "siteIds must be an array" });
-      }
-      
-      // Validate that sites exist
-      for (const siteId of (siteIds || [])) {
-        const site = await storage.getSiteById(siteId);
-        if (!site) {
-          console.log(`Site not found: ${siteId}`);
-          return res.status(400).json({ message: `Site not found: ${siteId}` });
-        }
-        console.log(`Site found: ${site.name}`);
-      }
-      
-      console.log(`About to call storage.assignSitesToUser...`);
-      await storage.assignSitesToUser(userId, siteIds || []);
-      console.log(`Storage call completed successfully`);
-      res.json({ message: "Sites atribuídos com sucesso" });
-    } catch (error) {
-      console.error("Assign sites error:", error);
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
-      res.status(400).json({ message: "Failed to assign sites", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
