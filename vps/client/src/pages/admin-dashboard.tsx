@@ -23,7 +23,8 @@ import {
   Printer,
   ShoppingCart,
   FileText,
-  Ticket
+  Ticket,
+  History
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Site } from "@shared/schema";
@@ -35,7 +36,7 @@ export default function AdminDashboard() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "vendedores" | "plans" | "vouchers" | "reports">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "vendedores" | "plans" | "vouchers" | "reports" | "print-history">("overview");
   const [vendedorModalOpen, setVendedorModalOpen] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [editingVendedor, setEditingVendedor] = useState<any>(null);
@@ -807,6 +808,20 @@ function VouchersSection({ siteId }: { siteId: string }) {
     });
   };
 
+  // Save print history mutation
+  const savePrintHistoryMutation = useMutation({
+    mutationFn: async (data: { printType: string; voucherCodes: string[]; printTitle: string; htmlContent: string }) => {
+      const res = await apiRequest("POST", "/api/print-history", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      console.log('Print history saved successfully');
+    },
+    onError: (error: any) => {
+      console.error('Failed to save print history:', error);
+    },
+  });
+
   const printVouchers = (vouchersToPrint: any[]) => {
     if (!vouchersToPrint || vouchersToPrint.length === 0) {
       toast({
@@ -920,6 +935,18 @@ function VouchersSection({ siteId }: { siteId: string }) {
     printWindow.document.write(printContent);
     printWindow.document.close();
 
+    // Save to print history
+    const validCodes = vouchersToPrint
+      .map(v => v?.code || v?.omadaVoucher?.code || v?.voucherCode || null)
+      .filter(code => code !== null && code !== undefined && code !== '');
+      
+    savePrintHistoryMutation.mutate({
+      printType: 'a4',
+      voucherCodes: validCodes,
+      printTitle: `${planName} A4 - ${currentDate} - ${validCodes.length} vouchers`,
+      htmlContent: printContent
+    });
+
     setTimeout(() => {
       printWindow.focus();
       printWindow.print();
@@ -927,6 +954,136 @@ function VouchersSection({ siteId }: { siteId: string }) {
     
     toast({
       title: "Preparando impressão A4",
+      description: "A janela de impressão foi aberta com sucesso!",
+    });
+  };
+
+  const printVouchersRoll = (vouchersToPrint: any[]) => {
+    if (!vouchersToPrint || vouchersToPrint.length === 0) {
+      toast({
+        title: "Erro na impressão",
+        description: "Nenhum voucher disponível para impressão",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Erro na impressão",
+        description: "Não foi possível abrir a janela de impressão.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const siteName = site?.name || 'WiFi';
+    const planName = vouchersToPrint[0]?.planName || 'Internet';
+    const currentDate = new Date().toLocaleDateString('pt-BR');
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Vouchers Térmicos - ${siteName}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Arial', sans-serif; 
+            background: white;
+            color: black;
+            width: 80mm;
+            margin: 0;
+            padding: 0;
+          }
+          .voucher {
+            width: 100%;
+            max-width: 80mm;
+            padding: 8mm;
+            border-bottom: 2px dashed #333;
+            page-break-after: always;
+            text-align: center;
+            margin: 0 auto;
+          }
+          .voucher:last-child {
+            border-bottom: none;
+          }
+          .voucher-site {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+          }
+          .voucher-code {
+            font-size: 24px;
+            font-weight: bold;
+            background: #f0f0f0;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
+            letter-spacing: 4px;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #333;
+          }
+          .voucher-info {
+            font-size: 12px;
+            margin: 4px 0;
+          }
+          .voucher-footer {
+            font-size: 10px;
+            margin-top: 8px;
+            color: #666;
+          }
+          
+          @media print {
+            body { margin: 0; width: auto; }
+            .voucher { page-break-after: always; }
+          }
+        </style>
+      </head>
+      <body>
+        ${vouchersToPrint.map(voucher => {
+          const code = voucher?.code || voucher?.omadaVoucher?.code || voucher?.voucherCode || 'N/A';
+          const price = voucher?.unitPrice || voucher?.omadaVoucher?.unitPrice || '0.00';
+          return `
+          <div class="voucher">
+            <div class="voucher-site">${siteName}</div>
+            <div class="voucher-code">${code}</div>
+            <div class="voucher-info">Plano: ${planName}</div>
+            <div class="voucher-info">Valor: R$ ${price}</div>
+            <div class="voucher-info">Válido: ${voucher?.duracao || '60'} minutos</div>
+            <div class="voucher-info">Data: ${currentDate}</div>
+            <div class="voucher-footer">Conecte-se ao WiFi e digite este código</div>
+          </div>
+          `;
+        }).join('')}
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Save to print history
+    const validCodes = vouchersToPrint
+      .map(v => v?.code || v?.omadaVoucher?.code || v?.voucherCode || null)
+      .filter(code => code !== null && code !== undefined && code !== '');
+      
+    savePrintHistoryMutation.mutate({
+      printType: 'thermal',
+      voucherCodes: validCodes,
+      printTitle: `${planName} Térmico - ${currentDate} - ${validCodes.length} vouchers`,
+      htmlContent: printContent
+    });
+
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 1000);
+    
+    toast({
+      title: "Preparando impressão térmica",
       description: "A janela de impressão foi aberta com sucesso!",
     });
   };
