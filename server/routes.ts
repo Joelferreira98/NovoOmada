@@ -727,11 +727,15 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Voucher Generation (Vendedor)
+  // Voucher Generation (Vendedor) - via Omada API
   app.post("/api/vouchers/generate", requireAuth, requireRole(["vendedor"]), async (req, res) => {
     try {
       const { planId, quantity = 1 } = req.body;
       
+      if (!planId || !quantity || quantity < 1 || quantity > 50) {
+        return res.status(400).json({ message: "Invalid plan or quantity" });
+      }
+
       console.log('Generating vouchers with data:', { planId, quantity, userId: req.user!.id });
       
       const plan = await storage.getPlanById(planId);
@@ -740,45 +744,156 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Plan not found" });
       }
 
-      console.log('Found plan:', plan);
-
-      const vouchers = [];
-      for (let i = 0; i < quantity; i++) {
-        // Generate voucher code based on plan configuration
-        const code = generateVoucherCode(plan.tipoCodigo, plan.comprimentoVoucher);
-        
-        console.log(`Creating voucher ${i + 1}/${quantity} with code:`, code);
-        
-        const voucherData = {
-          code,
-          planId,
-          siteId: plan.siteId,
-          vendedorId: req.user!.id,
-          unitPrice: plan.unitPrice,
-          status: "available" as const
-        };
-        
-        console.log('Voucher data to create:', voucherData);
-        
-        const voucher = await storage.createVoucher(voucherData);
-        console.log('Created voucher:', voucher);
-
-        // Create sale record
-        const saleData = {
-          voucherId: voucher.id,
-          sellerId: req.user!.id,
-          siteId: plan.siteId,  
-          amount: plan.unitPrice
-        };
-        
-        console.log('Sale data to create:', saleData);
-        await storage.createSale(saleData);
-
-        vouchers.push(voucher);
+      // Verificar se o vendedor tem acesso ao site do plano
+      const userSites = await storage.getUserSites(req.user!.id);
+      const hasAccess = userSites.some(site => site.id === plan.siteId);
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this site" });
       }
 
-      console.log('Successfully created vouchers:', vouchers.length);
-      res.status(201).json(vouchers);
+      // Buscar site e credenciais
+      const site = await storage.getSiteById(plan.siteId);
+      if (!site) {
+        return res.status(404).json({ message: "Site not found" });
+      }
+
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Omada credentials not configured" });
+      }
+
+      // Obter token de acesso
+      const accessToken = await getValidOmadaToken(credentials);
+
+      // Criar grupo de vouchers via API do Omada
+      const voucherGroupData = {
+        name: `${plan.nome} - ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`,
+        amount: parseInt(quantity),
+        codeLength: plan.comprimentoVoucher,
+        codeForm: plan.codeForm === '[0,1]' ? [0, 1] : [0],
+        limitType: 1, // Limited Online Users
+        limitNum: plan.userLimit || 1,
+        durationType: 0, // Client duration
+        duration: plan.duration,
+        timingType: 0, // Timing by time
+        rateLimit: {
+          mode: 0,
+          customRateLimit: {
+            downLimitEnable: plan.downLimit > 0,
+            downLimit: plan.downLimit || 0,
+            upLimitEnable: plan.upLimit > 0,
+            upLimit: plan.upLimit || 0
+          }
+        },
+        trafficLimitEnable: false,
+        unitPrice: Math.round(parseFloat(plan.unitPrice) * 100),
+        currency: "BRL",
+        applyToAllPortals: true,
+        portals: [],
+        logout: true,
+        description: `Plano ${plan.nome} - ${plan.duration} minutos`,
+        printComments: `Gerado por ${req.user!.username}`,
+        validityType: 0
+      };
+
+      console.log('Creating voucher group with data:', voucherGroupData);
+
+      const createResponse = await fetch(
+        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(voucherGroupData),
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({
+              rejectUnauthorized: false
+            })
+          })
+        }
+      );
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        console.error('Omada API error:', createResponse.status, errorText);
+        throw new Error(`Omada API error: ${createResponse.status} - ${errorText}`);
+      }
+
+      const createData = await createResponse.json();
+      console.log('Voucher group created:', createData);
+
+      if (createData.errorCode !== 0) {
+        throw new Error(`Omada API error: ${createData.msg}`);
+      }
+
+      const voucherGroupId = createData.result.id;
+
+      // Buscar os vouchers gerados pelo grupo
+      const vouchersResponse = await fetch(
+        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${voucherGroupId}/vouchers`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({
+              rejectUnauthorized: false
+            })
+          })
+        }
+      );
+
+      if (!vouchersResponse.ok) {
+        throw new Error(`Failed to fetch vouchers: ${vouchersResponse.status}`);
+      }
+
+      const vouchersData = await vouchersResponse.json();
+      console.log('Vouchers data:', vouchersData);
+
+      if (vouchersData.errorCode !== 0) {
+        throw new Error(`Omada API error: ${vouchersData.msg}`);
+      }
+
+      const generatedVouchers = vouchersData.result.data || [];
+
+      // Salvar vouchers no banco local para controle
+      const savedVouchers = [];
+      for (const omadaVoucher of generatedVouchers) {
+        const voucher = await storage.createVoucher({
+          code: omadaVoucher.code,
+          planId: plan.id,
+          siteId: plan.siteId,
+          vendedorId: req.user!.id,
+          omadaGroupId: voucherGroupId,
+          omadaVoucherId: omadaVoucher.id,
+          unitPrice: plan.unitPrice,
+          status: 'available'
+        });
+
+        // Criar registro de venda
+        await storage.createSale({
+          voucherId: voucher.id,
+          sellerId: req.user!.id,
+          siteId: plan.siteId,
+          amount: plan.unitPrice
+        });
+
+        savedVouchers.push({
+          id: voucher.id,
+          code: omadaVoucher.code,
+          planName: plan.nome,
+          unitPrice: plan.unitPrice,
+          duration: plan.duration,
+          createdAt: voucher.createdAt
+        });
+      }
+
+      console.log('Successfully generated vouchers:', savedVouchers.length);
+      res.status(201).json(savedVouchers);
     } catch (error: any) {
       console.error('Error generating vouchers:', error);
       res.status(400).json({ message: `Failed to generate vouchers: ${error.message}` });

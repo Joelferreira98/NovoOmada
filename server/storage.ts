@@ -318,7 +318,7 @@ export class DatabaseStorage implements IStorage {
       unitPrice: plan.unitPrice,
       userLimit: plan.userLimit || 1,
       omadaLimitType: plan.omadaLimitType || 1,
-      createdBy: plan.createdBy,
+      createdBy: (plan as any).createdBy,
       createdAt: new Date(),
     };
     
@@ -346,19 +346,18 @@ export class DatabaseStorage implements IStorage {
   async createVoucher(voucher: InsertVoucher): Promise<Voucher> {
     const voucherId = crypto.randomUUID();
     const voucherWithId = { 
+      ...voucher,
       id: voucherId,
-      planId: voucher.planId,
-      siteId: voucher.siteId,
       voucherCode: voucher.code, // Map code to voucher_code column
-      vendedorId: voucher.vendedorId,
-      unitPrice: voucher.unitPrice,
-      status: voucher.status,
       createdBy: voucher.vendedorId, // Use vendedorId as createdBy
       createdAt: new Date()
     };
     
-    console.log('Creating voucher with mapped data:', voucherWithId);
-    await db.insert(vouchers).values(voucherWithId);
+    // Remove the code field as it's mapped to voucherCode
+    const { code, ...voucherData } = voucherWithId;
+    
+    console.log('Creating voucher with mapped data:', voucherData);
+    await db.insert(vouchers).values(voucherData);
     const [newVoucher] = await db.select().from(vouchers).where(eq(vouchers.id, voucherId));
     return newVoucher;
   }
