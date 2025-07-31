@@ -1,118 +1,118 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, timestamp, boolean, pgEnum, primaryKey, json, uuid } from "drizzle-orm/pg-core";
+import { mysqlTable, text, varchar, int, decimal, timestamp, boolean, mysqlEnum, primaryKey, json } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const userRoleEnum = pgEnum("role", ["master", "admin", "vendedor"]);
-export const planStatusEnum = pgEnum("plan_status", ["active", "inactive"]);
-export const voucherStatusEnum = pgEnum("voucher_status", ["available", "used", "expired"]);
-export const siteStatusEnum = pgEnum("site_status", ["active", "inactive", "syncing"]);
+export const userRoleEnum = mysqlEnum("role", ["master", "admin", "vendedor"]);
+export const planStatusEnum = mysqlEnum("status", ["active", "inactive"]);
+export const voucherStatusEnum = mysqlEnum("status", ["available", "used", "expired"]);
+export const siteStatusEnum = mysqlEnum("status", ["active", "inactive", "syncing"]);
 
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const users = mysqlTable("users", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  role: userRoleEnum("role").notNull(),
+  role: userRoleEnum.notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const omadaCredentials = pgTable("omada_credentials", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const omadaCredentials = mysqlTable("omada_credentials", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   omadaUrl: text("omada_url").notNull(),
   omadacId: text("omadac_id").notNull(),
   clientId: text("client_id").notNull(),
   clientSecret: text("client_secret").notNull(),
-  createdBy: uuid("created_by").notNull().references(() => users.id),
+  createdBy: varchar("created_by", { length: 36 }).notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const sites = pgTable("sites", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const sites = mysqlTable("sites", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   name: text("name").notNull(),
   location: text("location"),
   omadaSiteId: text("omada_site_id"),
-  status: siteStatusEnum("status").default("active").notNull(),
+  status: siteStatusEnum.default("active").notNull(),
   lastSync: timestamp("last_sync"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const userSiteAccess = pgTable("user_site_access", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+export const userSiteAccess = mysqlTable("user_site_access", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
+  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const plans = pgTable("plans", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+export const plans = mysqlTable("plans", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
   nome: varchar("nome", { length: 100 }).notNull(),
-  comprimentoVoucher: integer("comprimento_voucher").notNull(),
+  comprimentoVoucher: int("comprimento_voucher").notNull(),
   tipoCodigo: varchar("tipo_codigo", { length: 20 }).notNull(),
   tipoLimite: varchar("tipo_limite", { length: 20 }).notNull(),
   codeForm: varchar("code_form", { length: 50 }),
-  duration: integer("duration").notNull(),
-  downLimit: integer("down_limit").default(0),
-  upLimit: integer("up_limit").default(0),
+  duration: int("duration").notNull(),
+  downLimit: int("down_limit").default(0),
+  upLimit: int("up_limit").default(0),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  userLimit: integer("user_limit").default(1), // Number of simultaneous users
-  omadaLimitType: integer("omada_limit_type").default(1), // Maps to Omada API: 0=Limited Usage, 1=Limited Online Users, 2=Unlimited
-  createdBy: uuid("created_by").notNull(),
+  userLimit: int("user_limit").default(1), // Number of simultaneous users
+  omadaLimitType: int("omada_limit_type").default(1), // Maps to Omada API: 0=Limited Usage, 1=Limited Online Users, 2=Unlimited
+  createdBy: varchar("created_by", { length: 36 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const vouchers = pgTable("vouchers", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const vouchers = mysqlTable("vouchers", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   code: text("code").notNull().unique(),
-  planId: uuid("plan_id").notNull().references(() => plans.id, { onDelete: "cascade" }),
-  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
-  vendedorId: uuid("vendedor_id").notNull().references(() => users.id),
+  planId: varchar("plan_id", { length: 36 }).notNull().references(() => plans.id, { onDelete: "cascade" }),
+  siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
+  vendedorId: varchar("vendedor_id", { length: 36 }).notNull().references(() => users.id),
   omadaGroupId: text("omada_group_id"), // ID do grupo no Omada
   omadaVoucherId: text("omada_voucher_id"), // ID do voucher individual no Omada
-  status: voucherStatusEnum("status").default("available").notNull(),
+  status: voucherStatusEnum.default("available").notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Sistema de Caixa - Grupos de Vouchers da Omada
-export const voucherGroups = pgTable("voucher_groups", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const voucherGroups = mysqlTable("voucher_groups", {
+  id: varchar("id", { length: 36 }).primaryKey(),
   omadaGroupId: text("omada_group_id").notNull(),
-  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).default("BRL"),
-  totalCount: integer("total_count").default(0),
-  usedCount: integer("used_count").default(0),
-  inUseCount: integer("in_use_count").default(0),
-  unusedCount: integer("unused_count").default(0),
-  expiredCount: integer("expired_count").default(0),
-  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).default("0.00"),
+  totalCount: int("total_count").default(0),
+  usedCount: int("used_count").default(0),
+  inUseCount: int("in_use_count").default(0),
+  unusedCount: int("unused_count").default(0),
+  expiredCount: int("expired_count").default(0),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).default(sql`0.00`),
   lastSync: timestamp("last_sync"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Fechamentos de Caixa
-export const cashClosures = pgTable("cash_closures", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
-  vendedorId: uuid("vendedor_id").notNull().references(() => users.id),
-  totalVouchersUsed: integer("total_vouchers_used").notNull(),
-  totalVouchersInUse: integer("total_vouchers_in_use").notNull(),
+export const cashClosures = mysqlTable("cash_closures", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
+  siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
+  vendedorId: varchar("vendedor_id", { length: 36 }).notNull().references(() => users.id),
+  totalVouchersUsed: int("total_vouchers_used").notNull(),
+  totalVouchersInUse: int("total_vouchers_in_use").notNull(),
   totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
   summary: json("summary"), // JSON com detalhes por grupo
   closureDate: timestamp("closure_date").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const sales = pgTable("sales", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  voucherId: uuid("voucher_id").notNull().references(() => vouchers.id),
-  sellerId: uuid("seller_id").notNull().references(() => users.id),
-  siteId: uuid("site_id").notNull().references(() => sites.id),
+export const sales = mysqlTable("sales", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
+  voucherId: varchar("voucher_id", { length: 36 }).notNull().references(() => vouchers.id),
+  sellerId: varchar("seller_id", { length: 36 }).notNull().references(() => users.id),
+  siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -153,7 +153,7 @@ export const vouchersRelations = relations(vouchers, ({ one, many }) => ({
 export const salesRelations = relations(sales, ({ one }) => ({
   voucher: one(vouchers, { fields: [sales.voucherId], references: [vouchers.id] }),
   seller: one(users, { fields: [sales.sellerId], references: [users.id] }),
-  site: one(sites, { fields: [sales.siteId], references: [sales.id] }),
+  site: one(sites, { fields: [sales.siteId], references: [sites.id] }),
 }));
 
 export const voucherGroupsRelations = relations(voucherGroups, ({ one }) => ({
