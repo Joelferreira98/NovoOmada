@@ -881,9 +881,9 @@ export function registerRoutes(app: Express): Server {
         rateLimit: {
           mode: 0,
           customRateLimit: {
-            downLimitEnable: plan.downLimit > 0,
+            downLimitEnable: (plan.downLimit || 0) > 0,
             downLimit: plan.downLimit || 0,
-            upLimitEnable: plan.upLimit > 0,
+            upLimitEnable: (plan.upLimit || 0) > 0,
             upLimit: plan.upLimit || 0
           }
         },
@@ -1761,9 +1761,9 @@ export function registerRoutes(app: Express): Server {
         rateLimit: {
           mode: 0, // 0=customRateLimit, 1=rateLimitProfileId
           customRateLimit: {
-            downLimitEnable: plan.downLimit > 0,
+            downLimitEnable: (plan.downLimit || 0) > 0,
             downLimit: plan.downLimit || 0,
-            upLimitEnable: plan.upLimit > 0,
+            upLimitEnable: (plan.upLimit || 0) > 0,
             upLimit: plan.upLimit || 0
           }
         },
@@ -1911,6 +1911,60 @@ export function registerRoutes(app: Express): Server {
     } catch (error: any) {
       console.error("Error fetching daily stats:", error);
       res.status(500).json({ message: error.message || "Failed to fetch daily stats" });
+    }
+  });
+
+  // Update user profile
+  app.put("/api/users/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      
+      // Only allow users to update their own profile or admins/masters to update others
+      if (req.user!.id !== userId && !["admin", "master"].includes(req.user!.role)) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const { username, email } = req.body;
+      const updatedUser = await storage.updateUser(userId, { username, email });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Update user password
+  app.put("/api/users/:id/password", requireAuth, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      
+      // Only allow users to update their own password
+      if (req.user!.id !== userId) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const { currentPassword, newPassword } = req.body;
+      
+      // Import password utilities from auth module
+      const { comparePasswords, hashPassword } = await import('./auth');
+      
+      // Verify current password
+      const user = await storage.getUser(req.user!.id);
+      if (!user || !(await comparePasswords(currentPassword, user.password))) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Hash new password
+      const hashedNewPassword = await hashPassword(newPassword);
+      
+      // Update password
+      await storage.updateUser(userId, { password: hashedNewPassword });
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      res.status(500).json({ message: "Failed to update password" });
     }
   });
 
