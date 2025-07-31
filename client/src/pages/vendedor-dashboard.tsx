@@ -125,8 +125,26 @@ export default function VendedorDashboard() {
   };
 
   const printVouchers = (vouchersToPrint: any[]) => {
+    console.log('Print function called with vouchers:', vouchersToPrint);
+    
+    if (!vouchersToPrint || vouchersToPrint.length === 0) {
+      toast({
+        title: "Erro na impressão",
+        description: "Nenhum voucher disponível para impressão",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    if (!printWindow) {
+      toast({
+        title: "Erro na impressão",
+        description: "Não foi possível abrir a janela de impressão. Verifique se pop-ups estão bloqueados.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const siteName = userSite?.name || 'WiFi';
     const planName = vouchersToPrint[0]?.planName || 'Internet';
@@ -257,15 +275,38 @@ export default function VendedorDashboard() {
       htmlContent: printContent
     });
 
-    printWindow.onload = () => {
+    setTimeout(() => {
       printWindow.focus();
       printWindow.print();
-    };
+    }, 1000);
+    
+    toast({
+      title: "Preparando impressão A4",
+      description: "A janela de impressão foi aberta com sucesso!",
+    });
   };
 
   const printVouchersRoll = (vouchersToPrint: any[]) => {
+    console.log('Print Roll function called with vouchers:', vouchersToPrint);
+    
+    if (!vouchersToPrint || vouchersToPrint.length === 0) {
+      toast({
+        title: "Erro na impressão",
+        description: "Nenhum voucher disponível para impressão",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    if (!printWindow) {
+      toast({
+        title: "Erro na impressão",
+        description: "Não foi possível abrir a janela de impressão. Verifique se pop-ups estão bloqueados.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const siteName = userSite?.name || 'WiFi';
     const planName = vouchersToPrint[0]?.planName || 'Internet';
@@ -356,10 +397,15 @@ export default function VendedorDashboard() {
       htmlContent: printContent
     });
 
-    printWindow.onload = () => {
+    setTimeout(() => {
       printWindow.focus();
       printWindow.print();
-    };
+    }, 1000);
+    
+    toast({
+      title: "Preparando impressão térmica",
+      description: "A janela de impressão foi aberta com sucesso!",
+    });
   };
 
   const sidebarItems = [
