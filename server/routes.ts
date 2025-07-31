@@ -2173,15 +2173,66 @@ export function registerRoutes(app: Express): Server {
       if (voucher.omadaVoucherId) {
         console.log(`Deleting voucher ${voucher.omadaVoucherId} from Omada API...`);
         
-        // Forçar renovação do token para operação crítica de delete
-        console.log('Forcing token refresh for voucher deletion...');
+        // Obter token válido com múltiplas tentativas para operação crítica
+        console.log('Getting valid token for voucher deletion with retry...');
         
-        // Limpar cache de token 
-        tokenCache = null;
+        let freshAccessToken;
+        let attempts = 0;
+        const maxAttempts = 3;
         
-        // Obter token fresco
-        const freshAccessToken = await getValidOmadaToken(credentials);
-        console.log(`Using fresh token for delete: ${freshAccessToken.substring(0, 10)}...`);
+        while (attempts < maxAttempts) {
+          attempts++;
+          console.log(`Token attempt ${attempts}/${maxAttempts}`);
+          
+          // Limpar cache em cada tentativa
+          tokenCache = null;
+          
+          try {
+            // Obter token fresco direto da API
+            const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                'omadacId': credentials.omadacId,
+                'client_id': credentials.clientId,
+                'client_secret': credentials.clientSecret
+              }),
+              // Ignore SSL certificate issues for self-signed certificates
+              ...(process.env.NODE_ENV === 'development' && {
+                agent: new (await import('https')).Agent({
+                  rejectUnauthorized: false
+                })
+              })
+            });
+
+            if (!tokenResponse.ok) {
+              throw new Error(`Token request failed: ${tokenResponse.status}`);
+            }
+
+            const tokenData = await tokenResponse.json();
+            console.log(`Token response attempt ${attempts}:`, { errorCode: tokenData.errorCode, hasResult: !!tokenData.result });
+            
+            if (tokenData.errorCode === 0 && tokenData.result?.accessToken) {
+              freshAccessToken = tokenData.result.accessToken;
+              console.log(`✓ Got valid token on attempt ${attempts}: ${freshAccessToken.substring(0, 10)}...`);
+              break;
+            } else {
+              throw new Error(`Invalid token response: ${tokenData.msg || 'No access token'}`);
+            }
+          } catch (error) {
+            console.error(`Token attempt ${attempts} failed:`, error);
+            if (attempts === maxAttempts) {
+              return res.status(500).json({ 
+                message: "Não foi possível obter token válido após múltiplas tentativas",
+                error: error.message 
+              });
+            }
+            // Aguardar 1 segundo antes da próxima tentativa
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
         
         const deleteResponse = await fetch(
           `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/${voucher.omadaVoucherId}`,
@@ -2214,11 +2265,15 @@ export function registerRoutes(app: Express): Server {
         console.log('Omada delete response:', deleteData);
 
         if (deleteData.errorCode !== 0) {
+          console.error('Delete failed with error:', deleteData);
           return res.status(500).json({ 
-            message: "Erro na API Omada",
-            omadaMessage: deleteData.msg 
+            message: "Erro na API Omada ao deletar voucher",
+            omadaMessage: deleteData.msg,
+            errorCode: deleteData.errorCode
           });
         }
+        
+        console.log(`✓ Voucher ${voucher.omadaVoucherId} deleted successfully from Omada`);
       }
 
       // Deletar voucher do banco local
