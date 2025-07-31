@@ -540,7 +540,7 @@ export default function VendedorDashboard() {
                                 console.log('Plan data in select:', plan);
                                 return (
                                   <SelectItem key={plan.id} value={plan.id}>
-                                    {plan.nome || 'Nome não encontrado'} - R$ {parseFloat(plan.unitPrice || 0).toFixed(2)} ({plan.duration || 0}min)
+                                    {plan.nome || 'Nome não encontrado'} - R$ {parseFloat(plan.unitPrice || "0").toFixed(2)} ({plan.duration || 0}min)
                                   </SelectItem>
                                 );
                               })}

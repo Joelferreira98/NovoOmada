@@ -138,12 +138,14 @@ export function PlanModal({ siteId, siteName, plan, mode = "create", onClose }: 
     // Remove the helper fields before sending to backend, keep userLimit and omadaLimitType
     const { durationUnit, tipoCodigo, ...planData } = data;
     
-    // Add the correctly formatted codeForm
+    // Ensure unitPrice is a valid decimal string
     const finalData = {
       ...planData,
-      codeForm: codeForm
+      codeForm: codeForm,
+      unitPrice: parseFloat(planData.unitPrice || "0").toFixed(2)
     };
     
+    console.log('Submitting plan data:', finalData);
     planMutation.mutate(finalData);
   };
 
@@ -197,6 +199,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create", onClose }: 
                         min="0"
                         placeholder="Ex: 5.00"
                         {...field}
+                        onChange={(e) => field.onChange(e.target.value)}
                       />
                     </FormControl>
                     <FormMessage />
