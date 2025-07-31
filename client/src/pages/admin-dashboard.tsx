@@ -40,16 +40,26 @@ export default function AdminDashboard() {
 
   // Redirect to site selection if no site selected or if user has multiple sites
   useEffect(() => {
+    console.log("AdminDashboard useEffect:", {
+      userRole: user?.role,
+      userSitesLength: userSites?.length,
+      selectedSiteId,
+      userSites
+    });
+    
     if (user?.role === "admin" && userSites) {
       if (userSites.length === 0) {
         // No sites assigned - show error or redirect
+        console.log("No sites assigned, redirecting to auth");
         setLocation("/auth");
       } else if (userSites.length > 1 && !selectedSiteId) {
         // Multiple sites but none selected - redirect to selection
+        console.log("Multiple sites but no selection, redirecting to site-selection");
         setLocation("/site-selection");
       } else if (userSites.length === 1 && !selectedSiteId) {
         // Only one site - auto-select it
         const siteId = userSites[0].id;
+        console.log("Auto-selecting single site:", siteId);
         localStorage.setItem("selectedSiteId", siteId);
         setSelectedSiteId(siteId);
       }

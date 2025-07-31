@@ -9,6 +9,7 @@ import { useLocation } from "wouter";
 import { Site } from "@shared/schema";
 
 export default function SiteSelectionPage() {
+  console.log("SiteSelectionPage component loaded");
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   
@@ -18,8 +19,10 @@ export default function SiteSelectionPage() {
   });
 
   const handleSiteSelect = (siteId: string) => {
+    console.log("Site selected:", siteId);
     // Store selected site in localStorage
     localStorage.setItem("selectedSiteId", siteId);
+    console.log("Stored in localStorage, redirecting to /admin");
     // Redirect to admin dashboard
     setLocation("/admin");
   };
@@ -51,7 +54,7 @@ export default function SiteSelectionPage() {
           {userSites && userSites.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {userSites.map((site) => (
-                <Card key={site.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Card key={site.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{site.name}</CardTitle>
