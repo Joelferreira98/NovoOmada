@@ -45,7 +45,7 @@ const planFormSchema = insertPlanSchema.extend({
   downLimit: z.number().min(0).max(10485760).optional(),
   upLimit: z.number().min(0).max(10485760).optional(),
   durationUnit: z.string().default("horas").optional(), // Helper field for UI
-  userLimit: z.number().min(1).max(10).default(1).optional(), // Number of concurrent users
+  userLimit: z.number().min(1).max(999).default(1).optional(), // Number of concurrent users or usage count
   omadaLimitType: z.number().min(0).max(2).default(1).optional(), // Omada API mapping: 0=Limited Usage, 1=Limited Online Users, 2=Unlimited
   tipoCodigo: z.string().default("mixed").optional(), // Helper field for UI
   tipoLimite: z.string().default("duration").optional(), // Helper field for UI
@@ -334,30 +334,72 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
 
             </div>
 
-            {/* Concurrent Users Limit - Always shown since all plans are Limited Online Users */}
-            <div className="space-y-2">
-              <FormLabel>Usuários Simultâneos</FormLabel>
+            {/* Limit Type and Number Configuration */}
+            <div className="space-y-4">
               <FormField
                 control={form.control}
-                name="userLimit"
+                name="omadaLimitType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min={1} 
-                        max={10} 
-                        placeholder="1"
-                        {...field}
-                        value={field.value || 1}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                      />
-                    </FormControl>
-                    <FormDescription>Número máximo de usuários simultâneos (1-10)</FormDescription>
+                    <FormLabel>Tipo de Limite</FormLabel>
+                    <Select 
+                      onValueChange={(value) => field.onChange(parseInt(value))} 
+                      defaultValue={field.value?.toString() || "1"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="0">Uso Limitado (contagem de usos)</SelectItem>
+                        <SelectItem value="1">Usuários Online Limitados (simultâneos)</SelectItem>
+                        <SelectItem value="2">Ilimitado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Escolha como controlar o uso dos vouchers
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {/* Show limit number input only for limited types */}
+              {form.watch("omadaLimitType") !== 2 && (
+                <FormField
+                  control={form.control}
+                  name="userLimit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {form.watch("omadaLimitType") === 0 
+                          ? "Número de Usos Permitidos" 
+                          : "Usuários Simultâneos Máximo"
+                        }
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min={1} 
+                          max={999} 
+                          placeholder="1"
+                          {...field}
+                          value={field.value || 1}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {form.watch("omadaLimitType") === 0 
+                          ? "Quantas vezes este voucher pode ser usado (1-999)" 
+                          : "Quantos usuários podem usar este voucher ao mesmo tempo (1-999)"
+                        }
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             {/* Speed Limits */}

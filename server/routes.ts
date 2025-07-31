@@ -987,8 +987,8 @@ export function registerRoutes(app: Express): Server {
         amount: parseInt(quantity),
         codeLength: plan.comprimentoVoucher,
         codeForm: JSON.parse(plan.codeForm || '[0]'), // Parse do JSON: [0]=apenas números, [0,1]=números e letras
-        limitType: 0, // Limited Usage Counts (como no exemplo PHP que funciona)
-        limitNum: 1, // 1 uso por voucher
+        limitType: plan.omadaLimitType || 1, // 0=Limited Usage, 1=Limited Online Users, 2=Unlimited
+        limitNum: plan.userLimit || 1, // Número de usuários simultâneos ou usos permitidos
         durationType: 0, // Client duration
         duration: plan.duration,
         timingType: 0, // Timing by time
@@ -2093,7 +2093,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  const httpServer = createServer(app);
   // Endpoint temporário para corrigir planos existentes com codeForm incorreto
   app.post("/api/fix-plans", requireAuth, requireRole(["master", "admin"]), async (req, res) => {
     try {
@@ -2134,6 +2133,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  const httpServer = createServer(app);
   return httpServer;
 }
 
