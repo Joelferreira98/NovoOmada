@@ -732,8 +732,21 @@ export class DatabaseStorage implements IStorage {
         )
       `);
       
-      const voucherCodesJson = JSON.stringify(printWithId.voucherCodes);
+      // Ensure voucherCodes is an array and properly stringified
+      let voucherCodesArray = [];
+      if (Array.isArray(printWithId.voucherCodes)) {
+        voucherCodesArray = printWithId.voucherCodes;
+      } else if (typeof printWithId.voucherCodes === 'string') {
+        try {
+          voucherCodesArray = JSON.parse(printWithId.voucherCodes);
+        } catch {
+          voucherCodesArray = [printWithId.voucherCodes];
+        }
+      }
+      
+      const voucherCodesJson = JSON.stringify(voucherCodesArray);
       console.log('📝 Inserting voucher codes as JSON:', voucherCodesJson.substring(0, 100) + '...');
+      console.log('🔍 Voucher codes array length:', voucherCodesArray.length);
       
       await pool.execute(`
         INSERT INTO print_history (id, vendedor_id, site_id, print_type, voucher_codes, print_title, html_content, voucher_count)
@@ -757,12 +770,26 @@ export class DatabaseStorage implements IStorage {
       const result = (rows as any[])[0];
       console.log('✅ Print history saved successfully:', { id: result.id, voucherCount: result.voucher_count });
       
+      let voucherCodes = [];
+      try {
+        if (typeof result.voucher_codes === 'string') {
+          const cleanJson = result.voucher_codes.trim();
+          voucherCodes = JSON.parse(cleanJson);
+        } else {
+          voucherCodes = result.voucher_codes || [];
+        }
+      } catch (parseError) {
+        console.error('❌ Error parsing saved voucher codes JSON:', parseError);
+        console.error('Raw voucher codes:', result.voucher_codes);
+        voucherCodes = [];
+      }
+      
       return {
         id: result.id,
         vendedorId: result.vendedor_id,
         siteId: result.site_id,
         printType: result.print_type,
-        voucherCodes: JSON.parse(result.voucher_codes),
+        voucherCodes,
         printTitle: result.print_title,
         htmlContent: result.html_content,
         voucherCount: result.voucher_count,
@@ -786,17 +813,34 @@ export class DatabaseStorage implements IStorage {
         LIMIT 50
       `, [vendedorId, siteId]);
       
-      const results = (rows as any[]).map(row => ({
-        id: row.id,
-        vendedorId: row.vendedor_id,
-        siteId: row.site_id,
-        printType: row.print_type,
-        voucherCodes: typeof row.voucher_codes === 'string' ? JSON.parse(row.voucher_codes) : row.voucher_codes,
-        printTitle: row.print_title,
-        htmlContent: row.html_content,
-        voucherCount: row.voucher_count,
-        createdAt: row.created_at
-      }));
+      const results = (rows as any[]).map(row => {
+        let voucherCodes = [];
+        try {
+          if (typeof row.voucher_codes === 'string') {
+            // Clean the JSON string before parsing
+            const cleanJson = row.voucher_codes.trim();
+            voucherCodes = JSON.parse(cleanJson);
+          } else {
+            voucherCodes = row.voucher_codes || [];
+          }
+        } catch (parseError) {
+          console.error('❌ Error parsing voucher codes JSON:', parseError);
+          console.error('Raw voucher codes:', row.voucher_codes);
+          voucherCodes = [];
+        }
+        
+        return {
+          id: row.id,
+          vendedorId: row.vendedor_id,
+          siteId: row.site_id,
+          printType: row.print_type,
+          voucherCodes,
+          printTitle: row.print_title,
+          htmlContent: row.html_content,
+          voucherCount: row.voucher_count,
+          createdAt: row.created_at
+        };
+      });
       
       console.log('📋 Found print history records:', results.length);
       return results;
