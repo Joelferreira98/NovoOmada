@@ -6,6 +6,26 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 
 ## Recent Changes (July 31, 2025)
 
+✓ **Dashboard Admin Responsivo Bootstrap - COMPLETO**: Conversão completa para Bootstrap mobile-first
+- **Layout Responsivo**: Sistema de grid Bootstrap (container-fluid, row, col-*) em todo o dashboard admin
+- **Sidebar Bootstrap**: Navegação lateral responsiva com menu colapsável para mobile
+- **Formulários Adaptativos**: Inputs HTML5 com classes Bootstrap (form-control, form-label)
+- **Botões Responsivos**: Botões Bootstrap com d-flex e gap para mobile e desktop
+- **Typography Unificada**: Classes Bootstrap (h2 h1-lg, fw-bold, text-muted) consistentes
+- **Cards de Estatísticas**: Dashboard com visão geral de vendedores, planos e vouchers
+- **Gerenciamento Completo**: Abas para Vendedores, Planos, Vouchers e Relatórios
+- **Funcionalidade Vouchers**: Sistema completo de criação e impressão de vouchers pelo admin
+- **Impressão Dual**: Botões A4 e cupom térmico para impressão de vouchers gerados
+- **Mobile-First**: Stacks verticais em mobile, horizontais em desktop (flex-column flex-lg-row)
+
+✓ **Sistema de Upload de Logo/Favicon - COMPLETO**: Funcionalidade completa de upload implementada
+- **Upload via Multer**: Sistema robusto de upload de arquivos com validação de tamanho (5MB)
+- **Rotas de Upload**: /api/upload-logo e /api/upload-favicon com autenticação
+- **Arquivos Estáticos**: Servindo uploads via rota /uploads para acesso público
+- **Interface Dual**: Opção de upload de arquivos OU inserção de URL
+- **Validação Completa**: Tipos de arquivo (.ico, imagens) e tamanho validados
+- **Feedback Visual**: Botões com status de upload e opção de remover arquivos
+
 ✓ **Sistema de Impressão Dual Restaurado - COMPLETO**: Opções de impressão A4 e cupom térmico funcionais
 - **Print Options Restored**: Botões de impressão A4 e cupom térmico restaurados após transformação Bootstrap
 - **Dual Format Support**: Impressão em formato A4 (papel padrão) e cupom térmico (58mm/80mm)

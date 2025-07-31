@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -25,32 +19,32 @@ import {
   Calculator,
   LogOut,
   User,
-  ChevronDown
+  ChevronDown,
+  Printer,
+  ShoppingCart,
+  FileText
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useLocation } from "wouter";
 import { Site } from "@shared/schema";
 import { VendedorModal } from "@/components/modals/vendedor-modal";
 import { PlanModal } from "@/components/modals/plan-modal";
+import { Sidebar } from "@/components/layout/sidebar";
 
 export default function AdminDashboard() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "vendedores" | "plans" | "vouchers" | "reports">("overview");
+  const [vendedorModalOpen, setVendedorModalOpen] = useState(false);
+  const [planModalOpen, setPlanModalOpen] = useState(false);
+  const [editingVendedor, setEditingVendedor] = useState<any>(null);
+  const [editingPlan, setEditingPlan] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Get selected site from localStorage on component mount
   useEffect(() => {
     const storedSiteId = localStorage.getItem("selectedSiteId");
-    console.log("Reading from localStorage:", storedSiteId);
     if (storedSiteId) {
       setSelectedSiteId(storedSiteId);
     }
@@ -69,6 +63,12 @@ export default function AdminDashboard() {
   // Fetch plans for the selected site
   const { data: plans, isLoading: plansLoading } = useQuery({
     queryKey: ["/api/sites", selectedSiteId, "plans"],
+    enabled: !!selectedSiteId,
+  });
+
+  // Fetch vendedores for the selected site
+  const { data: vendedores, isLoading: vendedoresLoading } = useQuery({
+    queryKey: ["/api/sites", selectedSiteId, "vendedores"],
     enabled: !!selectedSiteId,
   });
 
@@ -113,45 +113,22 @@ export default function AdminDashboard() {
     },
   });
 
-  // Fetch vendedores for the selected site
-  const { data: vendedores, isLoading: vendedoresLoading } = useQuery({
-    queryKey: ["/api/sites", selectedSiteId, "vendedores"],
-    enabled: !!selectedSiteId,
-  });
-
   // Redirect to site selection if no site selected or if user has multiple sites
   useEffect(() => {
-    console.log("AdminDashboard routing useEffect:", {
-      userRole: user?.role,
-      userSitesLength: userSites?.length,
-      selectedSiteId,
-      userSites
-    });
-    
     if (user?.role === "admin" && userSites) {
-      // Check localStorage again in case it was just updated
       const currentStoredSiteId = localStorage.getItem("selectedSiteId");
-      console.log("Current localStorage value:", currentStoredSiteId);
       
       if (currentStoredSiteId && !selectedSiteId) {
-        // localStorage has value but state doesn't - update state
-        console.log("Updating selectedSiteId from localStorage:", currentStoredSiteId);
         setSelectedSiteId(currentStoredSiteId);
-        return; // Don't redirect, let state update first
+        return;
       }
       
       if (userSites.length === 0) {
-        // No sites assigned - show error or redirect
-        console.log("No sites assigned, redirecting to auth");
         setLocation("/auth");
       } else if (userSites.length > 1 && !currentStoredSiteId) {
-        // Multiple sites but none selected - redirect to selection
-        console.log("Multiple sites but no selection, redirecting to site-selection");
         setLocation("/site-selection");
       } else if (userSites.length === 1 && !currentStoredSiteId) {
-        // Only one site - auto-select it
         const siteId = userSites[0].id;
-        console.log("Auto-selecting single site:", siteId);
         localStorage.setItem("selectedSiteId", siteId);
         setSelectedSiteId(siteId);
       }
@@ -165,478 +142,683 @@ export default function AdminDashboard() {
 
   if (!selectedSite) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-vh-100 d-flex align-items-center justify-content-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando dashboard...</p>
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
+          </div>
+          <p className="mt-3 text-muted">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Sidebar items for admin
+  const sidebarItems = [
+    { 
+      icon: BarChart3, 
+      label: "Visão Geral", 
+      active: activeTab === "overview",
+      onClick: () => setActiveTab("overview")
+    },
+    { 
+      icon: Users, 
+      label: "Vendedores", 
+      active: activeTab === "vendedores",
+      onClick: () => setActiveTab("vendedores")
+    },
+    { 
+      icon: Settings, 
+      label: "Planos", 
+      active: activeTab === "plans",
+      onClick: () => setActiveTab("plans")
+    },
+    { 
+      icon: ShoppingCart, 
+      label: "Vouchers", 
+      active: activeTab === "vouchers",
+      onClick: () => setActiveTab("vouchers")
+    },
+    { 
+      icon: FileText, 
+      label: "Relatórios", 
+      active: activeTab === "reports",
+      onClick: () => setActiveTab("reports")
+    }
+  ];
+
+  return (
+    <div className="d-flex bg-light min-vh-100">
+      <Sidebar
+        title={`Admin - ${selectedSite.name}`}
+        subtitle={selectedSite.location || "Localização não informada"}
+        icon={User}
+        iconBg="bg-success"
+        items={sidebarItems}
+      />
+
+      <div className="flex-fill p-3 p-lg-4 overflow-auto">
+        {/* Header Actions */}
+        <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4">
+          <div>
+            <h1 className="h2 fw-bold text-dark mb-1">Admin Dashboard</h1>
+            <p className="text-muted mb-0">Site: {selectedSite.name}</p>
+          </div>
+          <div className="d-flex flex-column flex-lg-row gap-2 mt-3 mt-lg-0">
+            {userSites && userSites.length > 1 && (
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                onClick={handleChangeSite}
+              >
+                <ArrowLeft size={16} className="me-1" />
+                Trocar Site
+              </button>
+            )}
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={() => logoutMutation.mutate()}
+            >
+              <LogOut size={16} className="me-1" />
+              Sair
+            </button>
+          </div>
+        </div>
+
+        <div className="container-fluid px-0">
+          {activeTab === "overview" && <OverviewSection selectedSite={selectedSite} />}
+          {activeTab === "vendedores" && (
+            <VendedoresSection 
+              siteId={selectedSiteId!}
+              vendedores={vendedores}
+              loading={vendedoresLoading}
+              onEdit={setEditingVendedor}
+              onDelete={deleteVendedorMutation.mutate}
+              onAdd={() => setVendedorModalOpen(true)}
+            />
+          )}
+          {activeTab === "plans" && (
+            <PlansSection 
+              siteId={selectedSiteId!}
+              plans={plans}
+              loading={plansLoading}
+              onEdit={setEditingPlan}
+              onDelete={deletePlanMutation.mutate}
+              onAdd={() => setPlanModalOpen(true)}
+            />
+          )}
+          {activeTab === "vouchers" && <VouchersSection siteId={selectedSiteId!} />}
+          {activeTab === "reports" && <ReportsSection siteId={selectedSiteId!} />}
+        </div>
+      </div>
+
+      <VendedorModal 
+        isOpen={vendedorModalOpen || !!editingVendedor}
+        onClose={() => {
+          setVendedorModalOpen(false);
+          setEditingVendedor(null);
+        }}
+        siteId={selectedSiteId!}
+        editVendedor={editingVendedor}
+      />
+      
+      <PlanModal 
+        isOpen={planModalOpen || !!editingPlan}
+        onClose={() => {
+          setPlanModalOpen(false);
+          setEditingPlan(null);
+        }}
+        siteId={selectedSiteId!}
+        editPlan={editingPlan}
+      />
+    </div>
+  );
+}
+
+// Overview Section Component
+function OverviewSection({ selectedSite }: { selectedSite: Site }) {
+  const { data: vendedores = [] } = useQuery<any[]>({
+    queryKey: ["/api/sites", selectedSite.id, "vendedores"],
+  });
+
+  const { data: plans = [] } = useQuery<any[]>({
+    queryKey: ["/api/sites", selectedSite.id, "plans"],
+  });
+
+  return (
+    <div className="mb-4">
+      <div className="mb-4">
+        <h1 className="h2 h1-lg fw-bold text-dark mb-2">Dashboard Admin</h1>
+        <p className="text-muted">Visão geral do site {selectedSite.name}</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="row g-4 mb-4">
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card text-center">
+            <div className="card-body">
+              <div className="bg-primary bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
+                <Users className="text-primary" size={24} />
+              </div>
+              <h5 className="fw-bold">{vendedores.length}</h5>
+              <p className="text-muted mb-0 small">Vendedores Ativos</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card text-center">
+            <div className="card-body">
+              <div className="bg-success bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
+                <Settings className="text-success" size={24} />
+              </div>
+              <h5 className="fw-bold">{plans.length}</h5>
+              <p className="text-muted mb-0 small">Planos Criados</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card text-center">
+            <div className="card-body">
+              <div className="bg-warning bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
+                <ShoppingCart className="text-warning" size={24} />
+              </div>
+              <h5 className="fw-bold">-</h5>
+              <p className="text-muted mb-0 small">Vouchers Vendidos</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card text-center">
+            <div className="card-body">
+              <div className="bg-info bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
+                <MapPin className="text-info" size={24} />
+              </div>
+              <h5 className="fw-bold">
+                <span className={`badge ${selectedSite.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
+                  {selectedSite.status === 'active' ? 'Ativo' : 'Inativo'}
+                </span>
+              </h5>
+              <p className="text-muted mb-0 small">Status do Site</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Site Info Card */}
+      <div className="card">
+        <div className="card-header">
+          <h5 className="card-title mb-0 d-flex align-items-center">
+            <MapPin className="me-2" size={20} />
+            Informações do Site
+          </h5>
+        </div>
+        <div className="card-body">
+          <div className="row g-3">
+            <div className="col-md-6">
+              <strong>Nome:</strong> {selectedSite.name}
+            </div>
+            <div className="col-md-6">
+              <strong>Localização:</strong> {selectedSite.location || "Não informado"}
+            </div>
+            <div className="col-md-6">
+              <strong>ID Omada:</strong> {selectedSite.omadaSiteId || "Não configurado"}
+            </div>
+            <div className="col-md-6">
+              <strong>Última Sincronização:</strong> {
+                selectedSite.lastSync 
+                  ? new Date(selectedSite.lastSync).toLocaleDateString('pt-BR')
+                  : "Nunca"
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Vendedores Section Component
+function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAdd }: any) {
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Carregando vendedores...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Dashboard - {selectedSite.name}
-                </h1>
-                <div className="flex items-center text-sm text-gray-600 mt-1">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  {selectedSite.location || "Localização não informada"}
-                  <Badge 
-                    variant={selectedSite.status === "active" ? "default" : "secondary"}
-                    className="ml-2"
-                  >
-                    {selectedSite.status === "active" ? "Ativo" : "Inativo"}
-                  </Badge>
-                </div>
-              </div>
+    <div className="mb-4">
+      <div className="mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center">
+        <div>
+          <h1 className="h2 h1-lg fw-bold text-dark mb-2">Gerenciar Vendedores</h1>
+          <p className="text-muted">Criar, editar e gerenciar vendedores do site</p>
+        </div>
+        <button className="btn btn-primary" onClick={onAdd}>
+          <Plus size={16} className="me-1" />
+          Novo Vendedor
+        </button>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h5 className="card-title mb-0">Lista de Vendedores</h5>
+        </div>
+        <div className="card-body">
+          {vendedores && vendedores.length > 0 ? (
+            <div className="table-responsive">
+              <table className="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Criado em</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vendedores.map((vendedor: any) => (
+                    <tr key={vendedor.id}>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <div className="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                            <User size={16} className="text-primary" />
+                          </div>
+                          {vendedor.username}
+                        </div>
+                      </td>
+                      <td>{vendedor.email || "Não informado"}</td>
+                      <td>
+                        <span className="badge bg-success">Ativo</span>
+                      </td>
+                      <td>{new Date(vendedor.createdAt).toLocaleDateString('pt-BR')}</td>
+                      <td>
+                        <div className="btn-group" role="group">
+                          <button
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={() => onEdit(vendedor)}
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => onDelete(vendedor.id)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setLocation("/cash")}
-                size="sm"
+          ) : (
+            <div className="text-center py-5">
+              <Users size={48} className="text-muted mb-3" />
+              <h5>Nenhum vendedor encontrado</h5>
+              <p className="text-muted">Crie o primeiro vendedor para este site</p>
+              <button className="btn btn-primary" onClick={onAdd}>
+                <Plus size={16} className="me-1" />
+                Criar Vendedor
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Plans Section Component
+function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) {
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Carregando planos...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4">
+      <div className="mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center">
+        <div>
+          <h1 className="h2 h1-lg fw-bold text-dark mb-2">Gerenciar Planos</h1>
+          <p className="text-muted">Criar, editar e gerenciar planos de vouchers</p>
+        </div>
+        <button className="btn btn-primary" onClick={onAdd}>
+          <Plus size={16} className="me-1" />
+          Novo Plano
+        </button>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h5 className="card-title mb-0">Lista de Planos</h5>
+        </div>
+        <div className="card-body">
+          {plans && plans.length > 0 ? (
+            <div className="table-responsive">
+              <table className="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Preço</th>
+                    <th>Duração</th>
+                    <th>Usuários</th>
+                    <th>Criado em</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plans.map((plan: any) => (
+                    <tr key={plan.id}>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <div className="bg-success bg-opacity-10 p-2 rounded-circle me-3">
+                            <Settings size={16} className="text-success" />
+                          </div>
+                          {plan.name}
+                        </div>
+                      </td>
+                      <td>R$ {plan.price.toFixed(2)}</td>
+                      <td>{plan.duration} min</td>
+                      <td>{plan.concurrentUsers}</td>
+                      <td>{new Date(plan.createdAt).toLocaleDateString('pt-BR')}</td>
+                      <td>
+                        <div className="btn-group" role="group">
+                          <button
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={() => onEdit(plan)}
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => onDelete(plan.id)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-5">
+              <Settings size={48} className="text-muted mb-3" />
+              <h5>Nenhum plano encontrado</h5>
+              <p className="text-muted">Crie o primeiro plano para este site</p>
+              <button className="btn btn-primary" onClick={onAdd}>
+                <Plus size={16} className="me-1" />
+                Criar Plano
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Vouchers Section Component - Admin can create and print vouchers
+function VouchersSection({ siteId }: { siteId: string }) {
+  const [selectedPlan, setSelectedPlan] = useState<string>("");
+  const [quantity, setQuantity] = useState(1);
+  const [generatedVouchers, setGeneratedVouchers] = useState<any[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
+
+  const { data: plans = [] } = useQuery<any[]>({
+    queryKey: ["/api/sites", siteId, "plans"],
+    enabled: !!siteId,
+  });
+
+  const generateVouchers = async () => {
+    if (!selectedPlan) {
+      toast({
+        title: "Erro",
+        description: "Selecione um plano",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch("/api/vouchers/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          planId: selectedPlan,
+          quantity,
+          siteId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao gerar vouchers");
+      }
+
+      const result = await response.json();
+      setGeneratedVouchers(result.vouchers || []);
+      
+      toast({
+        title: "Vouchers gerados!",
+        description: `${quantity} voucher(s) criado(s) com sucesso`
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const printVouchers = (format: 'A4' | 'thermal') => {
+    if (generatedVouchers.length === 0) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const vouchersHtml = generatedVouchers.map(voucher => `
+      <div class="voucher-card ${format === 'thermal' ? 'thermal' : 'a4'}">
+        <div class="voucher-header">
+          <h3>Voucher WiFi</h3>
+          <div class="voucher-code">${voucher.code}</div>
+        </div>
+        <div class="voucher-details">
+          <p><strong>Duração:</strong> ${voucher.plan?.duration} minutos</p>
+          <p><strong>Usuários:</strong> ${voucher.plan?.concurrentUsers}</p>
+          <p><strong>Preço:</strong> R$ ${voucher.plan?.price?.toFixed(2)}</p>
+        </div>
+      </div>
+    `).join('');
+
+    const styles = format === 'thermal' ? `
+      .voucher-card { width: 58mm; margin-bottom: 10mm; page-break-after: always; }
+      .voucher-header { text-align: center; margin-bottom: 5mm; }
+      .voucher-code { font-size: 16px; font-weight: bold; border: 1px solid #000; padding: 2mm; }
+      .voucher-details { font-size: 12px; }
+    ` : `
+      .voucher-card { width: 45%; margin: 10px; padding: 15px; border: 1px solid #ccc; display: inline-block; }
+      .voucher-header { text-align: center; margin-bottom: 10px; }
+      .voucher-code { font-size: 18px; font-weight: bold; border: 1px solid #000; padding: 10px; }
+      .voucher-details { font-size: 14px; }
+    `;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Impressão de Vouchers</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            ${styles}
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          ${vouchersHtml}
+          <script>window.print(); window.close();</script>
+        </body>
+      </html>
+    `);
+  };
+
+  return (
+    <div className="mb-4">
+      <div className="mb-4">
+        <h1 className="h2 h1-lg fw-bold text-dark mb-2">Gerenciar Vouchers</h1>
+        <p className="text-muted">Gerar e imprimir vouchers para o site</p>
+      </div>
+
+      {/* Voucher Generation Form */}
+      <div className="card mb-4">
+        <div className="card-header">
+          <h5 className="card-title mb-0 d-flex align-items-center">
+            <ShoppingCart className="me-2" size={20} />
+            Gerar Novos Vouchers
+          </h5>
+        </div>
+        <div className="card-body">
+          <div className="row g-3">
+            <div className="col-md-6">
+              <label className="form-label">Selecionar Plano</label>
+              <select 
+                className="form-select"
+                value={selectedPlan}
+                onChange={(e) => setSelectedPlan(e.target.value)}
               >
-                <Calculator className="h-4 w-4 mr-2" />
-                Caixa
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setLocation("/reports")}
-                size="sm"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Relatórios
-              </Button>
-              {userSites && userSites.length > 1 && (
-                <Button variant="outline" onClick={handleChangeSite}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Trocar Site
-                </Button>
+                <option value="">Escolha um plano...</option>
+                {plans.map((plan: any) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name} - R$ {plan.price.toFixed(2)} ({plan.duration}min)
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Quantidade</label>
+              <input
+                type="number"
+                className="form-control"
+                min="1"
+                max="100"
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              />
+            </div>
+          </div>
+          <div className="mt-3">
+            <button
+              className="btn btn-primary"
+              onClick={generateVouchers}
+              disabled={isGenerating || !selectedPlan}
+            >
+              {isGenerating ? (
+                <>
+                  <div className="spinner-border spinner-border-sm me-2" role="status"></div>
+                  Gerando...
+                </>
+              ) : (
+                <>
+                  <ShoppingCart size={16} className="me-1" />
+                  Gerar Vouchers
+                </>
               )}
-              <Button variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Atualizar
-              </Button>
-              
-              {/* Menu do Usuário */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                    <User className="h-4 w-4" />
-                    <span>{user?.username}</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setLocation("/profile")}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Editar Perfil</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setLocation("/settings")}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Configurações</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => logoutMutation.mutate()}
-                    className="text-red-600 focus:text-red-600"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sair</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Vendedores Ativos
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">
-                +0% desde o mês passado
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Vouchers Vendidos
-              </CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">
-                +0% desde o mês passado
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Receita Total
-              </CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">R$ 0,00</div>
-              <p className="text-xs text-muted-foreground">
-                +0% desde o mês passado
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Planos Ativos
-              </CardTitle>
-              <Wifi className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">
-                0 planos configurados
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="h-5 w-5 mr-2" />
-                Gerenciar Vendedores
-              </CardTitle>
-              <CardDescription>
-                Criar e gerenciar contas de vendedores para este site
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VendedorModal 
-                siteId={selectedSite.id} 
-                siteName={selectedSite.name}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CreditCard className="h-5 w-5 mr-2" />
-                Gerenciar Planos
-              </CardTitle>
-              <CardDescription>
-                Criar e configurar templates de planos de vouchers WiFi
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PlanModal 
-                siteId={selectedSite.id} 
-                siteName={selectedSite.name}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <BarChart3 className="h-5 w-5 mr-2" />
-                Relatórios
-              </CardTitle>
-              <CardDescription>
-                Visualizar vendas e estatísticas do site
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" disabled>
-                Em Breve
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* CRUD Tables */}
-        <div className="mt-8">
-          <Tabs defaultValue="vendedores" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="vendedores">Vendedores</TabsTrigger>
-              <TabsTrigger value="planos">Planos</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="vendedores" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center">
-                        <Users className="h-5 w-5 mr-2" />
-                        Vendedores - {selectedSite.name}
-                      </CardTitle>
-                      <CardDescription>
-                        Gerencie vendedores que podem criar vouchers neste site
-                      </CardDescription>
-                    </div>
-                    <VendedorModal siteId={selectedSiteId!} siteName={selectedSite.name} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {vendedoresLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nome de usuário</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Data de criação</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {vendedores && Array.isArray(vendedores) && vendedores.length > 0 ? (
-                          vendedores.map((vendedor: any) => (
-                            <TableRow key={vendedor.id}>
-                              <TableCell className="font-medium">{vendedor.username}</TableCell>
-                              <TableCell>{vendedor.email}</TableCell>
-                              <TableCell>
-                                {new Date(vendedor.createdAt).toLocaleDateString('pt-BR')}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end space-x-2">
-                                  <VendedorModal 
-                                    siteId={selectedSiteId!} 
-                                    siteName={selectedSite.name}
-                                    vendedor={vendedor}
-                                    mode="edit"
-                                  />
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Tem certeza que deseja excluir o vendedor "{vendedor.username}"? 
-                                          Esta ação não pode ser desfeita.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => deleteVendedorMutation.mutate(vendedor.id)}
-                                          className="bg-red-600 hover:bg-red-700"
-                                        >
-                                          Excluir
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                              Nenhum vendedor encontrado. 
-                              <br />
-                              Clique em "Adicionar Vendedor" para começar.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="planos" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center">
-                        <CreditCard className="h-5 w-5 mr-2" />
-                        Planos - {selectedSite.name}
-                      </CardTitle>
-                      <CardDescription>
-                        Configure planos de vouchers que vendedores podem usar
-                      </CardDescription>
-                    </div>
-                    <PlanModal siteId={selectedSiteId!} siteName={selectedSite.name} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {plansLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nome do Plano</TableHead>
-                          <TableHead>Duração</TableHead>
-                          <TableHead>Usuários Simultâneos</TableHead>
-                          <TableHead>Preço</TableHead>
-                          <TableHead>Data de criação</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {plans && Array.isArray(plans) && plans.length > 0 ? (
-                          plans.map((plan: any) => (
-                            <TableRow key={plan.id}>
-                              <TableCell className="font-medium">{plan.nome}</TableCell>
-                              <TableCell>
-                                {plan.duration >= 60 
-                                  ? `${Math.floor(plan.duration / 60)}h ${plan.duration % 60 || ''}${plan.duration % 60 ? 'm' : ''}`
-                                  : `${plan.duration}m`
-                                }
-                              </TableCell>
-                              <TableCell>{plan.userLimit || 1}</TableCell>
-                              <TableCell>R$ {parseFloat(plan.unitPrice).toFixed(2)}</TableCell>
-                              <TableCell>
-                                {new Date(plan.createdAt).toLocaleDateString('pt-BR')}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end space-x-2">
-                                  <PlanModal 
-                                    siteId={selectedSiteId!} 
-                                    siteName={selectedSite.name}
-                                    plan={plan}
-                                    mode="edit"
-                                  />
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Tem certeza que deseja excluir o plano "{plan.nome}"? 
-                                          Esta ação não pode ser desfeita.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => deletePlanMutation.mutate(plan.id)}
-                                          className="bg-red-600 hover:bg-red-700"
-                                        >
-                                          Excluir
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                              Nenhum plano encontrado. 
-                              <br />
-                              Clique em "Criar Plano" para começar.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Site Info */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Informações do Site</CardTitle>
-            <CardDescription>
-              Detalhes e configurações do site selecionado
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <h4 className="font-semibold mb-2">Detalhes Gerais</h4>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="font-medium">Nome:</span> {selectedSite.name}
-                  </div>
-                  <div>
-                    <span className="font-medium">Localização:</span> {selectedSite.location || "Não informada"}
-                  </div>
-                  <div>
-                    <span className="font-medium">Status:</span> 
-                    <Badge 
-                      variant={selectedSite.status === "active" ? "default" : "secondary"}
-                      className="ml-2"
-                    >
-                      {selectedSite.status === "active" ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold mb-2">Integração Omada</h4>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="font-medium">Site ID:</span> {selectedSite.omadaSiteId || "Não configurado"}
-                  </div>
-                  {selectedSite.lastSync && (
-                    <div>
-                      <span className="font-medium">Última Sync:</span> {new Date(selectedSite.lastSync).toLocaleString("pt-BR")}
-                    </div>
-                  )}
-                  <div>
-                    <span className="font-medium">Criado em:</span> {new Date(selectedSite.createdAt).toLocaleString("pt-BR")}
-                  </div>
-                </div>
-              </div>
+      {/* Generated Vouchers */}
+      {generatedVouchers.length > 0 && (
+        <div className="card">
+          <div className="card-header d-flex justify-content-between align-items-center">
+            <h5 className="card-title mb-0">Vouchers Gerados ({generatedVouchers.length})</h5>
+            <div className="btn-group">
+              <button
+                className="btn btn-outline-primary"
+                onClick={() => printVouchers('A4')}
+              >
+                <Printer size={16} className="me-1" />
+                Imprimir A4
+              </button>
+              <button
+                className="btn btn-outline-secondary"
+                onClick={() => printVouchers('thermal')}
+              >
+                <Printer size={16} className="me-1" />
+                Cupom Térmico
+              </button>
+              <button
+                className="btn btn-outline-danger"
+                onClick={() => setGeneratedVouchers([])}
+              >
+                Limpar
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="card-body">
+            <div className="row g-2">
+              {generatedVouchers.map((voucher, index) => (
+                <div key={index} className="col-md-4 col-lg-3">
+                  <div className="card border-primary">
+                    <div className="card-body text-center">
+                      <div className="fw-bold text-primary">{voucher.code}</div>
+                      <small className="text-muted">
+                        {voucher.plan?.duration}min - R$ {voucher.plan?.price?.toFixed(2)}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Reports Section Component
+function ReportsSection({ siteId }: { siteId: string }) {
+  const [, setLocation] = useLocation();
+
+  return (
+    <div className="mb-4">
+      <div className="mb-4">
+        <h1 className="h2 h1-lg fw-bold text-dark mb-2">Relatórios</h1>
+        <p className="text-muted">Acessar relatórios detalhados de vendas e vouchers</p>
+      </div>
+
+      <div className="card">
+        <div className="card-body text-center py-5">
+          <FileText size={48} className="text-muted mb-3" />
+          <h5>Relatórios Detalhados</h5>
+          <p className="text-muted">Acesse relatórios completos de vendas, distribuição e histórico</p>
+          <button
+            className="btn btn-primary"
+            onClick={() => setLocation("/reports")}
+          >
+            <BarChart3 size={16} className="me-1" />
+            Acessar Relatórios
+          </button>
+        </div>
       </div>
     </div>
   );
