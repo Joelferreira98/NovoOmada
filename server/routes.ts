@@ -1709,31 +1709,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(500).json({ message: "Omada credentials not configured" });
       }
 
-      // Get access token
-      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'client_credentials',
-          client_id: credentials.clientId,
-          client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
-      });
-
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to get access token');
-      }
-
-      const tokenData = await tokenResponse.json();
-      const accessToken = tokenData.access_token;
+      // Get access token using centralized method
+      const accessToken = await getValidOmadaToken(credentials);
 
       // Convert timestamps to seconds (Omada expects seconds, not milliseconds)
       const startSeconds = Math.floor(parseInt(timeStart) / 1000);
@@ -1744,7 +1721,7 @@ export function registerRoutes(app: Express): Server {
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history?filters.timeStart=${startSeconds}&filters.timeEnd=${endSeconds}`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `AccessToken=${accessToken}`,
             'Content-Type': 'application/json',
           },
           // Ignore SSL certificate issues for self-signed certificates
@@ -1799,30 +1776,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log('🔍 Fetching price distribution for site:', site.name, 'from:', new Date(Number(timeStart) * 1000), 'to:', new Date(Number(timeEnd) * 1000));
 
-      // Get access token
-      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'client_credentials',
-          client_id: credentials.clientId,
-          client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
-      });
-
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to get access token');
-      }
-
-      const tokenData = await tokenResponse.json();
+      // Get access token using centralized method
       const accessToken = await getValidOmadaToken(credentials);
       
       // Call Omada API for price distribution with date range
@@ -1832,7 +1786,7 @@ export function registerRoutes(app: Express): Server {
       
       const response = await fetch(apiUrl, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `AccessToken=${accessToken}`,
           'Content-Type': 'application/json',
         },
         // Ignore SSL certificate issues for self-signed certificates
@@ -1887,30 +1841,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log('⏱️ Fetching duration distribution for site:', site.name, 'from:', new Date(Number(timeStart) * 1000), 'to:', new Date(Number(timeEnd) * 1000));
 
-      // Get access token
-      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'client_credentials',
-          client_id: credentials.clientId,
-          client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
-      });
-
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to get access token');
-      }
-
-      const tokenData = await tokenResponse.json();
+      // Get access token using centralized method  
       const accessToken = await getValidOmadaToken(credentials);
       
       // Call Omada API for duration distribution with date range
@@ -1920,7 +1851,7 @@ export function registerRoutes(app: Express): Server {
       
       const response = await fetch(apiUrl, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `AccessToken=${accessToken}`,
           'Content-Type': 'application/json',
         },
         // Ignore SSL certificate issues for self-signed certificates
@@ -1972,31 +1903,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(500).json({ message: "Omada credentials not configured" });
       }
 
-      // Get access token
-      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'client_credentials',
-          client_id: credentials.clientId,
-          client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
-      });
-
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to get access token');
-      }
-
-      const tokenData = await tokenResponse.json();
-      const accessToken = tokenData.access_token;
+      // Get access token using centralized method
+      const accessToken = await getValidOmadaToken(credentials);
 
       // Convert timestamps to seconds (Omada expects seconds, not milliseconds)
       const startSeconds = Math.floor(parseInt(timeStart) / 1000);
@@ -2007,7 +1915,7 @@ export function registerRoutes(app: Express): Server {
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history/distribution/duration?filters.timeStart=${startSeconds}&filters.timeEnd=${endSeconds}`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `AccessToken=${accessToken}`,
             'Content-Type': 'application/json',
           },
           // Ignore SSL certificate issues for self-signed certificates
