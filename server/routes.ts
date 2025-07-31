@@ -1370,7 +1370,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Reports API routes
-  app.get("/api/reports/voucher-summary/:siteId", requireAuth, async (req, res) => {
+  app.get("/api/reports/voucher-summary/:siteId", requireAuth, requireRole(["admin", "vendedor"]), async (req, res) => {
     try {
       const { siteId } = req.params;
       const site = await storage.getSiteById(siteId);
@@ -1453,7 +1453,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/reports/voucher-history/:siteId/:timeStart/:timeEnd", requireAuth, async (req, res) => {
+  app.get("/api/reports/voucher-history/:siteId/:timeStart/:timeEnd", requireAuth, requireRole(["admin", "vendedor"]), async (req, res) => {
     try {
       const { siteId, timeStart, timeEnd } = req.params;
       const site = await storage.getSiteById(siteId);
@@ -1541,7 +1541,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get voucher distribution by price with date range
-  app.get("/api/reports/voucher-price-distribution/:siteId/:timeStart/:timeEnd", requireAuth, async (req, res) => {
+  app.get("/api/reports/voucher-price-distribution/:siteId/:timeStart/:timeEnd", requireAuth, requireRole(["admin", "vendedor"]), async (req, res) => {
     try {
       const { siteId, timeStart, timeEnd } = req.params;
       const site = await storage.getSiteById(siteId);
@@ -1606,7 +1606,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get voucher distribution by duration with date range
-  app.get("/api/reports/voucher-duration-distribution/:siteId/:timeStart/:timeEnd", requireAuth, async (req, res) => {
+  app.get("/api/reports/voucher-duration-distribution/:siteId/:timeStart/:timeEnd", requireAuth, requireRole(["admin", "vendedor"]), async (req, res) => {
     try {
       const { siteId, timeStart, timeEnd } = req.params;
       const site = await storage.getSiteById(siteId);
