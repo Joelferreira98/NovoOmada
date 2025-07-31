@@ -4,17 +4,17 @@
 
 ### Opção 1: Script Automático
 ```bash
-curl -fsSL https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/install.sh | bash
 ```
 
 ### Opção 2: Docker
 ```bash
-curl -fsSL https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/docker-install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/docker-install.sh | bash
 ```
 
 ### Opção 3: Seleção Interativa
 ```bash
-curl -fsSL https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/quick-start.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/quick-start.sh | bash
 ```
 
 ---

@@ -35,9 +35,8 @@ Este guia fornece instruções completas para instalação do Sistema de Voucher
 
 1. **Baixar os arquivos de instalação**
    ```bash
-   wget https://github.com/seu-usuario/omada-voucher/archive/deploy.zip
-   unzip deploy.zip
-   cd omada-voucher-deploy/deploy
+   git clone https://github.com/Joelferreira98/NovoOmada.git
+   cd NovoOmada/deploy
    ```
 
 2. **Executar o script de instalação**
@@ -86,8 +85,8 @@ Este guia fornece instruções completas para instalação do Sistema de Voucher
 
 1. **Baixar os arquivos de instalação**
    ```bash
-   git clone https://github.com/seu-usuario/omada-voucher.git
-   cd omada-voucher/deploy
+   git clone https://github.com/Joelferreira98/NovoOmada.git
+   cd NovoOmada/deploy
    ```
 
 2. **Executar o script de instalação Docker**

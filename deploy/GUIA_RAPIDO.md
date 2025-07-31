@@ -5,7 +5,7 @@
 ### Opção 1: Script Automático (Recomendado)
 ```bash
 # Baixar e executar script
-curl -fsSL https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/install.sh | bash
 
 # Configurar credenciais Omada
 sudo -u omada-voucher nano /opt/omada-voucher/.env
@@ -17,7 +17,7 @@ sudo -u omada-voucher /opt/omada-voucher/deploy.sh
 ### Opção 2: Docker (Mais Simples)
 ```bash
 # Instalar Docker + Sistema
-curl -fsSL https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/docker-install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/docker-install.sh | bash
 
 # Configurar e iniciar
 cd ~/omada-voucher

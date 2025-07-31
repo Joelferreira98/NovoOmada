@@ -160,7 +160,7 @@ set -e
 
 APP_DIR="/opt/omada-voucher"
 APP_USER="omada-voucher"
-REPO_URL="https://github.com/your-username/omada-voucher-system.git"
+REPO_URL="https://github.com/Joelferreira98/NovoOmada.git"
 
 print_status() {
     echo -e "\033[0;32m[INFO]\033[0m $1"

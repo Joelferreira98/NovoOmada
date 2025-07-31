@@ -213,8 +213,8 @@ sudo mkdir -p /opt/omada-voucher
 sudo chown $USER:$USER /opt/omada-voucher
 cd /opt/omada-voucher
 
-# Baixar código fonte (substitua pela URL do seu repositório)
-git clone https://github.com/seu-usuario/omada-voucher-system.git .
+# Baixar código fonte
+git clone https://github.com/Joelferreira98/NovoOmada.git .
 
 # Ou fazer upload manual dos arquivos se não usar Git
 ```
@@ -351,7 +351,7 @@ pm2 logs omada-voucher
 
 ```bash
 # Baixar scripts
-wget https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/install.sh
+wget https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/install.sh
 chmod +x install.sh
 
 # Executar instalação
@@ -395,7 +395,7 @@ sudo systemctl start omada-voucher
 ## 🎯 Instalação Rápida (One-liner)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/quick-start.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/quick-start.sh | bash
 ```
 
 ---
@@ -421,7 +421,7 @@ sudo chmod +x /usr/local/bin/docker-compose
 
 ```bash
 # Baixar e executar
-wget https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/docker-install.sh
+wget https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/docker-install.sh
 chmod +x docker-install.sh
 ./docker-install.sh
 ```
@@ -433,9 +433,9 @@ chmod +x docker-install.sh
 mkdir ~/omada-voucher && cd ~/omada-voucher
 
 # Baixar arquivos Docker
-wget https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/docker-compose.yml
-wget https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/Dockerfile
-wget https://raw.githubusercontent.com/seu-usuario/omada-voucher/main/deploy/.env.example
+wget https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/docker-compose.yml
+wget https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/Dockerfile
+wget https://raw.githubusercontent.com/Joelferreira98/NovoOmada/main/deploy/.env.example
 
 # Configurar ambiente
 cp .env.example .env

@@ -16,11 +16,13 @@ This full-stack web application manages WiFi vouchers through Omada controllers,
 
 ## Server Deployment Package
 Created comprehensive installation scripts for server deployment:
+- **Repository**: https://github.com/Joelferreira98/NovoOmada
 - **Traditional Installation**: Full Linux server setup with Nginx, MySQL, PM2
 - **Docker Installation**: Containerized deployment with Docker Compose
 - **Security Features**: SSL/TLS, firewall configuration, non-root execution
 - **Monitoring**: Automated backups, log rotation, system monitoring
 - **Management**: Start/stop scripts, update procedures, troubleshooting guides
+- **Documentation**: Complete manuals, quick guides, and troubleshooting
 
 ## User Preferences
 ```
