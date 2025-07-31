@@ -22,7 +22,8 @@ import {
   ChevronDown,
   Printer,
   ShoppingCart,
-  FileText
+  FileText,
+  Ticket
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Site } from "@shared/schema";
@@ -945,7 +946,7 @@ function VouchersSection({ siteId }: { siteId: string }) {
               <div className="card shadow-lg border-0">
                 <div className="card-header bg-white">
                   <h5 className="card-title mb-0 d-flex align-items-center">
-                    <TicketIcon className="me-2" size={20} />
+                    <Printer className="me-2" size={20} />
                     Criar Novos Vouchers
                   </h5>
                 </div>
