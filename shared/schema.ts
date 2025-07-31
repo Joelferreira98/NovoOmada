@@ -68,8 +68,11 @@ export const vouchers = mysqlTable("vouchers", {
   code: text("code").notNull().unique(),
   planId: varchar("plan_id", { length: 36 }).notNull().references(() => plans.id, { onDelete: "cascade" }),
   siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
+  vendedorId: varchar("vendedor_id", { length: 36 }).notNull().references(() => users.id),
+  omadaGroupId: text("omada_group_id"), // ID do grupo no Omada
+  omadaVoucherId: text("omada_voucher_id"), // ID do voucher individual no Omada
   status: voucherStatusEnum.default("available").notNull(),
-  createdBy: varchar("created_by", { length: 36 }).notNull().references(() => users.id),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -143,7 +146,7 @@ export const plansRelations = relations(plans, ({ one, many }) => ({
 export const vouchersRelations = relations(vouchers, ({ one, many }) => ({
   plan: one(plans, { fields: [vouchers.planId], references: [plans.id] }),
   site: one(sites, { fields: [vouchers.siteId], references: [sites.id] }),
-  createdBy: one(users, { fields: [vouchers.createdBy], references: [users.id] }),
+  vendedor: one(users, { fields: [vouchers.vendedorId], references: [users.id] }),
   sales: many(sales),
 }));
 

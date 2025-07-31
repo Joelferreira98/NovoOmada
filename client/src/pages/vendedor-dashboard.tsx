@@ -48,21 +48,27 @@ export default function VendedorDashboard() {
   const generateVouchersMutation = useMutation({
     mutationFn: async (data: { planId: string; quantity: number }) => {
       const res = await apiRequest("POST", "/api/vouchers/generate", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to generate vouchers");
+      }
       return await res.json();
     },
     onSuccess: (vouchers) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vouchers"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats/daily"] });
-      toast({
-        title: "Vouchers gerados",
-        description: `${vouchers.length} voucher(s) gerado(s) com sucesso`,
-      });
+      setSelectedPlan("");
       setQuantity(1);
-    },
-    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vouchers", userSite?.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats/daily", userSite?.id] });
+      
       toast({
-        title: "Erro",
-        description: "Falha ao gerar vouchers",
+        title: "Vouchers gerados com sucesso!",
+        description: `${vouchers.length} vouchers criados via API do Omada.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao gerar vouchers",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -70,6 +76,8 @@ export default function VendedorDashboard() {
 
   const selectedPlanData = (plans as any[]).find((plan: any) => plan.id === selectedPlan);
   const totalPrice = selectedPlanData ? (selectedPlanData.unitPrice * quantity).toFixed(2) : "0.00";
+
+  const selectedSite = userSite?.id;
 
   const onGenerateVouchers = () => {
     if (!selectedPlan) {
@@ -330,15 +338,29 @@ export default function VendedorDashboard() {
         {activeTab === "sales" && (
           <div className="space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-slate-800">Minhas Vendas</h1>
-              <p className="text-slate-600 mt-2">Acompanhe seu desempenho de vendas</p>
+              <h1 className="text-3xl font-bold text-slate-800">Relatórios</h1>
+              <p className="text-slate-600 mt-2">Visualize estatísticas e relatórios de vouchers</p>
             </div>
-
+            
             <Card>
-              <CardContent className="p-6">
-                <p className="text-slate-600 text-center py-8">
-                  Relatório de vendas será implementado aqui
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChart3 className="h-5 w-5 mr-2" />
+                  Acessar Relatórios Detalhados
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600 mb-4">
+                  Acesse o sistema completo de relatórios para visualizar estatísticas detalhadas, 
+                  histórico de uso e distribuição por duração dos vouchers.
                 </p>
+                <Button 
+                  onClick={() => window.location.href = "/reports"}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Abrir Relatórios
+                </Button>
               </CardContent>
             </Card>
           </div>

@@ -1432,6 +1432,201 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // FUNCIONALIDADES DO VENDEDOR
+
+  // Gerar vouchers na API do Omada
+  app.post("/api/vouchers/generate", requireAuth, async (req, res) => {
+    try {
+      const { planId, quantity } = req.body;
+      
+      if (!planId || !quantity || quantity < 1 || quantity > 50) {
+        return res.status(400).json({ message: "Invalid plan or quantity" });
+      }
+
+      // Verificar se o usuário é vendedor
+      if (req.user!.role !== "vendedor") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Buscar o plano
+      const plan = await storage.getPlanById(planId);
+      if (!plan) {
+        return res.status(404).json({ message: "Plan not found" });
+      }
+
+      // Verificar se o vendedor tem acesso ao site do plano
+      const userSites = await storage.getUserSites(req.user!.id);
+      const hasAccess = userSites.some(site => site.id === plan.siteId);
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this site" });
+      }
+
+      // Buscar site e credenciais
+      const site = await storage.getSiteById(plan.siteId);
+      if (!site) {
+        return res.status(404).json({ message: "Site not found" });
+      }
+
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Omada credentials not configured" });
+      }
+
+      // Obter token de acesso
+      const accessToken = await getValidOmadaToken(credentials);
+
+      // Criar grupo de vouchers na API do Omada
+      const voucherData = {
+        name: `${plan.nome} - ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`,
+        type: 1, // Voucher group type (1 = voucher group)
+        note: `Gerado por ${req.user!.username}`,
+        voucherNum: quantity,
+        limitType: 1, // Limited Online Users
+        userLimit: plan.userLimit || 1,
+        duration: plan.duration,
+        downLimit: plan.downLimit,
+        upLimit: plan.upLimit,
+        trafficLimit: 0, // Unlimited traffic
+        remainTrafficLimit: 0
+      };
+
+      console.log('Creating voucher group with data:', voucherData);
+
+      const createResponse = await fetch(
+        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(voucherData),
+          // Ignore SSL certificate issues for self-signed certificates
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({
+              rejectUnauthorized: false
+            })
+          })
+        }
+      );
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        console.error('Omada API error:', errorText);
+        throw new Error(`Failed to create voucher group: ${createResponse.status}`);
+      }
+
+      const createData = await createResponse.json();
+      console.log('Voucher group creation response:', createData);
+      
+      if (createData.errorCode !== 0) {
+        throw new Error(createData.msg || 'Failed to create voucher group');
+      }
+
+      // Buscar detalhes do grupo criado para obter os vouchers
+      const groupId = createData.result;
+      const detailResponse = await fetch(
+        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${groupId}?page=1&pageSize=${quantity}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          // Ignore SSL certificate issues for self-signed certificates
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({
+              rejectUnauthorized: false
+            })
+          })
+        }
+      );
+
+      if (!detailResponse.ok) {
+        throw new Error('Failed to get voucher details');
+      }
+
+      const detailData = await detailResponse.json();
+      
+      if (detailData.errorCode !== 0) {
+        throw new Error(detailData.msg || 'Failed to get voucher details');
+      }
+
+      const vouchers = detailData.result.data || [];
+      
+      // Salvar vouchers no banco de dados local para controle
+      const savedVouchers = [];
+      for (const voucherData of vouchers) {
+        const savedVoucher = await storage.createVoucher({
+          code: voucherData.code,
+          planId: planId,
+          vendedorId: req.user!.id,
+          siteId: plan.siteId,
+          omadaGroupId: groupId,
+          omadaVoucherId: voucherData.id,
+          status: 'available',
+          unitPrice: plan.unitPrice
+        });
+        savedVouchers.push(savedVoucher);
+      }
+
+      res.json(savedVouchers);
+    } catch (error: any) {
+      console.error("Error generating vouchers:", error);
+      res.status(500).json({ message: error.message || "Failed to generate vouchers" });
+    }
+  });
+
+  // Buscar vouchers do vendedor
+  app.get("/api/vouchers/:siteId", requireAuth, async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      
+      if (req.user!.role !== "vendedor") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Verificar acesso ao site
+      const userSites = await storage.getUserSites(req.user!.id);
+      const hasAccess = userSites.some(site => site.id === siteId);
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this site" });
+      }
+
+      const vouchers = await storage.getVouchersByVendedor(req.user!.id, siteId);
+      res.json(vouchers);
+    } catch (error: any) {
+      console.error("Error fetching vouchers:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch vouchers" });
+    }
+  });
+
+  // Estatísticas diárias do vendedor
+  app.get("/api/stats/daily/:siteId", requireAuth, async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      
+      if (req.user!.role !== "vendedor") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Verificar acesso ao site
+      const userSites = await storage.getUserSites(req.user!.id);
+      const hasAccess = userSites.some(site => site.id === siteId);
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this site" });
+      }
+
+      const stats = await storage.getVendedorDailyStats(req.user!.id, siteId);
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching daily stats:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch daily stats" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

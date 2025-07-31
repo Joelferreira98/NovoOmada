@@ -52,8 +52,14 @@ export interface IStorage {
   // Voucher management
   createVoucher(voucher: InsertVoucher): Promise<Voucher>;
   getVouchersByUser(userId: string, siteId?: string): Promise<Voucher[]>;
+  getVouchersByVendedor(vendedorId: string, siteId: string): Promise<Voucher[]>;
   getVouchersBySite(siteId: string): Promise<Voucher[]>;
   updateVoucherStatus(id: string, status: string): Promise<Voucher | undefined>;
+  getVendedorDailyStats(vendedorId: string, siteId: string): Promise<{
+    vouchersToday: number;
+    revenueToday: string;
+    averageDaily: string;
+  }>;
 
   // Sales and reporting
   createSale(sale: Omit<Sale, 'id' | 'createdAt'>): Promise<Sale>;
@@ -352,7 +358,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(vouchers)
         .where(and(
-          eq(vouchers.createdBy, userId),
+          eq(vouchers.vendedorId, userId),
           eq(vouchers.siteId, siteId)
         ))
         .orderBy(desc(vouchers.createdAt));
@@ -361,7 +367,18 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(vouchers)
-      .where(eq(vouchers.createdBy, userId))
+      .where(eq(vouchers.vendedorId, userId))
+      .orderBy(desc(vouchers.createdAt));
+  }
+
+  async getVouchersByVendedor(vendedorId: string, siteId: string): Promise<Voucher[]> {
+    return await db
+      .select()
+      .from(vouchers)
+      .where(and(
+        eq(vouchers.vendedorId, vendedorId),
+        eq(vouchers.siteId, siteId)
+      ))
       .orderBy(desc(vouchers.createdAt));
   }
 
@@ -419,7 +436,7 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)` })
       .from(vouchers)
       .where(and(
-        eq(vouchers.createdBy, userId),
+        eq(vouchers.vendedorId, userId),
         sql`${vouchers.createdAt} >= ${today}`
       ));
 
@@ -428,7 +445,7 @@ export class DatabaseStorage implements IStorage {
         .select({ count: sql<number>`count(*)` })
         .from(vouchers)
         .where(and(
-          eq(vouchers.createdBy, userId),
+          eq(vouchers.vendedorId, userId),
           eq(vouchers.siteId, siteId),
           sql`${vouchers.createdAt} >= ${today}`
         ));
@@ -484,6 +501,58 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getVendedorDailyStats(vendedorId: string, siteId: string): Promise<{
+    vouchersToday: number;
+    revenueToday: string;
+    averageDaily: string;
+  }> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [voucherResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(vouchers)
+      .where(and(
+        eq(vouchers.vendedorId, vendedorId),
+        eq(vouchers.siteId, siteId),
+        sql`${vouchers.createdAt} >= ${today}`
+      ));
+
+    const [salesResult] = await db
+      .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
+      .from(sales)
+      .where(and(
+        eq(sales.sellerId, vendedorId),
+        eq(sales.siteId, siteId),
+        sql`${sales.createdAt} >= ${today}`
+      ));
+
+    // Calculate average for last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [avgResult] = await db
+      .select({ avg: sql<string>`COALESCE(AVG(daily_total), 0)` })
+      .from(
+        db
+          .select({ daily_total: sql<string>`SUM(amount)` })
+          .from(sales)
+          .where(and(
+            eq(sales.sellerId, vendedorId),
+            eq(sales.siteId, siteId),
+            sql`${sales.createdAt} >= ${thirtyDaysAgo}`
+          ))
+          .groupBy(sql`DATE(${sales.createdAt})`)
+          .as('daily_sales')
+      );
+
+    return {
+      vouchersToday: voucherResult.count,
+      revenueToday: salesResult.total,
+      averageDaily: avgResult.avg
+    };
+  }
+
   async getSiteStats(siteId: string): Promise<{
     vouchersToday: number;
     revenueToday: string;
@@ -521,10 +590,7 @@ export class DatabaseStorage implements IStorage {
     const [plansResult] = await db
       .select({ count: sql<number>`count(*)` })
       .from(plans)
-      .where(and(
-        eq(plans.siteId, siteId),
-        eq(plans.status, 'active')
-      ));
+      .where(eq(plans.siteId, siteId));
 
     return {
       vouchersToday: voucherResult.count,
