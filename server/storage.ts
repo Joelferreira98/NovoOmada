@@ -294,7 +294,10 @@ export class DatabaseStorage implements IStorage {
     const planWithId = {
       ...plan,
       id: crypto.randomUUID(),
+      createdAt: new Date(),
     };
+    
+    console.log("Inserting plan with data:", JSON.stringify(planWithId, null, 2));
     
     await db.insert(plans).values(planWithId);
     const [newPlan] = await db.select().from(plans).where(eq(plans.id, planWithId.id));

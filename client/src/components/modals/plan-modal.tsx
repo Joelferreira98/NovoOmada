@@ -45,6 +45,7 @@ const planFormSchema = insertPlanSchema.extend({
   downLimit: z.number().min(0).max(10485760).optional(),
   upLimit: z.number().min(0).max(10485760).optional(),
   durationUnit: z.string().default("horas").optional(), // Helper field for UI
+  userLimit: z.number().min(1).max(10).default(1).optional(), // Helper field for concurrent users
 });
 
 type PlanFormData = z.infer<typeof planFormSchema>;
@@ -75,6 +76,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
       downLimit: plan?.downLimit || 0,
       upLimit: plan?.upLimit || 0,
       unitPrice: plan?.unitPrice || "0.00",
+      userLimit: 1,
       siteId: siteId,
     } : {
       nome: "",
@@ -87,6 +89,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
       downLimit: 0,
       upLimit: 0,
       unitPrice: "0.00",
+      userLimit: 1,
       siteId: siteId,
     },
   });
@@ -120,8 +123,8 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
   });
 
   const onSubmit = (data: PlanFormData) => {
-    // Remove the helper field before sending to backend
-    const { durationUnit, ...planData } = data;
+    // Remove the helper fields before sending to backend
+    const { durationUnit, userLimit, ...planData } = data;
     planMutation.mutate(planData);
   };
 
@@ -327,6 +330,34 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
               </div>
 
             </div>
+
+            {/* Concurrent Users Limit - Only for 'duration' type */}
+            {form.watch("tipoLimite") === "duration" && (
+              <div className="space-y-2">
+                <FormLabel>Usuários Simultâneos</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="userLimit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min={1} 
+                          max={10} 
+                          placeholder="1"
+                          {...field}
+                          value={field.value || 1}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        />
+                      </FormControl>
+                      <FormDescription>Número máximo de usuários simultâneos (1-10)</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             {/* Speed Limits */}
             <div className="space-y-4">

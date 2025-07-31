@@ -644,6 +644,8 @@ export function registerRoutes(app: Express): Server {
         createdBy: req.user!.id
       });
       
+      console.log("Final data for database:", JSON.stringify(validatedData, null, 2));
+      
       console.log("Validated data:", JSON.stringify(validatedData, null, 2));
       const plan = await storage.createPlan(validatedData);
       console.log("Plan created successfully:", plan.id);
