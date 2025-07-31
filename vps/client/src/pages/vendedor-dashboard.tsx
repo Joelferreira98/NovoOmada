@@ -637,16 +637,7 @@ export default function VendedorDashboard() {
                         </h5>
                       </div>
                       <div className="card-body">
-                        <div 
-                          className="d-flex flex-column gap-3"
-                          style={{ 
-                            pointerEvents: 'auto',
-                            position: 'relative',
-                            zIndex: 100
-                          }}
-                          onMouseEnter={() => console.log('Entered print buttons area')}
-                          onMouseLeave={() => console.log('Left print buttons area')}
-                        >
+                        <div className="d-flex flex-column gap-3">
                           <div className="text-center mb-3">
                             <p className="text-success fw-semibold mb-1">
                               ✓ {lastGeneratedVouchers.length} vouchers gerados com sucesso!
@@ -669,15 +660,8 @@ export default function VendedorDashboard() {
                                 console.error('❌ No vouchers available for printing!');
                               }
                             }}
-                            onMouseDown={() => console.log('A4 button mouse down')}
-                            onMouseUp={() => console.log('A4 button mouse up')}
                             className="btn btn-primary w-100"
-                            style={{ 
-                              height: '48px', 
-                              zIndex: 1000, 
-                              position: 'relative',
-                              pointerEvents: 'auto'
-                            }}
+                            style={{ height: '48px' }}
                           >
                             <Printer className="me-2" size={20} />
                             Imprimir A4 ({lastGeneratedVouchers?.length || 0} vouchers)
