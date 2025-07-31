@@ -598,8 +598,9 @@ export default function VendedorDashboard() {
                             </small>
                           </div>
                           
-                          <Button 
+                          <button 
                             onClick={() => {
+                              console.log('A4 print button clicked!', lastGeneratedVouchers);
                               printVouchers(lastGeneratedVouchers);
                               setLastGeneratedVouchers([]);
                             }}
@@ -611,10 +612,11 @@ export default function VendedorDashboard() {
                               <div>Imprimir A4</div>
                               <small className="text-muted">Formato padrão ({lastGeneratedVouchers.length} vouchers)</small>
                             </div>
-                          </Button>
+                          </button>
                           
-                          <Button 
+                          <button 
                             onClick={() => {
+                              console.log('Thermal print button clicked!', lastGeneratedVouchers);
                               printVouchersRoll(lastGeneratedVouchers);
                               setLastGeneratedVouchers([]);
                             }}
@@ -626,16 +628,18 @@ export default function VendedorDashboard() {
                               <div>Cupom Térmico</div>
                               <small className="text-muted">58mm/80mm ({lastGeneratedVouchers.length} vouchers)</small>
                             </div>
-                          </Button>
+                          </button>
                           
-                          <Button 
-                            onClick={() => setLastGeneratedVouchers([])}
-                            variant="outline"
+                          <button 
+                            onClick={() => {
+                              console.log('Cancel button clicked!');
+                              setLastGeneratedVouchers([]);
+                            }}
                             className="btn btn-outline-danger w-100"
                             style={{ height: '40px' }}
                           >
                             Cancelar Impressão
-                          </Button>
+                          </button>
                         </div>
                       </div>
                     </div>
