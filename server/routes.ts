@@ -1567,7 +1567,30 @@ export function registerRoutes(app: Express): Server {
       console.log('🔍 Fetching price distribution for site:', site.name, 'from:', new Date(Number(timeStart) * 1000), 'to:', new Date(Number(timeEnd) * 1000));
 
       // Get access token
-      const accessToken = await getAccessToken(credentials);
+      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'client_credentials',
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+        }),
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
       
       // Call Omada API for price distribution with date range
       const apiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history/distribution/unit-price?filters.timeStart=${timeStart}&filters.timeEnd=${timeEnd}`;
@@ -1632,7 +1655,30 @@ export function registerRoutes(app: Express): Server {
       console.log('⏱️ Fetching duration distribution for site:', site.name, 'from:', new Date(Number(timeStart) * 1000), 'to:', new Date(Number(timeEnd) * 1000));
 
       // Get access token
-      const accessToken = await getAccessToken(credentials);
+      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'client_credentials',
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+        }),
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
       
       // Call Omada API for duration distribution with date range
       const apiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history/distribution/duration?filters.timeStart=${timeStart}&filters.timeEnd=${timeEnd}`;

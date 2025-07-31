@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Download, BarChart3, PieChart, TrendingUp, DollarSign } from "lucide-react";
+import { CalendarIcon, Download, BarChart3, PieChart, TrendingUp, DollarSign, ArrowLeft, User } from "lucide-react";
+import { Link } from "wouter";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -123,15 +124,30 @@ export default function ReportsPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Navigation Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Relatórios</h1>
-          <p className="text-muted-foreground">Análise de vendas e uso de vouchers</p>
+        <div className="flex items-center gap-4">
+          <Link href={user?.role === "admin" ? "/admin" : "/vendedor"}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Voltar ao Dashboard
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold">Relatórios</h1>
+            <p className="text-muted-foreground">Análise de vendas e uso de vouchers</p>
+          </div>
         </div>
-        <Button variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          Exportar PDF
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <User className="h-4 w-4" />
+            {user?.username} ({user?.role})
+          </div>
+          <Button variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            Exportar PDF
+          </Button>
+        </div>
       </div>
 
       {/* Site Selection */}
