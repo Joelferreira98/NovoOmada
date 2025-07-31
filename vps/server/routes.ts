@@ -596,15 +596,12 @@ export function registerRoutes(app: Express): Server {
       console.log(`Test Request - URL: ${tokenUrl}`);
       console.log(`Test Request - Body:`, JSON.stringify(requestBody, null, 2));
       
-      const tokenResponse = await fetch(tokenUrl, {
+      const tokenResponse = await omadaFetch(tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const tokenData = await tokenResponse.json();
@@ -715,15 +712,14 @@ export function registerRoutes(app: Express): Server {
         
         console.log(`Making sites API call with access token: ${accessToken.substring(0, 10)}...`);
         
-        const response = await fetch(`${openApiUrl}?${params}`, {
+        const response = await omadaFetch(`${openApiUrl}?${params}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `AccessToken=${accessToken}`
           },
           ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-          })
+          }
         });
 
         console.log(`Sites API response status: ${response.status}`);
@@ -739,15 +735,14 @@ export function registerRoutes(app: Express): Server {
             
             // Get fresh token and retry
             const newAccessToken = await getValidOmadaToken(credentials);
-            const retryResponse = await fetch(`${openApiUrl}?${params}`, {
+            const retryResponse = await omadaFetch(`${openApiUrl}?${params}`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `AccessToken=${newAccessToken}`
               },
               ...(process.env.NODE_ENV === 'development' && {
-                agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-              })
+              }
             });
             
             if (!retryResponse.ok) {
@@ -789,14 +784,13 @@ export function registerRoutes(app: Express): Server {
           console.log("Trying fallback: traditional controller API");
           
           // Try to get controller info first
-          const infoResponse = await fetch(`${credentials.omadaUrl}/api/info`, {
+          const infoResponse = await omadaFetch(`${credentials.omadaUrl}/api/info`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json'
             },
             ...(process.env.NODE_ENV === 'development' && {
-              agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-            })
+            }
           });
           
           if (infoResponse.ok) {
@@ -1497,12 +1491,11 @@ export function registerRoutes(app: Express): Server {
         
         // Try to get voucher group list to see if it exists
         const groupListUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups?page=1&pageSize=10`;
-        const groupListResponse = await fetch(groupListUrl, {
+        const groupListResponse = await omadaFetch(groupListUrl, {
           method: 'GET',
           headers: { 'Authorization': `AccessToken=${accessToken}` },
           ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-          })
+          }
         });
         
         if (groupListResponse.ok) {
@@ -1634,19 +1627,14 @@ export function registerRoutes(app: Express): Server {
       const accessToken = await getValidOmadaToken(credentials);
 
       // Get voucher summary from Omada API
-      const summaryResponse = await fetch(
+      const summaryResponse = await omadaFetch(
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/summary`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -1698,19 +1686,14 @@ export function registerRoutes(app: Express): Server {
       const endSeconds = Math.floor(parseInt(timeEnd) / 1000);
 
       // Get voucher history from Omada API
-      const historyResponse = await fetch(
+      const historyResponse = await omadaFetch(
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history?filters.timeStart=${startSeconds}&filters.timeEnd=${endSeconds}`,
         {
           headers: {
             'Authorization': `AccessToken=${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -1765,17 +1748,12 @@ export function registerRoutes(app: Express): Server {
       
       console.log('📡 Calling Omada API:', apiUrl);
       
-      const response = await fetch(apiUrl, {
+      const response = await omadaFetch(apiUrl, {
         headers: {
           'Authorization': `AccessToken=${accessToken}`,
           'Content-Type': 'application/json',
         },
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
       });
 
       if (!response.ok) {
@@ -1830,17 +1808,12 @@ export function registerRoutes(app: Express): Server {
       
       console.log('📡 Calling Omada Duration API:', apiUrl);
       
-      const response = await fetch(apiUrl, {
+      const response = await omadaFetch(apiUrl, {
         headers: {
           'Authorization': `AccessToken=${accessToken}`,
           'Content-Type': 'application/json',
         },
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
       });
 
       if (!response.ok) {
@@ -1892,19 +1865,14 @@ export function registerRoutes(app: Express): Server {
       const endSeconds = Math.floor(parseInt(timeEnd) / 1000);
 
       // Get voucher distribution from Omada API
-      const distributionResponse = await fetch(
+      const distributionResponse = await omadaFetch(
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history/distribution/duration?filters.timeStart=${startSeconds}&filters.timeEnd=${endSeconds}`,
         {
           headers: {
             'Authorization': `AccessToken=${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -1940,8 +1908,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(500).json({ message: "Omada credentials not configured" });
       }
 
-      // Get access token
-      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+      // Get access token using omadaFetch
+      const tokenResponse = await omadaFetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1950,13 +1918,8 @@ export function registerRoutes(app: Express): Server {
           grant_type: 'client_credentials',
           client_id: credentials.clientId,
           client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
+        }
       });
 
       if (!tokenResponse.ok) {
@@ -1967,19 +1930,14 @@ export function registerRoutes(app: Express): Server {
       const accessToken = tokenData.access_token;
 
       // Get voucher groups from Omada API
-      const groupsResponse = await fetch(
+      const groupsResponse = await omadaFetch(
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups?page=1&pageSize=1000`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -2017,7 +1975,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Get access token
-      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+      const tokenResponse = await omadaFetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2026,13 +1984,8 @@ export function registerRoutes(app: Express): Server {
           grant_type: 'client_credentials',
           client_id: credentials.clientId,
           client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
+        }
       });
 
       if (!tokenResponse.ok) {
@@ -2050,17 +2003,12 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Get voucher group details with vouchers from Omada API
-      const groupResponse = await fetch(url, {
+      const groupResponse = await omadaFetch(url, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
       });
 
       if (!groupResponse.ok) {
@@ -2096,7 +2044,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Get access token
-      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+      const tokenResponse = await omadaFetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2105,13 +2053,8 @@ export function registerRoutes(app: Express): Server {
           grant_type: 'client_credentials',
           client_id: credentials.clientId,
           client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
+        }
       });
 
       if (!tokenResponse.ok) {
@@ -2122,19 +2065,14 @@ export function registerRoutes(app: Express): Server {
       const accessToken = tokenData.access_token;
 
       // Get all voucher groups
-      const groupsResponse = await fetch(
+      const groupsResponse = await omadaFetch(
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups?page=1&pageSize=1000`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -2161,19 +2099,14 @@ export function registerRoutes(app: Express): Server {
 
         // Buscar vouchers com status 1 (em uso) e 2 (expirados/usados)
         for (const status of [1, 2]) {
-          const groupDetailResponse = await fetch(
+          const groupDetailResponse = await omadaFetch(
             `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${group.id}?page=1&pageSize=1000&filters.status=${status}`,
             {
               headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
               },
-              // Ignore SSL certificate issues for self-signed certificates
-              ...(process.env.NODE_ENV === 'development' && {
-                agent: new (await import('https')).Agent({
-                  rejectUnauthorized: false
-                })
-              })
+              }
             }
           );
 
@@ -2195,7 +2128,7 @@ export function registerRoutes(app: Express): Server {
 
         for (const voucher of vouchersToDelete) {
           try {
-            const deleteResponse = await fetch(
+            const deleteResponse = await omadaFetch(
               `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/${voucher.id}`,
               {
                 method: 'DELETE',
@@ -2203,12 +2136,7 @@ export function registerRoutes(app: Express): Server {
                   'Authorization': `Bearer ${accessToken}`,
                   'Content-Type': 'application/json',
                 },
-                // Ignore SSL certificate issues for self-signed certificates
-                ...(process.env.NODE_ENV === 'development' && {
-                  agent: new (await import('https')).Agent({
-                    rejectUnauthorized: false
-                  })
-                })
+                }
               }
             );
 
@@ -2439,7 +2367,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Creating voucher group with data:', voucherData);
 
-      const createResponse = await fetch(
+      const createResponse = await omadaFetch(
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups`,
         {
           method: 'POST',
@@ -2448,12 +2376,7 @@ export function registerRoutes(app: Express): Server {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(voucherData),
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -2472,19 +2395,14 @@ export function registerRoutes(app: Express): Server {
 
       // Buscar detalhes do grupo criado para obter os vouchers
       const groupId = createData.result;
-      const detailResponse = await fetch(
+      const detailResponse = await omadaFetch(
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${groupId}?page=1&pageSize=${quantity}`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -2723,7 +2641,7 @@ export function registerRoutes(app: Express): Server {
         
         console.log(`Using validated token for delete: ${freshAccessToken.substring(0, 15)}...`);
         
-        const deleteResponse = await fetch(
+        const deleteResponse = await omadaFetch(
           `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/${voucher.omadaVoucherId}`,
           {
             method: 'DELETE',
@@ -2731,12 +2649,7 @@ export function registerRoutes(app: Express): Server {
               'Authorization': `Bearer ${freshAccessToken}`,
               'Content-Type': 'application/x-www-form-urlencoded',
             },
-            // Ignore SSL certificate issues for self-signed certificates
-            ...(process.env.NODE_ENV === 'development' && {
-              agent: new (await import('https')).Agent({
-                rejectUnauthorized: false
-              })
-            })
+            }
           }
         );
 

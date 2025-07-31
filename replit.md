@@ -5,7 +5,7 @@ This full-stack web application manages WiFi vouchers through Omada controllers,
 
 ## Deployment Status
 **READY FOR DEPLOYMENT** - All critical issues resolved:
-- ✅ SSL certificate connectivity with Omada API (development environment configured)
+- ✅ SSL certificate connectivity with Omada API (ALL fetch() calls converted to omadaFetch)
 - ✅ Authentication system fully functional with role-based access
 - ✅ Voucher generation and printing system operational
 - ✅ Advanced reporting with real-time data from Omada controllers
@@ -15,6 +15,8 @@ This full-stack web application manages WiFi vouchers through Omada controllers,
 - ✅ Complete deployment package created for server installation
 - ✅ Session store configuration fixed for production environment
 - ✅ Database connectivity optimized for MySQL remote connection
+- ✅ Admin dashboard menu simplified - direct navigation to /reports
+- ✅ Print history functionality enhanced with proper site filtering
 
 ## Server Deployment Package
 Created comprehensive installation scripts for server deployment:
