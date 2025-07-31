@@ -154,6 +154,36 @@ export default function VendedorDashboard() {
             flex: 1;
             align-content: start;
           }
+          
+          /* Landscape orientation optimization */
+          @media print and (orientation: landscape) {
+            .page { 
+              width: 297mm; 
+              height: 210mm;
+              padding: 3mm;
+            }
+            .voucher-grid {
+              grid-template-columns: repeat(10, 1fr);
+              gap: 2mm;
+            }
+            .voucher {
+              min-height: 65px;
+              padding: 6px;
+            }
+            .voucher-code {
+              font-size: 12px;
+              padding: 5px 3px;
+            }
+            .voucher-site {
+              font-size: 7px;
+            }
+            .voucher-info {
+              font-size: 7px;
+            }
+            .voucher-footer {
+              font-size: 5px;
+            }
+          }
           .voucher {
             border: 1.5px solid #000;
             padding: 8px;
@@ -227,12 +257,21 @@ export default function VendedorDashboard() {
           ${vouchersToPrint.length > 8 && vouchersToPrint.length <= 15 ? '.voucher-grid { grid-template-columns: repeat(5, 1fr); gap: 4mm; } .voucher { min-height: 90px; padding: 10px; } .voucher-code { font-size: 15px; padding: 7px; }' : ''}
           ${vouchersToPrint.length > 15 && vouchersToPrint.length <= 30 ? '.voucher-grid { grid-template-columns: repeat(6, 1fr); gap: 3mm; } .voucher { min-height: 80px; padding: 8px; } .voucher-code { font-size: 14px; padding: 6px; }' : ''}
           ${vouchersToPrint.length > 30 && vouchersToPrint.length <= 56 ? '.voucher-grid { grid-template-columns: repeat(7, 1fr); gap: 2mm; } .voucher { min-height: 70px; padding: 6px; } .voucher-code { font-size: 12px; padding: 5px; }' : ''}
-          ${vouchersToPrint.length > 56 ? '.voucher-grid { grid-template-columns: repeat(8, 1fr); gap: 2mm; } .voucher { min-height: 65px; padding: 5px; } .voucher-code { font-size: 11px; padding: 4px; }' : ''}
+          ${vouchersToPrint.length > 56 && vouchersToPrint.length <= 80 ? '.voucher-grid { grid-template-columns: repeat(8, 1fr); gap: 2mm; } .voucher { min-height: 65px; padding: 5px; } .voucher-code { font-size: 11px; padding: 4px; }' : ''}
+          ${vouchersToPrint.length > 80 ? '.voucher-grid { grid-template-columns: repeat(9, 1fr); gap: 1mm; } .voucher { min-height: 60px; padding: 4px; } .voucher-code { font-size: 10px; padding: 3px; }' : ''}
+          
+          /* Landscape-specific optimizations */
+          @media print and (orientation: landscape) {
+            ${vouchersToPrint.length <= 20 ? '.voucher-grid { grid-template-columns: repeat(8, 1fr); gap: 3mm; } .voucher { min-height: 80px; padding: 8px; }' : ''}
+            ${vouchersToPrint.length > 20 && vouchersToPrint.length <= 40 ? '.voucher-grid { grid-template-columns: repeat(10, 1fr); gap: 2mm; } .voucher { min-height: 70px; padding: 6px; }' : ''}
+            ${vouchersToPrint.length > 40 && vouchersToPrint.length <= 80 ? '.voucher-grid { grid-template-columns: repeat(12, 1fr); gap: 1.5mm; } .voucher { min-height: 60px; padding: 5px; }' : ''}
+            ${vouchersToPrint.length > 80 ? '.voucher-grid { grid-template-columns: repeat(14, 1fr); gap: 1mm; } .voucher { min-height: 55px; padding: 4px; }' : ''}
+          }
         </style>
       </head>
       <body>
         <div class="page">
-          <div class="voucher-grid ${vouchersToPrint.length <= 8 ? 'tiny' : vouchersToPrint.length <= 15 ? 'small' : vouchersToPrint.length <= 30 ? 'medium' : vouchersToPrint.length <= 56 ? 'large' : 'xlarge'}">
+          <div class="voucher-grid ${vouchersToPrint.length <= 8 ? 'tiny' : vouchersToPrint.length <= 15 ? 'small' : vouchersToPrint.length <= 30 ? 'medium' : vouchersToPrint.length <= 56 ? 'large' : vouchersToPrint.length <= 80 ? 'xlarge' : 'xxlarge'}">
             ${vouchersToPrint.map((voucher, index) => `
               <div class="voucher">
                 <div class="voucher-site">${siteName}</div>

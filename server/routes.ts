@@ -1111,7 +1111,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { planId, quantity = 1 } = req.body;
       
-      if (!planId || !quantity || quantity < 1 || quantity > 50) {
+      if (!planId || !quantity || quantity < 1 || quantity > 100) {
         return res.status(400).json({ message: "Invalid plan or quantity" });
       }
 
@@ -1989,7 +1989,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { planId, quantity } = req.body;
       
-      if (!planId || !quantity || quantity < 1 || quantity > 50) {
+      if (!planId || !quantity || quantity < 1 || quantity > 100) {
         return res.status(400).json({ message: "Invalid plan or quantity" });
       }
 
