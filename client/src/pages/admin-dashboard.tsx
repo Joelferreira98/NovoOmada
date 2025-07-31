@@ -17,6 +17,7 @@ import {
 import { useLocation } from "wouter";
 import { Site } from "@shared/schema";
 import { VendedorModal } from "@/components/modals/vendedor-modal";
+import { PlanModal } from "@/components/modals/plan-modal";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -222,20 +223,21 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <CreditCard className="h-5 w-5 mr-2" />
                 Gerenciar Planos
               </CardTitle>
               <CardDescription>
-                Criar e configurar planos de vouchers WiFi
+                Criar e configurar templates de planos de vouchers WiFi
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" disabled>
-                Em Breve
-              </Button>
+              <PlanModal 
+                siteId={selectedSite.id} 
+                siteName={selectedSite.name}
+              />
             </CardContent>
           </Card>
 

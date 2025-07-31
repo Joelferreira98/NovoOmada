@@ -1,198 +1,518 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { insertPlanSchema } from "@shared/schema";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { insertPlanSchema, type InsertPlan } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { Settings, Plus } from "lucide-react";
+import { z } from "zod";
+
+// Validation schema with enhanced rules for plan creation
+const planFormSchema = insertPlanSchema.extend({
+  nome: z.string().min(1, "Nome é obrigatório").max(32, "Nome deve ter no máximo 32 caracteres"),
+  comprimentoVoucher: z.number().min(6, "Mínimo 6 caracteres").max(10, "Máximo 10 caracteres"),
+  duration: z.number().min(1, "Mínimo 1 minuto").max(14400000, "Máximo 14.400.000 minutos"),
+  unitPrice: z.string().min(1, "Preço é obrigatório"),
+  downLimit: z.number().min(0).max(10485760).optional(),
+  upLimit: z.number().min(0).max(10485760).optional(),
+  trafficLimit: z.number().min(0).max(10485760).optional(),
+});
+
+type PlanFormData = z.infer<typeof planFormSchema>;
 
 interface PlanModalProps {
-  isOpen: boolean;
-  onClose: () => void;
   siteId: string;
+  siteName: string;
+  plan?: any; // For editing existing plans
+  mode?: "create" | "edit";
 }
 
-type PlanForm = {
-  nome: string;
-  comprimentoVoucher: number;
-  tipoLimite: string;
-  codeForm: string;
-  duration: number;
-  downLimit: number;
-  upLimit: number;
-  unitPrice: number;
-};
-
-export function PlanModal({ isOpen, onClose, siteId }: PlanModalProps) {
+export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModalProps) {
+  const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  
-  const form = useForm<PlanForm>({
-    resolver: zodResolver(insertPlanSchema.omit({ siteId: true, status: true, createdBy: true })),
-    defaultValues: {
+  const queryClient = useQueryClient();
+  const isEdit = mode === "edit";
+
+  const form = useForm<PlanFormData>({
+    resolver: zodResolver(planFormSchema),
+    defaultValues: isEdit ? {
+      nome: plan?.nome || "",
+      description: plan?.description || "",
+      comprimentoVoucher: plan?.comprimentoVoucher || 8,
+      tipoCodigo: plan?.tipoCodigo || "numerico_letra",
+      tipoLimite: plan?.tipoLimite || "uso_limitado",
+      limitNum: plan?.limitNum || 1,
+      durationType: plan?.durationType || 0,
+      duration: plan?.duration || 60,
+      timingType: plan?.timingType || 0,
+      downLimitEnable: plan?.downLimitEnable || false,
+      downLimit: plan?.downLimit || 0,
+      upLimitEnable: plan?.upLimitEnable || false,
+      upLimit: plan?.upLimit || 0,
+      trafficLimitEnable: plan?.trafficLimitEnable || false,
+      trafficLimit: plan?.trafficLimit || 0,
+      trafficLimitFrequency: plan?.trafficLimitFrequency || 0,
+      unitPrice: plan?.unitPrice || "0.00",
+      currency: plan?.currency || "BRL",
+      applyToAllPortals: plan?.applyToAllPortals ?? true,
+      logout: plan?.logout ?? true,
+      validityType: plan?.validityType || 0,
+      printComments: plan?.printComments || "",
+      status: plan?.status || "active",
+      siteId: siteId,
+    } : {
       nome: "",
-      comprimentoVoucher: 6,
-      tipoLimite: "time",
-      codeForm: "ALPHANUMERIC",
+      description: "",
+      comprimentoVoucher: 8,
+      tipoCodigo: "numerico_letra",
+      tipoLimite: "uso_limitado",
+      limitNum: 1,
+      durationType: 0,
       duration: 60,
-      downLimit: 10,
-      upLimit: 5,
-      unitPrice: 5.00,
+      timingType: 0,
+      downLimitEnable: false,
+      downLimit: 0,
+      upLimitEnable: false,
+      upLimit: 0,
+      trafficLimitEnable: false,
+      trafficLimit: 0,
+      trafficLimitFrequency: 0,
+      unitPrice: "0.00",
+      currency: "BRL",
+      applyToAllPortals: true,
+      logout: true,
+      validityType: 0,
+      printComments: "",
+      status: "active",
+      siteId: siteId,
     },
   });
 
-  const createPlanMutation = useMutation({
-    mutationFn: async (data: PlanForm) => {
-      const res = await apiRequest("POST", "/api/plans", {
-        ...data,
-        siteId
-      });
-      return await res.json();
+  const planMutation = useMutation({
+    mutationFn: async (data: PlanFormData) => {
+      const url = isEdit ? `/api/plans/${plan.id}` : "/api/plans";
+      const method = isEdit ? "PUT" : "POST";
+      const response = await apiRequest(method, url, data);
+      return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "plans"] });
-      toast({
-        title: "Plano criado",
-        description: "Plano foi criado com sucesso",
-      });
+      setOpen(false);
       form.reset();
-      onClose();
-    },
-    onError: () => {
       toast({
-        title: "Erro",
-        description: "Falha ao criar plano",
+        title: isEdit ? "Plano atualizado" : "Plano criado com sucesso",
+        description: isEdit 
+          ? `Plano "${form.getValues('nome')}" foi atualizado`
+          : `Plano "${form.getValues('nome')}" foi criado para o site "${siteName}"`,
+      });
+      // Invalidate plans query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: isEdit ? "Erro ao atualizar plano" : "Erro ao criar plano",
+        description: error.message || "Erro desconhecido",
         variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (data: PlanForm) => {
-    createPlanMutation.mutate(data);
+  const onSubmit = (data: PlanFormData) => {
+    planMutation.mutate(data);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {isEdit ? (
+          <Button variant="outline" size="sm">
+            <Settings className="h-4 w-4 mr-2" />
+            Editar
+          </Button>
+        ) : (
+          <Button className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            Criar Plano
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Criar Novo Plano</DialogTitle>
+          <DialogTitle>
+            {isEdit ? "Editar Plano" : "Criar Novo Plano"}
+          </DialogTitle>
+          <DialogDescription>
+            {isEdit 
+              ? `Editar plano para o site "${siteName}"`
+              : `Criar um template de plano para facilitar a geração de vouchers no site "${siteName}"`
+            }
+          </DialogDescription>
         </DialogHeader>
-        
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="nome">Nome do Plano</Label>
-              <Input
-                id="nome"
-                {...form.register("nome")}
-                placeholder="Ex: Plano 30 minutos"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Basic Information */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="nome"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome do Plano</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Plano 1 Hora" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="unitPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preço (R$)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="5.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            <div>
-              <Label htmlFor="comprimentoVoucher">Comprimento do Voucher</Label>
-              <Input
-                id="comprimentoVoucher"
-                type="number"
-                min="4"
-                max="12"
-                {...form.register("comprimentoVoucher", { valueAsNumber: true })}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Descrição opcional do plano..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Voucher Code Settings */}
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="comprimentoVoucher"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Comprimento do Código</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min={6} 
+                        max={10} 
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormDescription>6-10 caracteres</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="tipoCodigo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Código</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="numerico">Apenas Números</SelectItem>
+                        <SelectItem value="letra">Apenas Letras</SelectItem>
+                        <SelectItem value="numerico_letra">Números e Letras</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="tipoLimite"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Limite</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="uso_limitado">Uso Limitado</SelectItem>
+                        <SelectItem value="usuarios_simultaneos">Usuários Simultâneos</SelectItem>
+                        <SelectItem value="ilimitado">Ilimitado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            <div>
-              <Label htmlFor="codeForm">Tipo de Código</Label>
-              <Select 
-                value={form.watch("codeForm")} 
-                onValueChange={(value) => form.setValue("codeForm", value)}
+            {/* Duration and Limits */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Duração (minutos)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="60" 
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {form.watch("tipoLimite") !== "ilimitado" && (
+                <FormField
+                  control={form.control}
+                  name="limitNum"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {form.watch("tipoLimite") === "uso_limitado" ? "Número de Usos" : "Usuários Simultâneos"}
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min={1} 
+                          max={999} 
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
+            {/* Speed Limits */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium">Limites de Velocidade</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="downLimitEnable"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>Limite Download</FormLabel>
+                          <FormDescription>Ativar limite de download</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  {form.watch("downLimitEnable") && (
+                    <FormField
+                      control={form.control}
+                      name="downLimit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="Download (Kbps)" 
+                              {...field}
+                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="upLimitEnable"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>Limite Upload</FormLabel>
+                          <FormDescription>Ativar limite de upload</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  {form.watch("upLimitEnable") && (
+                    <FormField
+                      control={form.control}
+                      name="upLimit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="Upload (Kbps)" 
+                              {...field}
+                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Traffic Limits */}
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="trafficLimitEnable"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel>Limite de Tráfego</FormLabel>
+                      <FormDescription>Ativar limite de dados</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              {form.watch("trafficLimitEnable") && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="trafficLimit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Limite (MB)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="1024" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trafficLimitFrequency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Frequência</FormLabel>
+                        <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="0">Total</SelectItem>
+                            <SelectItem value="1">Diário</SelectItem>
+                            <SelectItem value="2">Semanal</SelectItem>
+                            <SelectItem value="3">Mensal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+            </div>
+
+            <FormField
+              control={form.control}
+              name="printComments"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Comentários para Impressão</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Comentários que aparecerão nos vouchers impressos..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALPHANUMERIC">Alfanumérico</SelectItem>
-                  <SelectItem value="NUMERIC">Numérico</SelectItem>
-                  <SelectItem value="ALPHA">Alfabético</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="tipoLimite">Tipo de Limite</Label>
-              <Select 
-                value={form.watch("tipoLimite")} 
-                onValueChange={(value) => form.setValue("tipoLimite", value)}
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={planMutation.isPending}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="time">Tempo</SelectItem>
-                  <SelectItem value="data">Dados</SelectItem>
-                  <SelectItem value="both">Ambos</SelectItem>
-                </SelectContent>
-              </Select>
+                {planMutation.isPending 
+                  ? (isEdit ? "Atualizando..." : "Criando...") 
+                  : (isEdit ? "Atualizar Plano" : "Criar Plano")
+                }
+              </Button>
             </div>
-
-            <div>
-              <Label htmlFor="duration">Duração (minutos)</Label>
-              <Input
-                id="duration"
-                type="number"
-                min="1"
-                {...form.register("duration", { valueAsNumber: true })}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="unitPrice">Preço Unitário (R$)</Label>
-              <Input
-                id="unitPrice"
-                type="number"
-                step="0.01"
-                min="0"
-                {...form.register("unitPrice", { valueAsNumber: true })}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="downLimit">Download (Mbps)</Label>
-              <Input
-                id="downLimit"
-                type="number"
-                min="1"
-                {...form.register("downLimit", { valueAsNumber: true })}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="upLimit">Upload (Mbps)</Label>
-              <Input
-                id="upLimit"
-                type="number"
-                min="1"
-                {...form.register("upLimit", { valueAsNumber: true })}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-6">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={createPlanMutation.isPending}
-              className="bg-emerald-500 hover:bg-emerald-600"
-            >
-              {createPlanMutation.isPending ? "Criando..." : "Criar Plano"}
-            </Button>
-          </div>
-        </form>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
