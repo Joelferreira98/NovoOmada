@@ -1295,15 +1295,9 @@ export function registerRoutes(app: Express): Server {
           status: 'available'
         });
 
-        // Criar registro de venda apenas se for voucher real do Omada
-        if (omadaVoucher.id && omadaVoucher.code) {
-          await storage.createSale({
-            voucherId: voucher.id,
-            sellerId: req.user!.id,
-            siteId: plan.siteId,
-            amount: plan.unitPrice
-          });
-        }
+        // NÃO criar venda automaticamente - vouchers são criados como 'available' 
+        // Vendas serão criadas apenas quando o voucher for realmente usado/vendido
+        console.log(`Voucher ${omadaVoucher.code} created as available - no automatic sale record`);
 
         savedVouchers.push({
           id: voucher.id,

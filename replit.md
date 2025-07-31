@@ -6,6 +6,12 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 
 ## Recent Changes (July 31, 2025)
 
+✓ **Correção Sistema de Vendas Automáticas**: Corrigido problema de vouchers sendo vendidos ao serem criados
+- **Sale Logic Fixed**: Removida criação automática de vendas na geração de vouchers
+- **Available Status**: Vouchers agora ficam corretamente como 'available' até serem realmente usados
+- **Real Sales Only**: Vendas são criadas apenas quando vouchers são marcados como 'used' pelo Omada
+- **Proper Tracking**: Sistema diferencia corretamente vouchers disponíveis vs vendidos
+
 ✓ **Sistema de Exclusão de Vouchers com Callback Token**: Implementação robusta de delete via API Omada
 - **Callback System**: Sistema de renovação de token com callbacks para operações críticas
 - **Token Crítico**: Função `getCriticalToken` garante tokens válidos para operações sensíveis
