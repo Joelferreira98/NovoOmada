@@ -478,26 +478,35 @@ export class DatabaseStorage implements IStorage {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    let avgQuery = db
-      .select({ avg: sql<string>`COALESCE(AVG(daily_total), 0)` })
-      .from(
-        db
-          .select({ daily_total: sql<string>`SUM(amount)` })
-          .from(sales)
-          .where(and(
-            eq(sales.sellerId, userId),
-            sql`${sales.createdAt} >= ${thirtyDaysAgo}`
-          ))
-          .groupBy(sql`DATE(${sales.createdAt})`)
-          .as('daily_sales')
-      );
+    // Simplified average calculation - just get total for last 30 days and divide by 30
+    let avgSalesQuery = db
+      .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
+      .from(sales)
+      .where(and(
+        eq(sales.sellerId, userId),
+        sql`${sales.createdAt} >= ${thirtyDaysAgo}`
+      ));
 
-    const [avgResult] = await avgQuery;
+    if (siteId) {
+      avgSalesQuery = db
+        .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
+        .from(sales)
+        .where(and(
+          eq(sales.sellerId, userId),
+          eq(sales.siteId, siteId),
+          sql`${sales.createdAt} >= ${thirtyDaysAgo}`
+        ));
+    }
+
+    const [avgSalesResult] = await avgSalesQuery;
+
+    // Calculate average by dividing total by 30 days
+    const avgDaily = (parseFloat(avgSalesResult.total) / 30).toFixed(2);
 
     return {
       vouchersToday: voucherResult.count,
       revenueToday: salesResult.total,
-      averageDaily: avgResult.avg
+      averageDaily: avgDaily
     };
   }
 
@@ -527,29 +536,26 @@ export class DatabaseStorage implements IStorage {
         sql`${sales.createdAt} >= ${today}`
       ));
 
-    // Calculate average for last 30 days
+    // Calculate average for last 30 days - simplified approach
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const [avgResult] = await db
-      .select({ avg: sql<string>`COALESCE(AVG(daily_total), 0)` })
-      .from(
-        db
-          .select({ daily_total: sql<string>`SUM(amount)` })
-          .from(sales)
-          .where(and(
-            eq(sales.sellerId, vendedorId),
-            eq(sales.siteId, siteId),
-            sql`${sales.createdAt} >= ${thirtyDaysAgo}`
-          ))
-          .groupBy(sql`DATE(${sales.createdAt})`)
-          .as('daily_sales')
-      );
+    const [avgSalesResult] = await db
+      .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
+      .from(sales)
+      .where(and(
+        eq(sales.sellerId, vendedorId),
+        eq(sales.siteId, siteId),
+        sql`${sales.createdAt} >= ${thirtyDaysAgo}`
+      ));
+
+    // Calculate average by dividing total by 30 days
+    const avgDaily = (parseFloat(avgSalesResult.total) / 30).toFixed(2);
 
     return {
       vouchersToday: voucherResult.count,
       revenueToday: salesResult.total,
-      averageDaily: avgResult.avg
+      averageDaily: avgDaily
     };
   }
 
