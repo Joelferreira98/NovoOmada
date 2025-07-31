@@ -35,8 +35,8 @@ async function getValidOmadaToken(credentials: any): Promise<{ accessToken: stri
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      'username': 'admin',
-      'password': 'admin'
+      'username': credentials.adminUsername || 'admin',
+      'password': credentials.adminPassword || 'admin'
     })
   });
 
