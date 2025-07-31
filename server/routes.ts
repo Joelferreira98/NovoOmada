@@ -764,16 +764,23 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Obter token de acesso (sempre novo para evitar expiração)
+      console.log('Getting fresh access token from:', `${credentials.omadaUrl}/openapi/authorize/token`);
+      console.log('Client ID:', credentials.clientId);
+      
+      const tokenRequestData = {
+        grant_type: 'client_credentials',
+        client_id: credentials.clientId,
+        client_secret: credentials.clientSecret,
+      };
+      
+      console.log('Token request data:', { ...tokenRequestData, client_secret: '***' });
+      
       const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          grant_type: 'client_credentials',
-          client_id: credentials.clientId,
-          client_secret: credentials.clientSecret,
-        }),
+        body: JSON.stringify(tokenRequestData),
         // Ignore SSL certificate issues for self-signed certificates
         ...(process.env.NODE_ENV === 'development' && {
           agent: new (await import('https')).Agent({
@@ -782,12 +789,28 @@ export function registerRoutes(app: Express): Server {
         })
       });
 
+      console.log('Token response status:', tokenResponse.status);
+      console.log('Token response headers:', Object.fromEntries(tokenResponse.headers));
+
       if (!tokenResponse.ok) {
-        throw new Error('Failed to get access token');
+        const errorText = await tokenResponse.text();
+        console.error('Token request failed:', tokenResponse.status, errorText);
+        throw new Error(`Failed to get access token: ${tokenResponse.status} - ${errorText}`);
       }
 
       const tokenData = await tokenResponse.json();
+      console.log('Token response data:', tokenData);
+      
+      if (tokenData.error) {
+        throw new Error(`Token error: ${tokenData.error_description || tokenData.error}`);
+      }
+      
       const accessToken = tokenData.access_token;
+      if (!accessToken) {
+        throw new Error('No access token in response');
+      }
+      
+      console.log('Successfully obtained access token');
 
       // Criar grupo de vouchers via API do Omada
       const voucherGroupData = {
