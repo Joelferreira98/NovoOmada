@@ -49,7 +49,6 @@ export const plans = mysqlTable("plans", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   // Basic info
   nome: text("nome").notNull(), // Plan name (1-32 chars)
-  description: text("description"),
   
   // Voucher code settings
   comprimentoVoucher: int("comprimento_voucher").notNull().default(8), // Code length (6-10)

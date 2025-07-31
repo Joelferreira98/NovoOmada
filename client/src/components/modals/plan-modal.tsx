@@ -46,7 +46,7 @@ const planFormSchema = insertPlanSchema.extend({
   upLimit: z.number().min(0).max(10485760).optional(),
   trafficLimit: z.number().min(0).max(10485760).optional(),
   durationUnit: z.string().default("horas").optional(), // Helper field for UI
-});
+}).omit({ description: true });
 
 type PlanFormData = z.infer<typeof planFormSchema>;
 
@@ -67,7 +67,6 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
     resolver: zodResolver(planFormSchema),
     defaultValues: isEdit ? {
       nome: plan?.nome || "",
-      description: plan?.description || "",
       comprimentoVoucher: plan?.comprimentoVoucher || 8,
       tipoCodigo: plan?.tipoCodigo || "numerico_letra",
       tipoLimite: plan?.tipoLimite || "uso_limitado",
@@ -93,7 +92,6 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
       siteId: siteId,
     } : {
       nome: "",
-      description: "",
       comprimentoVoucher: 8,
       tipoCodigo: "numerico_letra",
       tipoLimite: "uso_limitado",
@@ -213,19 +211,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Descrição opcional do plano..." {...field} value={field.value || ""} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
 
             {/* Voucher Code Settings */}
             <div className="grid grid-cols-3 gap-4">
