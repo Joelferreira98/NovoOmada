@@ -1,30 +1,30 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, timestamp, boolean, pgEnum, primaryKey, json, uuid } from "drizzle-orm/pg-core";
+import { mysqlTable, text, varchar, int, decimal, timestamp, boolean, mysqlEnum, primaryKey, json } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const userRoleEnum = pgEnum("role", ["master", "admin", "vendedor"]);
-export const planStatusEnum = pgEnum("plan_status", ["active", "inactive"]);
-export const voucherStatusEnum = pgEnum("voucher_status", ["available", "used", "expired"]);
-export const siteStatusEnum = pgEnum("site_status", ["active", "inactive", "syncing"]);
+export const userRoleEnum = mysqlEnum("role", ["master", "admin", "vendedor"]);
+export const planStatusEnum = mysqlEnum("status", ["active", "inactive"]);
+export const voucherStatusEnum = mysqlEnum("status", ["available", "used", "expired"]);
+export const siteStatusEnum = mysqlEnum("status", ["active", "inactive", "syncing"]);
 
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+export const users = mysqlTable("users", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  role: userRoleEnum("role").notNull(),
+  role: userRoleEnum.notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const omadaCredentials = pgTable("omada_credentials", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+export const omadaCredentials = mysqlTable("omada_credentials", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   omadaUrl: text("omada_url").notNull(),
   omadacId: text("omadac_id").notNull(),
   clientId: text("client_id").notNull(),
   clientSecret: text("client_secret").notNull(),
-  createdBy: uuid("created_by").notNull().references(() => users.id),
+  createdBy: varchar("created_by", { length: 36 }).notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

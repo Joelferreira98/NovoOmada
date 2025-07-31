@@ -13,9 +13,19 @@ import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { Pool } from 'pg';
 
-const MemoryStore = createMemoryStore(session);
+// Session store using PostgreSQL
+const PostgresSessionStore = connectPg(session);
+const pgPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const sessionStore = new PostgresSessionStore({
+  pool: pgPool,
+  createTableIfMissing: true,
+});
 
 export interface IStorage {
   // User management
@@ -99,9 +109,7 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
-    });
+    this.sessionStore = sessionStore;
   }
 
   async getUser(id: string): Promise<User | undefined> {
