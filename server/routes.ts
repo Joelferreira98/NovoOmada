@@ -431,19 +431,21 @@ async function getValidOmadaToken(credentials: any): Promise<string> {
     'client_secret': credentials.clientSecret
   };
   
-  // Import https module and configure SSL options
+  // Use node-fetch with proper SSL configuration
+  const nodeFetch = (await import('node-fetch')).default;
   const https = await import('https');
+  
   const agent = process.env.NODE_ENV === 'development' 
     ? new https.Agent({ rejectUnauthorized: false })
     : undefined;
 
-  const tokenResponse = await fetch(tokenUrl, {
+  const tokenResponse = await nodeFetch(tokenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(requestBody),
-    ...(agent && { agent })
+    agent
   });
 
   if (!tokenResponse.ok) {
@@ -1226,20 +1228,21 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Creating admin voucher group with data:', JSON.stringify(voucherGroupData, null, 2));
 
-      // Configure SSL agent for voucher creation
+      // Use node-fetch for voucher creation with SSL
+      const nodeFetch = (await import('node-fetch')).default;
       const https = await import('https');
       const voucherAgent = process.env.NODE_ENV === 'development' 
         ? new https.Agent({ rejectUnauthorized: false })
         : undefined;
 
-      const voucherResponse = await fetch(voucherApiUrl, {
+      const voucherResponse = await nodeFetch(voucherApiUrl, {
         method: 'POST',
         headers: {
           'Authorization': `AccessToken=${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(voucherGroupData),
-        ...(voucherAgent && { agent: voucherAgent })
+        agent: voucherAgent
       });
 
       if (!voucherResponse.ok) {
@@ -1262,19 +1265,19 @@ export function registerRoutes(app: Express): Server {
       // Get voucher details from Omada
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Configure SSL agent for voucher details
+      // Use node-fetch for voucher details with SSL
       const detailAgent = process.env.NODE_ENV === 'development' 
         ? new https.Agent({ rejectUnauthorized: false })
         : undefined;
 
-      const detailResponse = await fetch(
+      const detailResponse = await nodeFetch(
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${omadaGroupId}?page=1&pageSize=1000`,
         {
           headers: {
             'Authorization': `AccessToken=${accessToken}`,
             'Content-Type': 'application/json',
           },
-          ...(detailAgent && { agent: detailAgent })
+          agent: detailAgent
         }
       );
 
