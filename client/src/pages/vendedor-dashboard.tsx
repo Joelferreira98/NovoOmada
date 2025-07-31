@@ -527,11 +527,14 @@ export default function VendedorDashboard() {
                             <SelectValue placeholder="Selecione um plano" />
                           </SelectTrigger>
                           <SelectContent>
-                            {(plans as any[]).map((plan) => (
-                              <SelectItem key={plan.id} value={plan.id}>
-                                {plan.nome} - R$ {parseFloat(plan.unitPrice || 0).toFixed(2)} ({plan.duration}min)
-                              </SelectItem>
-                            ))}
+                            {(plans as any[]).map((plan) => {
+                              console.log('Plan data:', plan);
+                              return (
+                                <SelectItem key={plan.id} value={plan.id}>
+                                  {plan.nome || 'Nome não encontrado'} - R$ {parseFloat(plan.unitPrice || 0).toFixed(2)} ({plan.duration || 0}min)
+                                </SelectItem>
+                              );
+                            })}
                           </SelectContent>
                         </Select>
                       </div>
