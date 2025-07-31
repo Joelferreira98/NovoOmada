@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Download, BarChart3, PieChart, TrendingUp } from "lucide-react";
+import { CalendarIcon, Download, BarChart3, PieChart, TrendingUp, DollarSign } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -45,6 +45,13 @@ interface VoucherDurationDistribution {
   usedCount: number;
 }
 
+interface VoucherPriceDistribution {
+  unitPrice: string;
+  totalAmount: string;
+  usedCount: number;
+  currency: string;
+}
+
 export default function ReportsPage() {
   const { user } = useAuth();
   const [selectedSiteId, setSelectedSiteId] = useState<string>("");
@@ -82,6 +89,12 @@ export default function ReportsPage() {
   // Get voucher history statistics
   const { data: voucherHistory, isLoading: historyLoading } = useQuery<VoucherHistoryStats>({
     queryKey: ["/api/reports/voucher-history", selectedSiteId, dateRange.from.getTime(), dateRange.to.getTime()],
+    enabled: !!selectedSiteId,
+  });
+
+  // Get voucher price distribution with date range
+  const { data: priceDistribution, isLoading: priceLoading } = useQuery<{ data: VoucherPriceDistribution[] }>({
+    queryKey: ["/api/reports/voucher-price-distribution", selectedSiteId, Math.floor(dateRange.from.getTime() / 1000), Math.floor(dateRange.to.getTime() / 1000)],
     enabled: !!selectedSiteId,
   });
 
@@ -182,7 +195,7 @@ export default function ReportsPage() {
 
       {/* Reports Tabs */}
       <Tabs defaultValue="summary" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="summary" className="gap-2">
             <BarChart3 className="h-4 w-4" />
             Resumo Geral
@@ -194,6 +207,10 @@ export default function ReportsPage() {
           <TabsTrigger value="distribution" className="gap-2">
             <PieChart className="h-4 w-4" />
             Distribuição
+          </TabsTrigger>
+          <TabsTrigger value="price" className="gap-2">
+            <DollarSign className="h-4 w-4" />
+            Por Preço
           </TabsTrigger>
         </TabsList>
 
@@ -393,6 +410,79 @@ export default function ReportsPage() {
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   Nenhum dado de distribuição encontrado
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Price Distribution Tab */}
+        <TabsContent value="price" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribuição por Preço</CardTitle>
+              <CardDescription>
+                Análise de vouchers por valor no período de {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} até {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {priceLoading ? (
+                <div className="text-center py-8">Carregando distribuição por preço...</div>
+              ) : priceDistribution?.data && priceDistribution.data.length > 0 ? (
+                <div className="space-y-4">
+                  {priceDistribution.data.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <div className="font-medium text-lg">
+                          {item.currency} {parseFloat(item.unitPrice).toFixed(2)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Preço unitário do voucher
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">
+                          {item.usedCount} utilizados
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Total: {item.currency} {parseFloat(item.totalAmount).toFixed(2)}
+                        </div>
+                        <Badge variant="outline" className="mt-1">
+                          {item.usedCount > 0 ? 
+                            `${((item.usedCount / parseInt(item.totalAmount)) * 100).toFixed(1)}% usados` : 
+                            'Nenhum usado'
+                          }
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Summary Card */}
+                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">Resumo do Período</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Total de tipos de preço:</span>
+                        <span className="ml-2 font-medium">{priceDistribution.data.length}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Total utilizado:</span>
+                        <span className="ml-2 font-medium">
+                          {priceDistribution.data.reduce((sum, item) => sum + item.usedCount, 0)} vouchers
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <div className="mb-4">
+                    <DollarSign className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                  </div>
+                  <p>Nenhum dado de distribuição por preço encontrado para o período selecionado</p>
+                  <p className="text-sm mt-2">
+                    Tente selecionar um período diferente ou verifique se há vouchers criados no site
+                  </p>
                 </div>
               )}
             </CardContent>

@@ -13,6 +13,15 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 - **Smart JSON Handling**: Sistema robusto de parsing JSON para códigos de vouchers
 - **Debug Logging**: Logs detalhados para monitoramento do sistema
 
+✓ **Sistema de Relatórios por Preço com Consulta por Data - NEW**: Nova funcionalidade de análise de vouchers
+- **Price Distribution API**: Endpoint `/api/reports/voucher-price-distribution` usando documentação Omada oficial
+- **Date Range Filter**: Filtros por data start/end timestamp conforme especificação da API
+- **Price Analysis Tab**: Nova aba "Por Preço" no sistema de relatórios com interface completa
+- **Real-time Data**: Consulta direta à API Omada com parâmetros `filters.timeStart` e `filters.timeEnd`
+- **Currency Support**: Exibição de moeda e valores formatados corretamente
+- **Usage Statistics**: Percentual de vouchers utilizados por faixa de preço
+- **Period Summary**: Resumo consolidado do período selecionado
+
 ✓ **Menu Atualizado**: Substituído "Caixa" por "Relatórios" no dashboard do vendedor
 - **Direct Access**: Link direto para o sistema completo de relatórios
 - **Better UX**: Acesso mais intuitivo às funcionalidades de análise de dados
