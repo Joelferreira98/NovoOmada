@@ -14,7 +14,7 @@ import SiteSelectionPage from "@/pages/site-selection-page";
 import VendedorDashboard from "@/pages/vendedor-dashboard";
 import CashPage from "@/pages/cash-page";
 import ProfilePage from "@/pages/profile-page";
-import PWASettings from "@/pages/pwa-settings";
+
 
 function Router() {
   return (
@@ -27,7 +27,7 @@ function Router() {
       <ProtectedRoute path="/reports" component={ReportsPage} />
       <ProtectedRoute path="/cash" component={CashPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
-      <ProtectedRoute path="/pwa-settings" component={PWASettings} />
+
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

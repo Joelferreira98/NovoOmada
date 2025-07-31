@@ -17,6 +17,7 @@ This full-stack web application manages WiFi vouchers through Omada controllers,
 - ✅ Database connectivity optimized for MySQL remote connection
 - ✅ Admin dashboard menu simplified - direct navigation to /reports
 - ✅ Print history functionality enhanced with proper site filtering
+- ✅ PWA implemented for login page only with offline capability
 
 ## Server Deployment Package
 Created comprehensive installation scripts for server deployment:

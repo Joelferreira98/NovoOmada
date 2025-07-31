@@ -1048,42 +1048,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // App Settings methods for PWA
-  async getAppSettings(): Promise<AppSettings | undefined> {
-    const [settings] = await db.select().from(appSettings).limit(1);
-    return settings;
-  }
 
-  async updateAppSettings(data: Partial<AppSettings>, userId: string): Promise<AppSettings> {
-    // Get existing settings or create new ones
-    const existing = await this.getAppSettings();
-    
-    if (existing) {
-      // Update existing settings
-      await db.update(appSettings)
-        .set({ ...data, updatedBy: userId })
-        .where(eq(appSettings.id, existing.id));
-      
-      const [updated] = await db.select().from(appSettings).where(eq(appSettings.id, existing.id));
-      return updated;
-    } else {
-      // Create new settings
-      const settingsId = crypto.randomUUID();
-      const newSettings = {
-        id: settingsId,
-        appName: data.appName || "Omada Vouchers",
-        appDescription: data.appDescription || "Sistema de gestão de vouchers WiFi",
-        themeColor: data.themeColor || "#2563eb",
-        hasCustomIcons: data.hasCustomIcons || false,
-        manifestData: data.manifestData || null,
-        updatedBy: userId
-      };
-      
-      await db.insert(appSettings).values(newSettings);
-      const [created] = await db.select().from(appSettings).where(eq(appSettings.id, settingsId));
-      return created;
-    }
-  }
 }
 
 export const storage = new DatabaseStorage();

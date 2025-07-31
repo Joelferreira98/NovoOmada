@@ -25,7 +25,7 @@
     <meta name="msapplication-TileColor" content="#2563eb" />
     <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
     
-    <title>Omada Voucher Management</title>
+    <title>Omada Login</title>
   </head>
   <body>
     <div id="root"></div>
@@ -35,7 +35,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          navigator.serviceWorker.register('/sw-simple.js')
             .then((registration) => {
               console.log('SW registered: ', registration);
             })
