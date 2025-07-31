@@ -473,8 +473,8 @@ export function registerRoutes(app: Express): Server {
       res.json({ message: "Sites atribuídos com sucesso" });
     } catch (error) {
       console.error("Assign sites error:", error);
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
+      console.error("Error message:", error instanceof Error ? error.message : "Unknown error");
+      console.error("Error stack:", error instanceof Error ? error.stack : "No stack");
       res.status(400).json({ message: "Failed to assign sites", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });

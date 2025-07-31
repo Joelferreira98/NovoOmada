@@ -45,6 +45,7 @@ const planFormSchema = insertPlanSchema.extend({
   downLimit: z.number().min(0).max(10485760).optional(),
   upLimit: z.number().min(0).max(10485760).optional(),
   trafficLimit: z.number().min(0).max(10485760).optional(),
+  durationUnit: z.string().default("horas").optional(), // Helper field for UI
 });
 
 type PlanFormData = z.infer<typeof planFormSchema>;
@@ -73,6 +74,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
       limitNum: plan?.limitNum || 1,
       durationType: plan?.durationType || 0,
       duration: plan?.duration || 60,
+      durationUnit: "horas",
       timingType: plan?.timingType || 0,
       downLimitEnable: plan?.downLimitEnable || false,
       downLimit: plan?.downLimit || 0,
@@ -98,6 +100,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
       limitNum: 1,
       durationType: 0,
       duration: 60,
+      durationUnit: "horas",
       timingType: 0,
       downLimitEnable: false,
       downLimit: 0,
@@ -146,7 +149,9 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
   });
 
   const onSubmit = (data: PlanFormData) => {
-    planMutation.mutate(data);
+    // Remove the helper field before sending to backend
+    const { durationUnit, ...planData } = data;
+    planMutation.mutate(planData);
   };
 
   return (
@@ -215,7 +220,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Descrição opcional do plano..." {...field} />
+                    <Textarea placeholder="Descrição opcional do plano..." {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -292,24 +297,75 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
 
             {/* Duration and Limits */}
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duração (minutos)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="60" 
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <FormLabel>Duração</FormLabel>
+                <div className="flex gap-2">
+                  <FormField
+                    control={form.control}
+                    name="duration"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="1" 
+                            value={form.watch("durationUnit") === "minutos" ? field.value : 
+                                   form.watch("durationUnit") === "horas" ? Math.floor(field.value / 60) :
+                                   Math.floor(field.value / (60 * 24))}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 0;
+                              const unit = form.watch("durationUnit") || "horas";
+                              const minutes = unit === "minutos" ? value :
+                                            unit === "horas" ? value * 60 :
+                                            value * 60 * 24;
+                              field.onChange(minutes);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="durationUnit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select 
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            // Convert current duration to new unit
+                            const currentDuration = form.getValues("duration");
+                            const currentUnit = field.value || "horas";
+                            let minutes = currentDuration;
+                            
+                            // Convert to minutes first
+                            if (currentUnit === "horas") minutes = currentDuration * 60;
+                            else if (currentUnit === "dias") minutes = currentDuration * 60 * 24;
+                            
+                            // Convert to new unit
+                            if (value === "horas") form.setValue("duration", Math.floor(minutes / 60));
+                            else if (value === "dias") form.setValue("duration", Math.floor(minutes / (60 * 24)));
+                            else form.setValue("duration", minutes);
+                          }} 
+                          defaultValue={field.value || "horas"}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="minutos">Min</SelectItem>
+                            <SelectItem value="horas">Hrs</SelectItem>
+                            <SelectItem value="dias">Dias</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
               {form.watch("tipoLimite") !== "ilimitado" && (
                 <FormField
                   control={form.control}
@@ -325,6 +381,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
                           min={1} 
                           max={999} 
                           {...field}
+                          value={field.value || 1}
                           onChange={(e) => field.onChange(parseInt(e.target.value))}
                         />
                       </FormControl>
@@ -486,7 +543,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
                 <FormItem>
                   <FormLabel>Comentários para Impressão</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Comentários que aparecerão nos vouchers impressos..." {...field} />
+                    <Textarea placeholder="Comentários que aparecerão nos vouchers impressos..." {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
