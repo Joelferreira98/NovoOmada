@@ -613,13 +613,27 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.delete("/api/users/:userId", requireAuth, requireRole(["master"]), async (req, res) => {
+  app.delete("/api/users/:userId", requireAuth, async (req, res) => {
     try {
       const userId = req.params.userId;
+      const requestingUser = req.user!;
       
-      // Don't allow master to delete themselves
-      if (userId === req.user!.id) {
+      // Don't allow any user to delete themselves
+      if (userId === requestingUser.id) {
         return res.status(400).json({ message: "Não é possível deletar sua própria conta" });
+      }
+      
+      // Role-based restrictions: Master can delete anyone, Admin can delete vendedores
+      if (requestingUser.role === "master") {
+        // Master can delete any user
+      } else if (requestingUser.role === "admin") {
+        // Admin can only delete vendedores
+        const targetUser = await storage.getUser(userId);
+        if (!targetUser || targetUser.role !== "vendedor") {
+          return res.status(403).json({ message: "Admins só podem excluir vendedores" });
+        }
+      } else {
+        return res.status(403).json({ message: "Sem permissão para excluir usuários" });
       }
       
       const deleted = await storage.deleteUser(userId);
