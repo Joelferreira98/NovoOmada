@@ -898,7 +898,8 @@ export function registerRoutes(app: Express): Server {
         validityType: 0
       };
 
-      console.log('Creating voucher group with data:', voucherGroupData);
+      console.log('Creating voucher group at URL:', voucherApiUrl);
+      console.log('Creating voucher group with data:', JSON.stringify(voucherGroupData, null, 2));
 
       const createResponse = await fetch(
         voucherApiUrl,
@@ -973,6 +974,29 @@ export function registerRoutes(app: Express): Server {
       // Extract voucher codes from the group details
       const generatedVouchers = vouchersData.result?.data || [];
       console.log(`Found ${generatedVouchers.length} vouchers in group ${voucherGroupId}`);
+      
+      // Verificar se os vouchers foram realmente criados no Omada
+      if (generatedVouchers.length === 0) {
+        console.error('⚠️ ERRO: Nenhum voucher encontrado no grupo do Omada!');
+        console.log('Grupo criado mas sem vouchers. Verificando estado no controlador...');
+        
+        // Try to get voucher group list to see if it exists
+        const groupListUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups?page=1&pageSize=10`;
+        const groupListResponse = await fetch(groupListUrl, {
+          method: 'GET',
+          headers: { 'Authorization': `AccessToken=${accessToken}` },
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({ rejectUnauthorized: false })
+          })
+        });
+        
+        if (groupListResponse.ok) {
+          const groupListData = await groupListResponse.json();
+          console.log('Grupos existentes no Omada:', JSON.stringify(groupListData, null, 2));
+        }
+        
+        throw new Error('Grupo de vouchers criado mas nenhum voucher foi gerado no controlador Omada. Verifique as configurações do site no controlador.');
+      }
 
       // Salvar vouchers no banco local para controle
       const savedVouchers = [];
