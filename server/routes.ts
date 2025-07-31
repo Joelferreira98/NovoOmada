@@ -1310,7 +1310,12 @@ export function registerRoutes(app: Express): Server {
       }
 
       console.log('Successfully generated vouchers:', savedVouchers.length);
-      res.status(201).json(savedVouchers);
+      res.status(201).json({
+        success: true,
+        message: `${savedVouchers.length} vouchers gerados com sucesso`,
+        vouchers: savedVouchers,
+        count: savedVouchers.length
+      });
     } catch (error: any) {
       console.error('Error generating vouchers:', error);
       res.status(400).json({ message: `Failed to generate vouchers: ${error.message}` });

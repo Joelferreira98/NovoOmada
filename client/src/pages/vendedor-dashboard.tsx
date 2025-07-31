@@ -56,12 +56,13 @@ export default function VendedorDashboard() {
       return await res.json();
     },
     onSuccess: (data) => {
-      setLastGeneratedVouchers(data.vouchers || []);
+      const vouchers = data.vouchers || data || [];
+      setLastGeneratedVouchers(vouchers);
       queryClient.invalidateQueries({ queryKey: ["/api/vouchers", userSite?.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/daily", userSite?.id] });
       toast({
         title: "Vouchers gerados com sucesso!",
-        description: `${data.vouchers?.length || 0} vouchers foram criados.`,
+        description: data.message || `${vouchers.length} vouchers foram criados.`,
       });
     },
     onError: (error: any) => {
