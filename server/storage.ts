@@ -346,12 +346,18 @@ export class DatabaseStorage implements IStorage {
   async createVoucher(voucher: InsertVoucher): Promise<Voucher> {
     const voucherId = crypto.randomUUID();
     const voucherWithId = { 
-      ...voucher, 
       id: voucherId,
+      planId: voucher.planId,
+      siteId: voucher.siteId,
+      voucherCode: voucher.code, // Map code to voucher_code column
+      vendedorId: voucher.vendedorId,
+      unitPrice: voucher.unitPrice,
+      status: voucher.status,
+      createdBy: voucher.vendedorId, // Use vendedorId as createdBy
       createdAt: new Date()
     };
     
-    console.log('Creating voucher with data:', voucherWithId);
+    console.log('Creating voucher with mapped data:', voucherWithId);
     await db.insert(vouchers).values(voucherWithId);
     const [newVoucher] = await db.select().from(vouchers).where(eq(vouchers.id, voucherId));
     return newVoucher;
