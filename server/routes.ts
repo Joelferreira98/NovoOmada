@@ -872,7 +872,7 @@ export function registerRoutes(app: Express): Server {
         name: `${plan.nome} - ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`,
         amount: parseInt(quantity),
         codeLength: plan.comprimentoVoucher,
-        codeForm: plan.codeForm === '[0,1]' ? [0, 1] : [0],
+        codeForm: JSON.parse(plan.codeForm || '[0]'), // Parse do JSON: [0]=apenas números, [0,1]=números e letras
         limitType: 0, // Limited Usage Counts (como no exemplo PHP que funciona)
         limitNum: 1, // 1 uso por voucher
         durationType: 0, // Client duration
@@ -1752,7 +1752,7 @@ export function registerRoutes(app: Express): Server {
         name: `${plan.nome} - ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`,
         amount: parseInt(quantity), // quantidade de vouchers
         codeLength: plan.comprimentoVoucher, // 6-10 characters
-        codeForm: plan.codeForm === '[0,1]' ? [0, 1] : [0], // 0=Number, 1=Letter
+        codeForm: JSON.parse(plan.codeForm || '[0]'), // Parse do JSON: [0]=apenas números, [0,1]=números e letras
         limitType: 1, // 0=Limited Usage, 1=Limited Online Users, 2=Unlimited  
         limitNum: plan.userLimit || 1, // número de usuários simultâneos  
         durationType: 0, // 0=Client duration, 1=Voucher duration
