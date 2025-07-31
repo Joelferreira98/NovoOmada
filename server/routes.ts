@@ -637,12 +637,13 @@ export function registerRoutes(app: Express): Server {
       console.log("Creating plan for site:", siteId);
       console.log("Request body:", JSON.stringify(req.body, null, 2));
       console.log("User ID:", req.user!.id);
+      console.log("Full user object:", JSON.stringify(req.user, null, 2));
       
-      const validatedData = insertPlanSchema.parse({
+      const validatedData = {
         ...req.body,
         siteId,
         createdBy: req.user!.id
-      });
+      };
       
       console.log("Final data for database:", JSON.stringify(validatedData, null, 2));
       
