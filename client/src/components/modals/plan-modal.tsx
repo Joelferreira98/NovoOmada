@@ -70,7 +70,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
       nome: plan?.nome || "",
       comprimentoVoucher: plan?.comprimentoVoucher || 8,
       tipoCodigo: plan?.tipoCodigo || "mixed",
-      tipoLimite: plan?.tipoLimite || "duration",
+      tipoLimite: "duration", // Always Limited Online Users
       codeForm: plan?.codeForm || "[0,1]",
       duration: plan?.duration || 60,
       durationUnit: "horas",
@@ -84,7 +84,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
       nome: "",
       comprimentoVoucher: 8,
       tipoCodigo: "mixed",
-      tipoLimite: "duration",
+      tipoLimite: "duration", // Always Limited Online Users
       codeForm: "[0,1]",
       duration: 60,
       durationUnit: "horas",
@@ -236,28 +236,9 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="tipoLimite"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Limite</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="unlimited">Ilimitado</SelectItem>
-                        <SelectItem value="duration">Por Duração</SelectItem>
-                        <SelectItem value="data">Por Dados</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Hidden field - always Limited Online Users */}
+              <input type="hidden" {...form.register("tipoLimite")} value="duration" />
+              <input type="hidden" {...form.register("omadaLimitType")} value="1" />
             </div>
 
             {/* Duration and Limits */}
@@ -334,33 +315,31 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
 
             </div>
 
-            {/* Concurrent Users Limit - Only for 'duration' type */}
-            {form.watch("tipoLimite") === "duration" && (
-              <div className="space-y-2">
-                <FormLabel>Usuários Simultâneos</FormLabel>
-                <FormField
-                  control={form.control}
-                  name="userLimit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min={1} 
-                          max={10} 
-                          placeholder="1"
-                          {...field}
-                          value={field.value || 1}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                        />
-                      </FormControl>
-                      <FormDescription>Número máximo de usuários simultâneos (1-10)</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
+            {/* Concurrent Users Limit - Always shown since all plans are Limited Online Users */}
+            <div className="space-y-2">
+              <FormLabel>Usuários Simultâneos</FormLabel>
+              <FormField
+                control={form.control}
+                name="userLimit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min={1} 
+                        max={10} 
+                        placeholder="1"
+                        {...field}
+                        value={field.value || 1}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                      />
+                    </FormControl>
+                    <FormDescription>Número máximo de usuários simultâneos (1-10)</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Speed Limits */}
             <div className="space-y-4">

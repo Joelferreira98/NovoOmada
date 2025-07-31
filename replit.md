@@ -41,6 +41,8 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 - **Validation system**: Complete form validation with Zod schemas
 - **User interface**: Clean form with duration conversion (hours/days to minutes)
 - **Concurrent users option**: Added field for simultaneous user limits (1-10)
+- **Omada API mapping**: All plans standardized to Limited Online Users (limitType: 1)
+- **Simplified interface**: Removed type selection - all plans use same limit type
 - **Real data integration**: Plans properly stored and retrieved from MySQL
 - **Success confirmation**: Plan creation working end-to-end
 
