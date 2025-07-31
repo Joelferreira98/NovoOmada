@@ -22,10 +22,13 @@ export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
 
-  // Get selected site from localStorage
+  // Get selected site from localStorage on component mount
   useEffect(() => {
     const storedSiteId = localStorage.getItem("selectedSiteId");
-    setSelectedSiteId(storedSiteId);
+    console.log("Reading from localStorage:", storedSiteId);
+    if (storedSiteId) {
+      setSelectedSiteId(storedSiteId);
+    }
   }, []);
 
   const { data: userSites } = useQuery<Site[]>({
@@ -40,7 +43,7 @@ export default function AdminDashboard() {
 
   // Redirect to site selection if no site selected or if user has multiple sites
   useEffect(() => {
-    console.log("AdminDashboard useEffect:", {
+    console.log("AdminDashboard routing useEffect:", {
       userRole: user?.role,
       userSitesLength: userSites?.length,
       selectedSiteId,
@@ -48,15 +51,26 @@ export default function AdminDashboard() {
     });
     
     if (user?.role === "admin" && userSites) {
+      // Check localStorage again in case it was just updated
+      const currentStoredSiteId = localStorage.getItem("selectedSiteId");
+      console.log("Current localStorage value:", currentStoredSiteId);
+      
+      if (currentStoredSiteId && !selectedSiteId) {
+        // localStorage has value but state doesn't - update state
+        console.log("Updating selectedSiteId from localStorage:", currentStoredSiteId);
+        setSelectedSiteId(currentStoredSiteId);
+        return; // Don't redirect, let state update first
+      }
+      
       if (userSites.length === 0) {
         // No sites assigned - show error or redirect
         console.log("No sites assigned, redirecting to auth");
         setLocation("/auth");
-      } else if (userSites.length > 1 && !selectedSiteId) {
+      } else if (userSites.length > 1 && !currentStoredSiteId) {
         // Multiple sites but none selected - redirect to selection
         console.log("Multiple sites but no selection, redirecting to site-selection");
         setLocation("/site-selection");
-      } else if (userSites.length === 1 && !selectedSiteId) {
+      } else if (userSites.length === 1 && !currentStoredSiteId) {
         // Only one site - auto-select it
         const siteId = userSites[0].id;
         console.log("Auto-selecting single site:", siteId);
