@@ -873,8 +873,8 @@ export function registerRoutes(app: Express): Server {
         amount: parseInt(quantity),
         codeLength: plan.comprimentoVoucher,
         codeForm: plan.codeForm === '[0,1]' ? [0, 1] : [0],
-        limitType: 1, // Limited Online Users
-        limitNum: plan.userLimit || 1,
+        limitType: 0, // Limited Usage Counts (como no exemplo PHP que funciona)
+        limitNum: 1, // 1 uso por voucher
         durationType: 0, // Client duration
         duration: plan.duration,
         timingType: 0, // Timing by time
@@ -888,14 +888,12 @@ export function registerRoutes(app: Express): Server {
           }
         },
         trafficLimitEnable: false,
-        unitPrice: Math.round(parseFloat(plan.unitPrice) * 100),
-        currency: "BRL",
+
         applyToAllPortals: true,
         portals: [],
         logout: true,
         description: `Plano ${plan.nome} - ${plan.duration} minutos`,
-        printComments: `Gerado por ${req.user!.username}`,
-        validityType: 0
+        printComments: `Gerado por ${req.user!.username}`
       };
 
       console.log('Creating voucher group at URL:', voucherApiUrl);
