@@ -6,16 +6,17 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 
 ## Recent Changes (July 31, 2025)
 
-✓ **Sistema Completamente Responsivo para Mobile - ATUALIZADO**: Interface otimizada para dispositivos móveis
-- **Layout Adaptável**: Dashboard do vendedor com design responsivo para tablets e smartphones
-- **Cards Mobile-First**: Estatísticas diárias com gradientes visuais e tamanhos otimizados
-- **Formulários Touch-Friendly**: Campos maiores (h-12) e botões dimensionados para toque
-- **Tabela Dual View**: Cards para mobile, tabela tradicional para desktop
-- **Navegação Flexível**: Menu empilhado em telas pequenas, horizontal em desktop
-- **Textos Escaláveis**: Typography responsiva (text-xl md:text-3xl)
-- **Botões Inteligentes**: Labels adaptativos ("Imprimir A4" vs. "A4")
-- **Grids Responsivos**: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
-- **Spacing Consistente**: gap-3 md:gap-6, p-4 md:p-6
+✓ **Sistema de Menu Lateral Recolhível com Bootstrap - COMPLETO**: Menu responsivo mobile-first implementado
+- **Sidebar Recolhível**: Menu lateral que se transforma em offcanvas no mobile usando react-bootstrap
+- **Botão Hambúrguer**: Toggle fixo no canto superior esquerdo para dispositivos móveis
+- **Bootstrap Integration**: Uso completo do sistema de grid e componentes Bootstrap
+- **Responsive Layout**: d-flex, flex-fill, container-fluid para layouts adaptativos
+- **Mobile-First Design**: Componentes otimizados primeiro para mobile, depois desktop
+- **Touch-Friendly Navigation**: Botões grandes e área de toque ampla no menu mobile
+- **Auto-Close Menu**: Menu fecha automaticamente após seleção no mobile
+- **Consistent Spacing**: Uso de classes Bootstrap (p-3 p-lg-4, mb-4, gap-3)
+- **Cards Responsivos**: Sistema de cards com grid Bootstrap (col-12 col-sm-6 col-lg-4)
+- **Typography Responsiva**: Classes Bootstrap (h2 h1-lg, text-muted) para textos adaptativos
 
 ✓ **Sistema de Histórico de Impressões Completo**: Funcionalidade completa de reimpressão implementada
 - **Print History Database**: Tabela print_history criada automaticamente no MySQL

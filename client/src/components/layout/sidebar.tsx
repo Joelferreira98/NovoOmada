@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { Offcanvas } from "react-bootstrap";
 
 interface SidebarItem {
   icon: LucideIcon;
@@ -17,22 +19,27 @@ interface SidebarProps {
   iconBg: string;
   items: SidebarItem[];
   extraContent?: React.ReactNode;
+  className?: string;
 }
 
-export function Sidebar({ title, subtitle, icon: Icon, iconBg, items, extraContent }: SidebarProps) {
+export function Sidebar({ title, subtitle, icon: Icon, iconBg, items, extraContent, className }: SidebarProps) {
   const { logoutMutation } = useAuth();
+  const [show, setShow] = useState(false);
 
-  return (
-    <div className="w-64 bg-slate-800 text-white flex flex-col">
+  const handleClose = () => setShow(false);
+  const handleShow = () => setShow(true);
+
+  const SidebarContent = () => (
+    <div className="bg-slate-800 text-white h-100 d-flex flex-column">
       {/* Header */}
-      <div className="p-6 border-b border-slate-700">
-        <div className="flex items-center space-x-3">
-          <div className={`${iconBg} p-2 rounded-lg`}>
-            <Icon className="w-6 h-6 text-white" />
+      <div className="p-4 border-bottom border-secondary">
+        <div className="d-flex align-items-center">
+          <div className={`${iconBg} p-2 rounded me-3`}>
+            <Icon className="text-white" size={24} />
           </div>
           <div>
-            <h2 className="font-semibold text-white">{title}</h2>
-            <p className="text-slate-400 text-sm">{subtitle}</p>
+            <h5 className="text-white mb-0 fw-semibold">{title}</h5>
+            <small className="text-light opacity-75">{subtitle}</small>
           </div>
         </div>
       </div>
@@ -41,38 +48,83 @@ export function Sidebar({ title, subtitle, icon: Icon, iconBg, items, extraConte
       {extraContent}
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
+      <nav className="flex-fill p-3">
+        <div className="d-grid gap-2">
           {items.map((item, index) => (
-            <li key={index}>
-              <Button
-                onClick={item.onClick}
-                variant={item.active ? "secondary" : "ghost"}
-                className={`w-full justify-start ${
-                  item.active 
-                    ? "bg-slate-700 text-white" 
-                    : "text-slate-300 hover:text-white hover:bg-slate-700"
-                }`}
-              >
-                <item.icon className="w-4 h-4 mr-3" />
-                {item.label}
-              </Button>
-            </li>
+            <Button
+              key={index}
+              onClick={() => {
+                item.onClick();
+                handleClose(); // Close sidebar on mobile after click
+              }}
+              variant={item.active ? "secondary" : "ghost"}
+              className={`w-100 justify-content-start text-start ${
+                item.active 
+                  ? "bg-slate-700 text-white border-0" 
+                  : "text-slate-300 hover:text-white hover:bg-slate-700 border-0"
+              }`}
+            >
+              <item.icon className="me-3" size={18} />
+              {item.label}
+            </Button>
           ))}
-        </ul>
+        </div>
       </nav>
 
       {/* Logout */}
-      <div className="p-4 border-t border-slate-700">
+      <div className="p-3 border-top border-secondary mt-auto">
         <Button
-          onClick={() => logoutMutation.mutate()}
+          onClick={() => {
+            logoutMutation.mutate();
+            handleClose();
+          }}
           variant="ghost"
-          className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+          className="w-100 justify-content-start text-start text-slate-300 hover:text-white hover:bg-slate-700 border-0"
         >
-          <LogOut className="w-4 h-4 mr-3" />
+          <LogOut className="me-3" size={18} />
           Sair
         </Button>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {/* Mobile Toggle Button - Fixed Position */}
+      <button
+        className="btn btn-primary d-lg-none position-fixed top-0 start-0 m-3 z-3"
+        onClick={handleShow}
+        style={{ zIndex: 1050 }}
+      >
+        <Menu size={20} />
+      </button>
+
+      {/* Desktop Sidebar */}
+      <div className="d-none d-lg-block bg-slate-800" style={{ width: '280px', minHeight: '100vh' }}>
+        <SidebarContent />
+      </div>
+
+      {/* Mobile Offcanvas Sidebar */}
+      <Offcanvas 
+        show={show} 
+        onHide={handleClose} 
+        placement="start"
+        className="d-lg-none"
+        style={{ width: '280px' }}
+      >
+        <Offcanvas.Header className="bg-slate-800 text-white border-0">
+          <Offcanvas.Title className="text-white">Menu</Offcanvas.Title>
+          <button
+            className="btn btn-sm btn-outline-light ms-auto"
+            onClick={handleClose}
+          >
+            <X size={18} />
+          </button>
+        </Offcanvas.Header>
+        <Offcanvas.Body className="p-0">
+          <SidebarContent />
+        </Offcanvas.Body>
+      </Offcanvas>
+    </>
   );
 }

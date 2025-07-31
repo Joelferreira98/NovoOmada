@@ -192,18 +192,19 @@ export default function MasterDashboard() {
   // Site creation removed - only sync functionality
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="d-flex bg-light min-vh-100">
       <Sidebar
         title="Master User"
         subtitle="Administrador Geral"
         icon={Crown}
-        iconBg="bg-primary"
+        iconBg="bg-warning"
         items={sidebarItems}
       />
 
-      <div className="flex-1 p-8 overflow-auto">
-        {activeTab === "sync" && (
-          <div className="space-y-8">
+      <div className="flex-fill p-3 p-lg-4 overflow-auto">
+        <div className="container-fluid px-0">
+          {activeTab === "sync" && (
+            <div className="space-y-8">
             <div>
               <h1 className="text-3xl font-bold text-slate-800">Sincronização Omada</h1>
               <p className="text-slate-600 mt-2">Configure as credenciais e sincronize sites</p>
@@ -467,7 +468,8 @@ export default function MasterDashboard() {
               </CardContent>
             </Card>
           </div>
-        )}
+          )}
+        </div>
       </div>
 
       <UserModal 
