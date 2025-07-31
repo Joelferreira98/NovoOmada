@@ -219,7 +219,6 @@ export class DatabaseStorage implements IStorage {
 
   async assignUserToSite(userId: string, siteId: string): Promise<void> {
     await db.insert(userSiteAccess).values({ 
-      id: crypto.randomUUID(),
       userId, 
       siteId 
     });
@@ -235,7 +234,6 @@ export class DatabaseStorage implements IStorage {
     // Add new assignments
     if (siteIds && siteIds.length > 0) {
       const assignments = siteIds.map(siteId => ({ 
-        id: crypto.randomUUID(),
         userId, 
         siteId 
       }));

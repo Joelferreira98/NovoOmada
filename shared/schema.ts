@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { mysqlTable, text, varchar, int, decimal, timestamp, boolean, mysqlEnum } from "drizzle-orm/mysql-core";
+import { mysqlTable, text, varchar, int, decimal, timestamp, boolean, mysqlEnum, primaryKey } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -39,11 +39,11 @@ export const sites = mysqlTable("sites", {
 });
 
 export const userSiteAccess = mysqlTable("user_sites", {
-  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.siteId] })
+}));
 
 export const plans = mysqlTable("plans", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
