@@ -988,13 +988,15 @@ export function registerRoutes(app: Express): Server {
           status: 'available'
         });
 
-        // Criar registro de venda
-        await storage.createSale({
-          voucherId: voucher.id,
-          sellerId: req.user!.id,
-          siteId: plan.siteId,
-          amount: plan.unitPrice
-        });
+        // Criar registro de venda apenas se for voucher real do Omada
+        if (omadaVoucher.id && omadaVoucher.code) {
+          await storage.createSale({
+            voucherId: voucher.id,
+            sellerId: req.user!.id,
+            siteId: plan.siteId,
+            amount: plan.unitPrice
+          });
+        }
 
         savedVouchers.push({
           id: voucher.id,
