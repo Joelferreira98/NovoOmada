@@ -1,15 +1,10 @@
-import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Redirect } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Wifi, Shield, Users, Loader2 } from "lucide-react";
-import { insertUserSchema } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
 type LoginForm = {
@@ -17,31 +12,13 @@ type LoginForm = {
   password: string;
 };
 
-type RegisterForm = {
-  username: string;
-  email: string;
-  password: string;
-  role: string;
-};
-
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
-  const [activeTab, setActiveTab] = useState("login");
+  const { user, loginMutation } = useAuth();
 
   const loginForm = useForm<LoginForm>({
     defaultValues: {
       username: "",
       password: "",
-    },
-  });
-
-  const registerForm = useForm<RegisterForm>({
-    resolver: zodResolver(insertUserSchema.omit({ createdAt: true })),
-    defaultValues: {
-      username: "",
-      email: "",
-      password: "",
-      role: "vendedor",
     },
   });
 
@@ -54,10 +31,6 @@ export default function AuthPage() {
 
   const onLogin = (data: LoginForm) => {
     loginMutation.mutate(data);
-  };
-
-  const onRegister = (data: RegisterForm) => {
-    registerMutation.mutate(data);
   };
 
   return (
@@ -128,120 +101,43 @@ export default function AuthPage() {
               <CardTitle className="text-center">Acesso ao Sistema</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="register">Registro</TabsTrigger>
-                </TabsList>
+              <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                <div>
+                  <Label htmlFor="username">Usuário</Label>
+                  <Input
+                    id="username"
+                    {...loginForm.register("username")}
+                    placeholder="Digite seu usuário"
+                    required
+                  />
+                </div>
 
-                <TabsContent value="login" className="space-y-4">
-                  <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
-                    <div>
-                      <Label htmlFor="username">Usuário</Label>
-                      <Input
-                        id="username"
-                        {...loginForm.register("username")}
-                        placeholder="Digite seu usuário"
-                        required
-                      />
-                    </div>
+                <div>
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    {...loginForm.register("password")}
+                    placeholder="Digite sua senha"
+                    required
+                  />
+                </div>
 
-                    <div>
-                      <Label htmlFor="password">Senha</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        {...loginForm.register("password")}
-                        placeholder="Digite sua senha"
-                        required
-                      />
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-emerald-500 hover:bg-emerald-600"
-                      disabled={loginMutation.isPending}
-                    >
-                      {loginMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Entrando...
-                        </>
-                      ) : (
-                        "Entrar"
-                      )}
-                    </Button>
-                  </form>
-                </TabsContent>
-
-                <TabsContent value="register" className="space-y-4">
-                  <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
-                    <div>
-                      <Label htmlFor="reg-username">Usuário</Label>
-                      <Input
-                        id="reg-username"
-                        {...registerForm.register("username")}
-                        placeholder="Escolha um usuário"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        {...registerForm.register("email")}
-                        placeholder="Digite seu email"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="reg-password">Senha</Label>
-                      <Input
-                        id="reg-password"
-                        type="password"
-                        {...registerForm.register("password")}
-                        placeholder="Escolha uma senha"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="role">Tipo de Usuário</Label>
-                      <Select 
-                        value={registerForm.watch("role")} 
-                        onValueChange={(value) => registerForm.setValue("role", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="vendedor">Vendedor</SelectItem>
-                          <SelectItem value="admin">Administrador</SelectItem>
-                          <SelectItem value="master">Master</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-emerald-500 hover:bg-emerald-600"
-                      disabled={registerMutation.isPending}
-                    >
-                      {registerMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Registrando...
-                        </>
-                      ) : (
-                        "Registrar"
-                      )}
-                    </Button>
-                  </form>
-                </TabsContent>
-              </Tabs>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-emerald-500 hover:bg-emerald-600"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Entrando...
+                    </>
+                  ) : (
+                    "Entrar"
+                  )}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </div>
