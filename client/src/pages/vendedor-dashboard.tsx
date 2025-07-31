@@ -63,7 +63,14 @@ export default function VendedorDashboard() {
       const vouchers = data.vouchers || data || [];
       console.log('Generated vouchers response:', data);
       console.log('Processed vouchers for printing:', vouchers);
+      console.log('Setting lastGeneratedVouchers to:', vouchers);
       setLastGeneratedVouchers(vouchers);
+      
+      // Force re-render after setting vouchers
+      setTimeout(() => {
+        console.log('Current lastGeneratedVouchers after timeout:', vouchers);
+      }, 100);
+      
       queryClient.invalidateQueries({ queryKey: ["/api/vouchers", userSite?.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/daily", userSite?.id] });
       toast({
@@ -597,7 +604,7 @@ export default function VendedorDashboard() {
                 </div>
                 
                 {/* Print Options - Show when vouchers are generated */}
-                {lastGeneratedVouchers.length > 0 && (
+                {lastGeneratedVouchers && lastGeneratedVouchers.length > 0 && (
                   <div className="col-12 col-lg-6">
                     <div className="card">
                       <div className="card-header">
@@ -622,9 +629,15 @@ export default function VendedorDashboard() {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              console.log('A4 print button clicked!', lastGeneratedVouchers);
-                              printVouchers(lastGeneratedVouchers);
-                              setLastGeneratedVouchers([]);
+                              console.log('A4 print button clicked!');
+                              console.log('Current vouchers:', lastGeneratedVouchers);
+                              console.log('Vouchers length:', lastGeneratedVouchers?.length);
+                              if (lastGeneratedVouchers && lastGeneratedVouchers.length > 0) {
+                                printVouchers(lastGeneratedVouchers);
+                                setLastGeneratedVouchers([]);
+                              } else {
+                                console.error('No vouchers available for printing!');
+                              }
                             }}
                             className="btn btn-outline-primary w-100"
                             style={{ height: '48px' }}
@@ -643,9 +656,15 @@ export default function VendedorDashboard() {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              console.log('Thermal print button clicked!', lastGeneratedVouchers);
-                              printVouchersRoll(lastGeneratedVouchers);
-                              setLastGeneratedVouchers([]);
+                              console.log('Thermal print button clicked!');
+                              console.log('Current vouchers:', lastGeneratedVouchers);
+                              console.log('Vouchers length:', lastGeneratedVouchers?.length);
+                              if (lastGeneratedVouchers && lastGeneratedVouchers.length > 0) {
+                                printVouchersRoll(lastGeneratedVouchers);
+                                setLastGeneratedVouchers([]);
+                              } else {
+                                console.error('No vouchers available for thermal printing!');
+                              }
                             }}
                             className="btn btn-outline-secondary w-100"
                             style={{ height: '48px' }}
