@@ -14,6 +14,14 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 - **Database Operations**: All CRUD operations working correctly with MySQL backend
 - **User Interface**: Responsive tables, modal forms, and confirmation dialogs
 
+✓ **Advanced Reporting System - NEW**: Comprehensive analytics using real Omada API data
+- **Three Report Types**: Voucher summary (all-time), usage history (time-based), and duration distribution
+- **Real Omada Integration**: Direct API calls to controller for authentic voucher statistics
+- **Interactive Interface**: Date range selection, site filtering, tabbed navigation
+- **Visual Analytics**: Cards for summary data, detailed tables for historical trends
+- **Permission-Based Access**: Site-specific reporting based on user access rights
+- **Admin Dashboard Integration**: Direct access to reports from admin interface
+
 ✓ **Database Migration**: Successfully migrated from PostgreSQL to MySQL
 - Updated database connection to use hsstm.shop MySQL server
 - Fixed all `.returning()` method incompatibilities with MySQL

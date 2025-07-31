@@ -1,0 +1,93 @@
+
+
+## Get voucher summary
+
+
+**Url**:`/openapi/v1/{omadacId}/sites/{siteId}/hotspot/vouchers/statistics/summary`
+
+
+**Method**:`GET`
+
+
+**produces**:`application/x-www-form-urlencoded`
+
+
+**consumes**:`*/*`
+
+
+**description**:<p>Get voucher summary of all time in the site.<br/><br/>The interface requires one of the permissions: <br/>Site Hotspot Manager View Only<br/><br/>The possible error code for the interface in the returned body is one of the following error codes (non generic error codes): <br/>-33000  -  This site does not exist.<br/>-33004  -  Operation failed because other operations (site copying, restoring, template synchronizing, etc.) are being performed on this site. Please wait and try again later.<br/>-44111  -  The Grant Type is Invalid.<br/>-44112  -  The access token has expired. Please re-initiate the refreshToken process to obtain the access token.</p>
+
+
+
+**Params**:
+
+
+**Params**:
+
+
+| name | description | in    | require | type | schema |
+| -------- | -------- | ----- | -------- | -------- | ------ |
+|omadacId|Omada ID|path|true|string||
+|siteId|Site ID|path|true|string||
+
+
+**status**:
+
+
+| code | description | schema |
+| -------- | -------- | ----- | 
+|200|OK|OperationResponseAllTimeVoucherSummaryOpenApiVO|
+
+
+**Responses**:
+
+
+| name | description | type | schema |
+| -------- | -------- | ----- |----- | 
+|errorCode||integer(int32)|integer(int32)|
+|msg||string||
+|result||AllTimeVoucherSummaryOpenApiVO|AllTimeVoucherSummaryOpenApiVO|
+|&emsp;&emsp;current||VoucherSummaryOpenApiVO|VoucherSummaryOpenApiVO|
+|&emsp;&emsp;&emsp;&emsp;count|Count of vouchers|integer(int64)||
+|&emsp;&emsp;&emsp;&emsp;amount|Amount of single voucher|string||
+|&emsp;&emsp;&emsp;&emsp;duration|Duration of vouchers, unit: minutes|integer(int64)||
+|&emsp;&emsp;&emsp;&emsp;currency|Currency Short Code of voucher. For the values of Currency Short Code, refer to section 5.4.2 of the Open API Access Guide.|string||
+|&emsp;&emsp;unused||VoucherSummaryOpenApiVO|VoucherSummaryOpenApiVO|
+|&emsp;&emsp;&emsp;&emsp;count|Count of vouchers|integer(int64)||
+|&emsp;&emsp;&emsp;&emsp;amount|Amount of single voucher|string||
+|&emsp;&emsp;&emsp;&emsp;duration|Duration of vouchers, unit: minutes|integer(int64)||
+|&emsp;&emsp;&emsp;&emsp;currency|Currency Short Code of voucher. For the values of Currency Short Code, refer to section 5.4.2 of the Open API Access Guide.|string||
+|&emsp;&emsp;created||VoucherSummaryOpenApiVO|VoucherSummaryOpenApiVO|
+|&emsp;&emsp;&emsp;&emsp;count|Count of vouchers|integer(int64)||
+|&emsp;&emsp;&emsp;&emsp;amount|Amount of single voucher|string||
+|&emsp;&emsp;&emsp;&emsp;duration|Duration of vouchers, unit: minutes|integer(int64)||
+|&emsp;&emsp;&emsp;&emsp;currency|Currency Short Code of voucher. For the values of Currency Short Code, refer to section 5.4.2 of the Open API Access Guide.|string||
+
+
+**Response Sample**:
+```javascript
+{
+	"errorCode": 0,
+	"msg": "",
+	"result": {
+		"current": {
+			"count": 0,
+			"amount": "",
+			"duration": 0,
+			"currency": ""
+		},
+		"unused": {
+			"count": 0,
+			"amount": "",
+			"duration": 0,
+			"currency": ""
+		},
+		"created": {
+			"count": 0,
+			"amount": "",
+			"duration": 0,
+			"currency": ""
+		}
+	}
+}
+```

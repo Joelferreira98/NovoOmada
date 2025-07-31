@@ -187,6 +187,14 @@ export default function AdminDashboard() {
             </div>
             
             <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.href = "/reports"}
+                size="sm"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Relatórios
+              </Button>
               {userSites && userSites.length > 1 && (
                 <Button variant="outline" onClick={handleChangeSite}>
                   <ArrowLeft className="h-4 w-4 mr-2" />

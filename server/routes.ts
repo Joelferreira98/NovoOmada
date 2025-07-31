@@ -819,6 +819,264 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Reports API routes
+  app.get("/api/reports/voucher-summary/:siteId", requireAuth, async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      const site = await storage.getSiteById(siteId);
+      
+      if (!site) {
+        return res.status(404).json({ message: "Site not found" });
+      }
+
+      // Check if user has access to this site
+      const userSites = await storage.getUserSites(req.user!.id);
+      const hasAccess = userSites.some(s => s.id === siteId);
+      
+      if (!hasAccess && req.user!.role !== "master") {
+        return res.status(403).json({ message: "Access denied to this site" });
+      }
+
+      // Get Omada credentials
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Omada credentials not configured" });
+      }
+
+      // Get access token
+      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'client_credentials',
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+        }),
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Get voucher summary from Omada API
+      const summaryResponse = await fetch(
+        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/summary`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          // Ignore SSL certificate issues for self-signed certificates
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({
+              rejectUnauthorized: false
+            })
+          })
+        }
+      );
+
+      if (!summaryResponse.ok) {
+        throw new Error('Failed to get voucher summary from Omada');
+      }
+
+      const summaryData = await summaryResponse.json();
+      
+      if (summaryData.errorCode !== 0) {
+        throw new Error(summaryData.msg || 'Omada API error');
+      }
+
+      res.json(summaryData.result);
+    } catch (error: any) {
+      console.error("Error fetching voucher summary:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch voucher summary" });
+    }
+  });
+
+  app.get("/api/reports/voucher-history/:siteId/:timeStart/:timeEnd", requireAuth, async (req, res) => {
+    try {
+      const { siteId, timeStart, timeEnd } = req.params;
+      const site = await storage.getSiteById(siteId);
+      
+      if (!site) {
+        return res.status(404).json({ message: "Site not found" });
+      }
+
+      // Check if user has access to this site
+      const userSites = await storage.getUserSites(req.user!.id);
+      const hasAccess = userSites.some(s => s.id === siteId);
+      
+      if (!hasAccess && req.user!.role !== "master") {
+        return res.status(403).json({ message: "Access denied to this site" });
+      }
+
+      // Get Omada credentials
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Omada credentials not configured" });
+      }
+
+      // Get access token
+      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'client_credentials',
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+        }),
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Convert timestamps to seconds (Omada expects seconds, not milliseconds)
+      const startSeconds = Math.floor(parseInt(timeStart) / 1000);
+      const endSeconds = Math.floor(parseInt(timeEnd) / 1000);
+
+      // Get voucher history from Omada API
+      const historyResponse = await fetch(
+        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history?filters.timeStart=${startSeconds}&filters.timeEnd=${endSeconds}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          // Ignore SSL certificate issues for self-signed certificates
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({
+              rejectUnauthorized: false
+            })
+          })
+        }
+      );
+
+      if (!historyResponse.ok) {
+        throw new Error('Failed to get voucher history from Omada');
+      }
+
+      const historyData = await historyResponse.json();
+      
+      if (historyData.errorCode !== 0) {
+        throw new Error(historyData.msg || 'Omada API error');
+      }
+
+      res.json(historyData.result);
+    } catch (error: any) {
+      console.error("Error fetching voucher history:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch voucher history" });
+    }
+  });
+
+  app.get("/api/reports/voucher-distribution/:siteId/:timeStart/:timeEnd", requireAuth, async (req, res) => {
+    try {
+      const { siteId, timeStart, timeEnd } = req.params;
+      const site = await storage.getSiteById(siteId);
+      
+      if (!site) {
+        return res.status(404).json({ message: "Site not found" });
+      }
+
+      // Check if user has access to this site
+      const userSites = await storage.getUserSites(req.user!.id);
+      const hasAccess = userSites.some(s => s.id === siteId);
+      
+      if (!hasAccess && req.user!.role !== "master") {
+        return res.status(403).json({ message: "Access denied to this site" });
+      }
+
+      // Get Omada credentials
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Omada credentials not configured" });
+      }
+
+      // Get access token
+      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'client_credentials',
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+        }),
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Convert timestamps to seconds (Omada expects seconds, not milliseconds)
+      const startSeconds = Math.floor(parseInt(timeStart) / 1000);
+      const endSeconds = Math.floor(parseInt(timeEnd) / 1000);
+
+      // Get voucher distribution from Omada API
+      const distributionResponse = await fetch(
+        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history/distribution/duration?filters.timeStart=${startSeconds}&filters.timeEnd=${endSeconds}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          // Ignore SSL certificate issues for self-signed certificates
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({
+              rejectUnauthorized: false
+            })
+          })
+        }
+      );
+
+      if (!distributionResponse.ok) {
+        throw new Error('Failed to get voucher distribution from Omada');
+      }
+
+      const distributionData = await distributionResponse.json();
+      
+      if (distributionData.errorCode !== 0) {
+        throw new Error(distributionData.msg || 'Omada API error');
+      }
+
+      res.json(distributionData.result.data);
+    } catch (error: any) {
+      console.error("Error fetching voucher distribution:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch voucher distribution" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

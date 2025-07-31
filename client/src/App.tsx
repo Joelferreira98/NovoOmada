@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "./hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
+import ReportsPage from "@/pages/reports-page";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import MasterDashboard from "@/pages/master-dashboard";
@@ -20,6 +21,7 @@ function Router() {
       <ProtectedRoute path="/admin" component={AdminDashboard} />
       <ProtectedRoute path="/site-selection" component={SiteSelectionPage} />
       <ProtectedRoute path="/vendedor" component={VendedorDashboard} />
+      <ProtectedRoute path="/reports" component={ReportsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
