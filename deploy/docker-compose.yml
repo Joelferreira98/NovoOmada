@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: omada-voucher-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://omada_user:${DB_PASSWORD}@db:3306/omada_voucher
+      - SESSION_SECRET=${SESSION_SECRET}
+      - OMADA_URL=${OMADA_URL}
+      - OMADA_CLIENT_ID=${OMADA_CLIENT_ID}
+      - OMADA_CLIENT_SECRET=${OMADA_CLIENT_SECRET}
+      - OMADA_OMADAC_ID=${OMADA_OMADAC_ID}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - omada-network
+
+  db:
+    image: mysql:8.0
+    container_name: omada-voucher-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=omada_voucher
+      - MYSQL_USER=omada_user
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./deploy/mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - omada-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  nginx:
+    image: nginx:alpine
+    container_name: omada-voucher-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf
+      - ./deploy/ssl:/etc/nginx/ssl
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - app
+    networks:
+      - omada-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: omada-voucher-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - omada-network
+
+volumes:
+  db_data:
+  redis_data:
+  app_logs:
+  nginx_logs:
+
+networks:
+  omada-network:
+    driver: bridge
