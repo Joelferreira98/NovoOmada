@@ -59,19 +59,23 @@ export function EditUserModal({ open, onOpenChange, user }: EditUserModalProps) 
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && open) {
       form.reset({
         username: user.username,
         email: user.email,
         password: "",
         confirmPassword: ""
       });
-      
-      // Set selected sites
+    }
+  }, [user, open, form]);
+
+  useEffect(() => {
+    if (userSites && open && user) {
+      // Set selected sites when modal opens
       const siteIds = (userSites as any[]).map((site: any) => site.id);
       setSelectedSites(siteIds);
     }
-  }, [user, userSites, form]);
+  }, [userSites, open, user?.id]); // Use user.id instead of user object
 
   const updateUserMutation = useMutation({
     mutationFn: async (userData: EditUserFormData) => {

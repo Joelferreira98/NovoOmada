@@ -473,10 +473,13 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/users/:userId/sites", requireAuth, requireRole(["master"]), async (req, res) => {
     try {
       const userId = req.params.userId;
+      console.log(`Fetching sites for user: ${userId}`);
       const userSites = await storage.getUserSites(userId);
+      console.log(`Found sites:`, userSites);
       res.json(userSites);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch user sites" });
+      console.error("Get user sites error:", error);
+      res.status(500).json({ message: "Failed to fetch user sites", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -485,11 +488,12 @@ export function registerRoutes(app: Express): Server {
       const userId = req.params.userId;
       const { siteIds } = req.body;
       
-      await storage.assignSitesToUser(userId, siteIds);
+      console.log(`Assigning sites to user ${userId}:`, siteIds);
+      await storage.assignSitesToUser(userId, siteIds || []);
       res.json({ message: "Sites atribuídos com sucesso" });
     } catch (error) {
       console.error("Assign sites error:", error);
-      res.status(500).json({ message: "Failed to assign sites" });
+      res.status(500).json({ message: "Failed to assign sites", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 

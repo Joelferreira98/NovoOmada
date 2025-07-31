@@ -54,21 +54,32 @@ export function UserModal({ open, onOpenChange }: UserModalProps) {
       return await res.json();
     },
     onSuccess: async (newUser) => {
-      // Assign sites if any selected
-      if (selectedSites.length > 0) {
-        await apiRequest("POST", `/api/users/${newUser.id}/sites/assign`, {
-          siteIds: selectedSites
+      try {
+        // Assign sites if any selected
+        if (selectedSites.length > 0) {
+          console.log('Assigning sites to new user:', selectedSites);
+          const assignRes = await apiRequest("POST", `/api/users/${newUser.id}/sites/assign`, {
+            siteIds: selectedSites
+          });
+          console.log('Site assignment response:', await assignRes.json());
+        }
+        
+        queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+        toast({
+          title: "Usuário criado",
+          description: `Administrador criado com sucesso${selectedSites.length > 0 ? ` e atribuído a ${selectedSites.length} site(s)` : ''}`
+        });
+        onOpenChange(false);
+        form.reset();
+        setSelectedSites([]);
+      } catch (assignError) {
+        console.error('Site assignment error:', assignError);
+        toast({
+          title: "Usuário criado",
+          description: "Administrador criado mas houve erro na atribuição de sites",
+          variant: "destructive"
         });
       }
-      
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({
-        title: "Usuário criado",
-        description: `${newUser.role === 'admin' ? 'Administrador' : 'Vendedor'} criado com sucesso`
-      });
-      onOpenChange(false);
-      form.reset();
-      setSelectedSites([]);
     },
     onError: (error: any) => {
       toast({
