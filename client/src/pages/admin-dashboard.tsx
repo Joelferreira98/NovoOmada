@@ -754,234 +754,301 @@ function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) 
 
 // Vouchers Section Component - Admin can create and print vouchers
 function VouchersSection({ siteId }: { siteId: string }) {
-  const [selectedPlan, setSelectedPlan] = useState<string>("");
+  const [selectedPlan, setSelectedPlan] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [generatedVouchers, setGeneratedVouchers] = useState<any[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [lastGeneratedVouchers, setLastGeneratedVouchers] = useState<any[]>([]);
   const { toast } = useToast();
 
-  const { data: plans = [] } = useQuery<any[]>({
+  const { data: site } = useQuery<any>({
+    queryKey: ["/api/sites", siteId],
+  });
+
+  const { data: plans = [] } = useQuery({
     queryKey: ["/api/sites", siteId, "plans"],
     enabled: !!siteId,
   });
 
-  const generateVouchers = async () => {
-    if (!selectedPlan) {
+  const generateVouchersMutation = useMutation({
+    mutationFn: async (data: { planId: string; quantity: number }) => {
+      const res = await apiRequest("POST", `/api/admin/vouchers/generate`, data);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      const vouchers = data.vouchers || data || [];
+      setLastGeneratedVouchers(vouchers);
       toast({
-        title: "Erro",
-        description: "Selecione um plano",
-        variant: "destructive"
+        title: "Vouchers gerados com sucesso!",
+        description: data.message || `${vouchers.length} vouchers foram criados.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao gerar vouchers",
+        description: error.message || "Ocorreu um erro desconhecido",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleGenerateVouchers = () => {
+    if (!selectedPlan || quantity < 1) {
+      toast({
+        title: "Dados inválidos",
+        description: "Selecione um plano e quantidade válida",
+        variant: "destructive",
       });
       return;
     }
 
-    setIsGenerating(true);
-    try {
-      const response = await fetch("/api/vouchers/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          planId: selectedPlan,
-          quantity,
-          siteId
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao gerar vouchers");
-      }
-
-      const result = await response.json();
-      setGeneratedVouchers(result.vouchers || []);
-      
-      toast({
-        title: "Vouchers gerados!",
-        description: `${quantity} voucher(s) criado(s) com sucesso`
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsGenerating(false);
-    }
+    generateVouchersMutation.mutate({
+      planId: selectedPlan,
+      quantity: quantity,
+    });
   };
 
-  const printVouchers = (format: 'A4' | 'thermal') => {
-    if (generatedVouchers.length === 0) return;
+  const printVouchers = (vouchersToPrint: any[]) => {
+    if (!vouchersToPrint || vouchersToPrint.length === 0) {
+      toast({
+        title: "Erro na impressão",
+        description: "Nenhum voucher disponível para impressão",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    if (!printWindow) {
+      toast({
+        title: "Erro na impressão",
+        description: "Não foi possível abrir a janela de impressão.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const vouchersHtml = generatedVouchers.map(voucher => `
-      <div class="voucher-card ${format === 'thermal' ? 'thermal' : 'a4'}">
-        <div class="voucher-header">
-          <h3>Voucher WiFi</h3>
-          <div class="voucher-code">${voucher.code}</div>
+    const siteName = site?.name || 'WiFi';
+    const planName = vouchersToPrint[0]?.planName || 'Internet';
+    const currentDate = new Date().toLocaleDateString('pt-BR');
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Vouchers A4 - ${siteName}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Arial', sans-serif; 
+            background: white;
+            color: black;
+            padding: 20mm;
+          }
+          .voucher-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180mm, 1fr));
+            gap: 10mm;
+            max-width: 100%;
+          }
+          .voucher {
+            width: 180mm;
+            height: 60mm;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 8mm;
+            background: #f9f9f9;
+            page-break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .voucher-header {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4mm;
+            text-transform: uppercase;
+          }
+          .voucher-code {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            background: white;
+            border: 2px dashed #666;
+            padding: 8px;
+            border-radius: 4px;
+            letter-spacing: 3px;
+          }
+          .voucher-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-top: 4mm;
+          }
+          .voucher-footer {
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            margin-top: 2mm;
+          }
+          @media print {
+            body { margin: 0; padding: 10mm; }
+            .voucher-grid { gap: 5mm; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="voucher-grid">
+          ${vouchersToPrint.map(voucher => `
+            <div class="voucher">
+              <div class="voucher-header">${siteName} - WiFi Access</div>
+              <div class="voucher-code">${voucher.code}</div>
+              <div class="voucher-details">
+                <span>Plano: ${planName}</span>
+                <span>Válido: ${voucher.duracao || '60'}min</span>
+                <span>${currentDate}</span>
+              </div>
+              <div class="voucher-footer">Conecte-se ao WiFi e digite este código</div>
+            </div>
+          `).join('')}
         </div>
-        <div class="voucher-details">
-          <p><strong>Duração:</strong> ${voucher.plan?.duration} minutos</p>
-          <p><strong>Usuários:</strong> ${voucher.plan?.concurrentUsers}</p>
-          <p><strong>Preço:</strong> R$ ${voucher.plan?.price?.toFixed(2)}</p>
-        </div>
-      </div>
-    `).join('');
-
-    const styles = format === 'thermal' ? `
-      .voucher-card { width: 58mm; margin-bottom: 10mm; page-break-after: always; }
-      .voucher-header { text-align: center; margin-bottom: 5mm; }
-      .voucher-code { font-size: 16px; font-weight: bold; border: 1px solid #000; padding: 2mm; }
-      .voucher-details { font-size: 12px; }
-    ` : `
-      .voucher-card { width: 45%; margin: 10px; padding: 15px; border: 1px solid #ccc; display: inline-block; }
-      .voucher-header { text-align: center; margin-bottom: 10px; }
-      .voucher-code { font-size: 18px; font-weight: bold; border: 1px solid #000; padding: 10px; }
-      .voucher-details { font-size: 14px; }
+      </body>
+      </html>
     `;
 
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Impressão de Vouchers</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            ${styles}
-            @media print { body { margin: 0; } }
-          </style>
-        </head>
-        <body>
-          ${vouchersHtml}
-          <script>window.print(); window.close();</script>
-        </body>
-      </html>
-    `);
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 1000);
+    
+    toast({
+      title: "Preparando impressão A4",
+      description: "A janela de impressão foi aberta com sucesso!",
+    });
   };
 
   return (
-    <div>
-      <div className="mb-4">
-        <h2 className="h3 fw-bold text-dark mb-1">Gerenciar Vouchers</h2>
-        <p className="text-muted mb-0">Gerar e imprimir vouchers para o site</p>
-      </div>
-
-      {/* Voucher Generation Form */}
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-header bg-gradient text-white" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
-          <h5 className="card-title mb-0 d-flex align-items-center">
-            <ShoppingCart className="me-2" size={20} />
-            Gerar Novos Vouchers
-          </h5>
-        </div>
-        <div className="card-body p-4">
-          <div className="row g-4">
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">Selecionar Plano</label>
-              <select 
-                className="form-select form-select-lg"
-                value={selectedPlan}
-                onChange={(e) => setSelectedPlan(e.target.value)}
-              >
-                <option value="">Escolha um plano...</option>
-                {plans.map((plan: any) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name} - R$ {(plan.price || 0).toFixed(2)} ({plan.duration}min)
-                  </option>
-                ))}
-              </select>
-              {plans.length === 0 && (
-                <div className="form-text text-warning">Nenhum plano disponível. Configure planos primeiro.</div>
-              )}
-            </div>
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">Quantidade</label>
-              <input
-                type="number"
-                className="form-control form-control-lg"
-                min="1"
-                max="100"
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              />
-              <div className="form-text">Máximo 100 vouchers por vez</div>
-            </div>
+    <div className="container-fluid px-0">
+      <div className="row">
+        <div className="col-12">
+          <div className="mb-4">
+            <h1 className="h2 h1-lg fw-bold text-dark mb-2">Geração de Vouchers</h1>
+            <p className="text-muted">Crie vouchers de acesso à internet como administrador</p>
           </div>
-          <div className="mt-4 d-flex gap-2">
-            <button
-              className="btn btn-primary btn-lg d-flex align-items-center"
-              onClick={generateVouchers}
-              disabled={isGenerating || !selectedPlan}
-            >
-              {isGenerating ? (
-                <>
-                  <div className="spinner-border spinner-border-sm me-2" role="status"></div>
-                  Gerando Vouchers...
-                </>
-              ) : (
-                <>
-                  <ShoppingCart size={20} className="me-2" />
-                  Gerar {quantity} Voucher{quantity > 1 ? 's' : ''}
-                </>
-              )}
-            </button>
-            {generatedVouchers.length > 0 && (
-              <button
-                className="btn btn-outline-secondary"
-                onClick={() => setGeneratedVouchers([])}
-              >
-                Limpar Vouchers
-              </button>
+
+          {/* Voucher Generation Form */}
+          <div className="row">
+            <div className="col-12 col-lg-6">
+              <div className="card shadow-lg border-0">
+                <div className="card-header bg-white">
+                  <h5 className="card-title mb-0 d-flex align-items-center">
+                    <TicketIcon className="me-2" size={20} />
+                    Criar Novos Vouchers
+                  </h5>
+                </div>
+                <div className="card-body">
+                  <div className="mb-3">
+                    <label htmlFor="plan-select" className="form-label">Plano</label>
+                    {!plans || plans.length === 0 ? (
+                      <div className="alert alert-warning" role="alert">
+                        <small>Nenhum plano disponível. Crie um plano primeiro.</small>
+                      </div>
+                    ) : (
+                      <select 
+                        className="form-select" 
+                        value={selectedPlan} 
+                        onChange={(e) => setSelectedPlan(e.target.value)}
+                        style={{ height: '48px' }}
+                      >
+                        <option value="">Selecione um plano</option>
+                        {(plans as any[]).map((plan) => (
+                          <option key={plan.id} value={plan.id}>
+                            {plan.nome} - R$ {parseFloat(plan.unitPrice || "0").toFixed(2)} ({plan.duration}min)
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  <div className="mb-3">
+                    <label htmlFor="quantity" className="form-label">Quantidade</label>
+                    <input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Number(e.target.value))}
+                      className="form-control"
+                      style={{ height: '48px' }}
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleGenerateVouchers}
+                    disabled={generateVouchersMutation.isPending || !selectedPlan}
+                    className="btn btn-primary w-100"
+                    style={{ height: '48px' }}
+                  >
+                    {generateVouchersMutation.isPending ? "Gerando..." : "Gerar Vouchers"}
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Print Options - Show when vouchers are generated */}
+            {lastGeneratedVouchers.length > 0 && (
+              <div className="col-12 col-lg-6">
+                <div className="card shadow-lg border-0">
+                  <div className="card-header bg-white">
+                    <h5 className="card-title mb-0 d-flex align-items-center">
+                      <Printer className="me-2" size={20} />
+                      Opções de Impressão
+                    </h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="d-flex flex-column gap-3">
+                      <div className="text-center mb-3">
+                        <p className="text-success fw-semibold mb-1">
+                          ✓ {lastGeneratedVouchers.length} vouchers gerados com sucesso!
+                        </p>
+                        <small className="text-muted">
+                          Clique abaixo para imprimir
+                        </small>
+                      </div>
+                      
+                      <button 
+                        onClick={() => {
+                          printVouchers(lastGeneratedVouchers);
+                          setLastGeneratedVouchers([]);
+                        }}
+                        className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center"
+                        style={{ height: '48px' }}
+                      >
+                        <Printer className="me-2" size={20} />
+                        <div className="text-start">
+                          <div>Imprimir A4</div>
+                          <small className="text-muted">Formato padrão ({lastGeneratedVouchers.length} vouchers)</small>
+                        </div>
+                      </button>
+                      
+                      <button 
+                        onClick={() => setLastGeneratedVouchers([])}
+                        className="btn btn-outline-secondary w-100"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Generated Vouchers */}
-      {generatedVouchers.length > 0 && (
-        <div className="card border-0 shadow-sm">
-          <div className="card-header bg-white d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center py-3">
-            <h5 className="card-title mb-2 mb-lg-0 fw-semibold">
-              Vouchers Gerados ({generatedVouchers.length})
-            </h5>
-            <div className="d-flex flex-wrap gap-2">
-              <button
-                className="btn btn-primary d-flex align-items-center"
-                onClick={() => printVouchers('A4')}
-              >
-                <Printer size={16} className="me-2" />
-                Imprimir A4
-              </button>
-              <button
-                className="btn btn-secondary d-flex align-items-center"
-                onClick={() => printVouchers('thermal')}
-              >
-                <Printer size={16} className="me-2" />
-                Cupom Térmico
-              </button>
-            </div>
-          </div>
-          <div className="card-body p-4">
-            <div className="row g-3">
-              {generatedVouchers.map((voucher, index) => (
-                <div key={index} className="col-12 col-sm-6 col-md-4 col-lg-3">
-                  <div className="card border border-primary-subtle bg-primary-subtle">
-                    <div className="card-body text-center p-3">
-                      <div className="fw-bold text-primary h5 mb-2 font-monospace">{voucher.code}</div>
-                      <div className="small text-muted">
-                        <div>{voucher.plan?.duration} minutos</div>
-                        <div>R$ {voucher.plan?.price?.toFixed(2)}</div>
-                        <div>{voucher.plan?.concurrentUsers} usuário{voucher.plan?.concurrentUsers > 1 ? 's' : ''}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
