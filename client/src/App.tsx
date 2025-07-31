@@ -12,6 +12,7 @@ import MasterDashboard from "@/pages/master-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
 import SiteSelectionPage from "@/pages/site-selection-page";
 import VendedorDashboard from "@/pages/vendedor-dashboard";
+import CashPage from "@/pages/cash-page";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <ProtectedRoute path="/site-selection" component={SiteSelectionPage} />
       <ProtectedRoute path="/vendedor" component={VendedorDashboard} />
       <ProtectedRoute path="/reports" component={ReportsPage} />
+      <ProtectedRoute path="/cash" component={CashPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

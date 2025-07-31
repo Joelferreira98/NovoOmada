@@ -21,7 +21,8 @@ import {
   Edit,
   Trash2,
   Eye,
-  Plus
+  Plus,
+  Calculator
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Site } from "@shared/schema";
@@ -189,7 +190,15 @@ export default function AdminDashboard() {
             <div className="flex items-center space-x-2">
               <Button 
                 variant="outline" 
-                onClick={() => window.location.href = "/reports"}
+                onClick={() => setLocation("/cash")}
+                size="sm"
+              >
+                <Calculator className="h-4 w-4 mr-2" />
+                Caixa
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setLocation("/reports")}
                 size="sm"
               >
                 <BarChart3 className="h-4 w-4 mr-2" />
@@ -352,7 +361,7 @@ export default function AdminDashboard() {
                         Gerencie vendedores que podem criar vouchers neste site
                       </CardDescription>
                     </div>
-                    <VendedorModal siteId={selectedSiteId} siteName={selectedSite.name} />
+                    <VendedorModal siteId={selectedSiteId!} siteName={selectedSite.name} />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -371,7 +380,7 @@ export default function AdminDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {vendedores && vendedores.length > 0 ? (
+                        {vendedores && Array.isArray(vendedores) && vendedores.length > 0 ? (
                           vendedores.map((vendedor: any) => (
                             <TableRow key={vendedor.id}>
                               <TableCell className="font-medium">{vendedor.username}</TableCell>
@@ -382,7 +391,7 @@ export default function AdminDashboard() {
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end space-x-2">
                                   <VendedorModal 
-                                    siteId={selectedSiteId} 
+                                    siteId={selectedSiteId!} 
                                     siteName={selectedSite.name}
                                     vendedor={vendedor}
                                     mode="edit"
@@ -445,7 +454,7 @@ export default function AdminDashboard() {
                         Configure planos de vouchers que vendedores podem usar
                       </CardDescription>
                     </div>
-                    <PlanModal siteId={selectedSiteId} siteName={selectedSite.name} />
+                    <PlanModal siteId={selectedSiteId!} siteName={selectedSite.name} />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -466,7 +475,7 @@ export default function AdminDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {plans && plans.length > 0 ? (
+                        {plans && Array.isArray(plans) && plans.length > 0 ? (
                           plans.map((plan: any) => (
                             <TableRow key={plan.id}>
                               <TableCell className="font-medium">{plan.nome}</TableCell>
@@ -484,7 +493,7 @@ export default function AdminDashboard() {
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end space-x-2">
                                   <PlanModal 
-                                    siteId={selectedSiteId} 
+                                    siteId={selectedSiteId!} 
                                     siteName={selectedSite.name}
                                     plan={plan}
                                     mode="edit"

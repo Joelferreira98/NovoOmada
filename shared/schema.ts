@@ -74,6 +74,37 @@ export const vouchers = mysqlTable("vouchers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Sistema de Caixa - Grupos de Vouchers da Omada
+export const voucherGroups = mysqlTable("voucher_groups", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  omadaGroupId: text("omada_group_id").notNull(),
+  siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("BRL"),
+  totalCount: int("total_count").default(0),
+  usedCount: int("used_count").default(0),
+  inUseCount: int("in_use_count").default(0),
+  unusedCount: int("unused_count").default(0),
+  expiredCount: int("expired_count").default(0),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).default(sql`0.00`),
+  lastSync: timestamp("last_sync"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Fechamentos de Caixa
+export const cashClosures = mysqlTable("cash_closures", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
+  siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
+  vendedorId: varchar("vendedor_id", { length: 36 }).notNull().references(() => users.id),
+  totalVouchersUsed: int("total_vouchers_used").notNull(),
+  totalVouchersInUse: int("total_vouchers_in_use").notNull(),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
+  summary: json("summary"), // JSON com detalhes por grupo
+  closureDate: timestamp("closure_date").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const sales = mysqlTable("sales", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   voucherId: varchar("voucher_id", { length: 36 }).notNull().references(() => vouchers.id),
@@ -122,6 +153,15 @@ export const salesRelations = relations(sales, ({ one }) => ({
   site: one(sites, { fields: [sales.siteId], references: [sites.id] }),
 }));
 
+export const voucherGroupsRelations = relations(voucherGroups, ({ one }) => ({
+  site: one(sites, { fields: [voucherGroups.siteId], references: [sites.id] }),
+}));
+
+export const cashClosuresRelations = relations(cashClosures, ({ one }) => ({
+  site: one(sites, { fields: [cashClosures.siteId], references: [sites.id] }),
+  vendedor: one(users, { fields: [cashClosures.vendedorId], references: [users.id] }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -144,6 +184,15 @@ export const insertVoucherSchema = createInsertSchema(vouchers).omit({
   createdAt: true,
 });
 
+export const insertVoucherGroupSchema = createInsertSchema(voucherGroups).omit({
+  createdAt: true,
+});
+
+export const insertCashClosureSchema = createInsertSchema(cashClosures).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertOmadaCredentialsSchema = createInsertSchema(omadaCredentials).omit({
   id: true,
   createdAt: true,
@@ -161,3 +210,7 @@ export type InsertVoucher = z.infer<typeof insertVoucherSchema>;
 export type OmadaCredentials = typeof omadaCredentials.$inferSelect;
 export type InsertOmadaCredentials = z.infer<typeof insertOmadaCredentialsSchema>;
 export type Sale = typeof sales.$inferSelect;
+export type VoucherGroup = typeof voucherGroups.$inferSelect;
+export type InsertVoucherGroup = z.infer<typeof insertVoucherGroupSchema>;
+export type CashClosure = typeof cashClosures.$inferSelect;
+export type InsertCashClosure = z.infer<typeof insertCashClosureSchema>;

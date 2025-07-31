@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/layout/sidebar";
-import { User, TicketIcon, TrendingUp, History, DollarSign, Calendar, Printer, Copy, Download } from "lucide-react";
+import { User, TicketIcon, TrendingUp, History, DollarSign, Calendar, Printer, Copy, Download, Calculator } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -89,6 +89,12 @@ export default function VendedorDashboard() {
       label: "Gerar Vouchers", 
       active: activeTab === "generate",
       onClick: () => setActiveTab("generate")
+    },
+    { 
+      icon: Calculator, 
+      label: "Caixa", 
+      active: activeTab === "cash",
+      onClick: () => window.location.href = "/cash"
     },
     { 
       icon: TrendingUp, 

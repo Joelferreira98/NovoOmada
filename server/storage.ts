@@ -1,8 +1,11 @@
 import { 
   users, sites, plans, vouchers, sales, omadaCredentials, userSiteAccess,
+  voucherGroups, cashClosures,
   type User, type InsertUser, type Site, type InsertSite, 
   type Plan, type InsertPlan, type Voucher, type InsertVoucher,
-  type OmadaCredentials, type InsertOmadaCredentials, type Sale
+  type OmadaCredentials, type InsertOmadaCredentials, type Sale,
+  type VoucherGroup, type InsertVoucherGroup,
+  type CashClosure, type InsertCashClosure
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -67,6 +70,10 @@ export interface IStorage {
     activeSellers: number;
     activePlans: number;
   }>;
+
+  // Cash closure system
+  createCashClosure(closure: Omit<InsertCashClosure, 'id' | 'createdAt'>): Promise<CashClosure>;
+  getCashClosures(siteId: string): Promise<CashClosure[]>;
 
   sessionStore: session.Store;
 }
@@ -525,6 +532,29 @@ export class DatabaseStorage implements IStorage {
       activeSellers: sellersResult.count,
       activePlans: plansResult.count
     };
+  }
+
+  // Cash closure system methods
+  async createCashClosure(closure: Omit<InsertCashClosure, 'id' | 'createdAt'>): Promise<CashClosure> {
+    const closureId = crypto.randomUUID();
+    const closureWithId = { ...closure, id: closureId };
+    
+    const insertResult = await db.insert(cashClosures).values(closureWithId);
+    const [createdClosure] = await db.select().from(cashClosures).where(eq(cashClosures.id, closureId));
+    
+    if (!createdClosure) {
+      throw new Error('Failed to create cash closure');
+    }
+    
+    return createdClosure;
+  }
+
+  async getCashClosures(siteId: string): Promise<CashClosure[]> {
+    const closures = await db.select().from(cashClosures)
+      .where(eq(cashClosures.siteId, siteId))
+      .orderBy(desc(cashClosures.closureDate));
+    
+    return closures;
   }
 }
 

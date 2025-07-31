@@ -1077,6 +1077,361 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Sistema de Caixa - APIs para Voucher Groups da Omada
+  app.get("/api/sites/:siteId/voucher-groups", requireAuth, async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      const site = await storage.getSiteById(siteId);
+      
+      if (!site) {
+        return res.status(404).json({ message: "Site not found" });
+      }
+
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Omada credentials not configured" });
+      }
+
+      // Get access token
+      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'client_credentials',
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+        }),
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Get voucher groups from Omada API
+      const groupsResponse = await fetch(
+        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups?page=1&pageSize=1000`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          // Ignore SSL certificate issues for self-signed certificates
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({
+              rejectUnauthorized: false
+            })
+          })
+        }
+      );
+
+      if (!groupsResponse.ok) {
+        throw new Error('Failed to get voucher groups from Omada');
+      }
+
+      const groupsData = await groupsResponse.json();
+      
+      if (groupsData.errorCode !== 0) {
+        throw new Error(groupsData.msg || 'Omada API error');
+      }
+
+      res.json(groupsData.result);
+    } catch (error: any) {
+      console.error("Error fetching voucher groups:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch voucher groups" });
+    }
+  });
+
+  app.get("/api/sites/:siteId/voucher-groups/:groupId/vouchers", requireAuth, async (req, res) => {
+    try {
+      const { siteId, groupId } = req.params;
+      const { status } = req.query; // Filter by status: 0=unused, 1=in-use, 2=expired
+      
+      const site = await storage.getSiteById(siteId);
+      
+      if (!site) {
+        return res.status(404).json({ message: "Site not found" });
+      }
+
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Omada credentials not configured" });
+      }
+
+      // Get access token
+      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'client_credentials',
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+        }),
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Build URL with filters
+      let url = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${groupId}?page=1&pageSize=1000`;
+      
+      if (status) {
+        url += `&filters.status=${status}`;
+      }
+
+      // Get voucher group details with vouchers from Omada API
+      const groupResponse = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!groupResponse.ok) {
+        throw new Error('Failed to get voucher group details from Omada');
+      }
+
+      const groupData = await groupResponse.json();
+      
+      if (groupData.errorCode !== 0) {
+        throw new Error(groupData.msg || 'Omada API error');
+      }
+
+      res.json(groupData.result);
+    } catch (error: any) {
+      console.error("Error fetching voucher group details:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch voucher group details" });
+    }
+  });
+
+  // Fechar Caixa - Processa vouchers usados/em uso e exclui da Omada
+  app.post("/api/sites/:siteId/cash-closure", requireAuth, async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      const site = await storage.getSiteById(siteId);
+      
+      if (!site) {
+        return res.status(404).json({ message: "Site not found" });
+      }
+
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Omada credentials not configured" });
+      }
+
+      // Get access token
+      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'client_credentials',
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+        }),
+        // Ignore SSL certificate issues for self-signed certificates
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({
+            rejectUnauthorized: false
+          })
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Get all voucher groups
+      const groupsResponse = await fetch(
+        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups?page=1&pageSize=1000`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          // Ignore SSL certificate issues for self-signed certificates
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({
+              rejectUnauthorized: false
+            })
+          })
+        }
+      );
+
+      if (!groupsResponse.ok) {
+        throw new Error('Failed to get voucher groups from Omada');
+      }
+
+      const groupsData = await groupsResponse.json();
+      
+      if (groupsData.errorCode !== 0) {
+        throw new Error(groupsData.msg || 'Omada API error');
+      }
+
+      const groups = groupsData.result.data;
+      const summary = [];
+      let totalVouchersUsed = 0;
+      let totalVouchersInUse = 0;
+      let totalAmount = 0;
+
+      // Para cada grupo, buscar vouchers usados/em uso e excluir
+      for (const group of groups) {
+        const usedVouchers = [];
+        const inUseVouchers = [];
+
+        // Buscar vouchers com status 1 (em uso) e 2 (expirados/usados)
+        for (const status of [1, 2]) {
+          const groupDetailResponse = await fetch(
+            `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${group.id}?page=1&pageSize=1000&filters.status=${status}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              // Ignore SSL certificate issues for self-signed certificates
+              ...(process.env.NODE_ENV === 'development' && {
+                agent: new (await import('https')).Agent({
+                  rejectUnauthorized: false
+                })
+              })
+            }
+          );
+
+          if (groupDetailResponse.ok) {
+            const groupDetailData = await groupDetailResponse.json();
+            if (groupDetailData.errorCode === 0 && groupDetailData.result.data) {
+              if (status === 1) {
+                inUseVouchers.push(...groupDetailData.result.data);
+              } else {
+                usedVouchers.push(...groupDetailData.result.data);
+              }
+            }
+          }
+        }
+
+        // Excluir vouchers processados
+        const vouchersToDelete = [...usedVouchers, ...inUseVouchers];
+        let deletedCount = 0;
+
+        for (const voucher of vouchersToDelete) {
+          try {
+            const deleteResponse = await fetch(
+              `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/${voucher.id}`,
+              {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${accessToken}`,
+                  'Content-Type': 'application/json',
+                },
+                // Ignore SSL certificate issues for self-signed certificates
+                ...(process.env.NODE_ENV === 'development' && {
+                  agent: new (await import('https')).Agent({
+                    rejectUnauthorized: false
+                  })
+                })
+              }
+            );
+
+            if (deleteResponse.ok) {
+              const deleteData = await deleteResponse.json();
+              if (deleteData.errorCode === 0) {
+                deletedCount++;
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to delete voucher ${voucher.id}:`, error);
+          }
+        }
+
+        if (usedVouchers.length > 0 || inUseVouchers.length > 0) {
+          const groupAmount = (usedVouchers.length + inUseVouchers.length) * parseFloat(group.unitPrice || '0');
+          
+          summary.push({
+            groupId: group.id,
+            groupName: group.name,
+            unitPrice: group.unitPrice,
+            usedCount: usedVouchers.length,
+            inUseCount: inUseVouchers.length,
+            totalCount: usedVouchers.length + inUseVouchers.length,
+            amount: groupAmount,
+            deletedCount: deletedCount
+          });
+
+          totalVouchersUsed += usedVouchers.length;
+          totalVouchersInUse += inUseVouchers.length;
+          totalAmount += groupAmount;
+        }
+      }
+
+      // Salvar resumo do fechamento no banco
+      const cashClosure = await storage.createCashClosure({
+        siteId: site.id,
+        vendedorId: req.user!.id,
+        totalVouchersUsed,
+        totalVouchersInUse,
+        totalAmount: totalAmount.toString(),
+        summary: JSON.stringify(summary),
+        closureDate: new Date(),
+      });
+
+      res.json({
+        id: cashClosure.id,
+        totalVouchersUsed,
+        totalVouchersInUse,
+        totalAmount,
+        summary,
+        closureDate: cashClosure.closureDate
+      });
+    } catch (error: any) {
+      console.error("Error processing cash closure:", error);
+      res.status(500).json({ message: error.message || "Failed to process cash closure" });
+    }
+  });
+
+  // Histórico de fechamentos de caixa
+  app.get("/api/sites/:siteId/cash-closures", requireAuth, async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      const closures = await storage.getCashClosures(siteId);
+      res.json(closures);
+    } catch (error: any) {
+      console.error("Error fetching cash closures:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch cash closures" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
