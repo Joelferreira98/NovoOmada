@@ -18,6 +18,16 @@ let tokenCache: {
   renewalTimer?: NodeJS.Timeout;
 } | null = null;
 
+// Callback system for token renewal
+interface TokenRenewalCallback {
+  id: string;
+  callback: (newToken: string) => void;
+  priority: 'high' | 'normal';
+}
+
+let tokenRenewalCallbacks: Map<string, TokenRenewalCallback> = new Map();
+let isRenewingToken = false;
+
 // Função para gerar códigos de voucher
 function generateVoucherCode(tipoCodigo: string, comprimento: number): string {
   const charset = tipoCodigo === 'numerico' ? '0123456789' : 
@@ -31,47 +41,149 @@ function generateVoucherCode(tipoCodigo: string, comprimento: number): string {
   return result;
 }
 
-async function renewOmadaToken(credentials: any): Promise<string> {
-  console.log('Renewing Omada token...');
+// Enhanced token renewal with callback system
+async function renewOmadaTokenWithCallbacks(credentials: any): Promise<string> {
+  if (isRenewingToken) {
+    console.log('Token renewal already in progress, waiting...');
+    // Wait for current renewal to complete
+    return new Promise((resolve, reject) => {
+      const callbackId = `wait_${Date.now()}_${Math.random()}`;
+      tokenRenewalCallbacks.set(callbackId, {
+        id: callbackId,
+        callback: (newToken) => {
+          tokenRenewalCallbacks.delete(callbackId);
+          resolve(newToken);
+        },
+        priority: 'normal'
+      });
+      
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        if (tokenRenewalCallbacks.has(callbackId)) {
+          tokenRenewalCallbacks.delete(callbackId);
+          reject(new Error('Token renewal timeout'));
+        }
+      }, 10000);
+    });
+  }
   
-  const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
-  const requestBody = {
-    'omadacId': credentials.omadacId,
-    'client_id': credentials.clientId,
-    'client_secret': credentials.clientSecret
-  };
+  isRenewingToken = true;
+  console.log('Starting token renewal with callback system...');
   
-  const tokenResponse = await fetch(tokenUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-    // Ignore SSL certificate issues for development
-    ...(process.env.NODE_ENV === 'development' && {
-      agent: new (await import('https')).Agent({
-        rejectUnauthorized: false
+  try {
+    const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
+    const requestBody = {
+      'omadacId': credentials.omadacId,
+      'client_id': credentials.clientId,
+      'client_secret': credentials.clientSecret
+    };
+    
+    const tokenResponse = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+      // Ignore SSL certificate issues for development
+      ...(process.env.NODE_ENV === 'development' && {
+        agent: new (await import('https')).Agent({
+          rejectUnauthorized: false
+        })
       })
-    })
-  });
+    });
 
-  if (!tokenResponse.ok) {
-    const errorText = await tokenResponse.text();
-    throw new Error(`Token renewal failed: ${tokenResponse.status} - ${errorText}`);
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      throw new Error(`Token renewal failed: ${tokenResponse.status} - ${errorText}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+    
+    if (tokenData.errorCode !== 0) {
+      throw new Error(`Token renewal error: ${tokenData.msg || 'Authentication failed'}`);
+    }
+
+    const accessToken = tokenData.result?.accessToken;
+    if (!accessToken) {
+      throw new Error('No access token received from Omada API during renewal');
+    }
+
+    // Update cache
+    const expiresIn = tokenData.result.expiresIn || 7200;
+    const expiryTime = Date.now() + (expiresIn * 1000) - 300000; // 5 minutes before actual expiry
+    
+    tokenCache = {
+      token: accessToken,
+      expires: expiryTime,
+      omadacId: credentials.omadacId
+    };
+
+    console.log(`✓ Token renewed successfully, expires in ${expiresIn}s`);
+    
+    // Notify all waiting callbacks
+    for (const [id, callbackData] of tokenRenewalCallbacks.entries()) {
+      try {
+        callbackData.callback(accessToken);
+        tokenRenewalCallbacks.delete(id);
+      } catch (error) {
+        console.error(`Callback ${id} failed:`, error);
+        tokenRenewalCallbacks.delete(id);
+      }
+    }
+    
+    return accessToken;
+    
+  } finally {
+    isRenewingToken = false;
   }
+}
 
-  const tokenData = await tokenResponse.json();
+// Legacy function for backward compatibility
+async function renewOmadaToken(credentials: any): Promise<string> {
+  return renewOmadaTokenWithCallbacks(credentials);
+}
+
+// Function to get token with guaranteed freshness for critical operations
+async function getCriticalToken(credentials: any, operationName: string): Promise<string> {
+  console.log(`Getting critical token for operation: ${operationName}`);
   
-  if (tokenData.errorCode !== 0) {
-    throw new Error(`Token renewal error: ${tokenData.msg || 'Authentication failed'}`);
-  }
-
-  const accessToken = tokenData.result?.accessToken;
-  if (!accessToken) {
-    throw new Error('No access token received from Omada API during renewal');
-  }
-
-  return accessToken;
+  return new Promise((resolve, reject) => {
+    const callbackId = `critical_${operationName}_${Date.now()}`;
+    
+    // Register high-priority callback
+    tokenRenewalCallbacks.set(callbackId, {
+      id: callbackId,
+      callback: (newToken) => {
+        console.log(`✓ Critical token obtained for ${operationName}`);
+        tokenRenewalCallbacks.delete(callbackId);
+        resolve(newToken);
+      },
+      priority: 'high'
+    });
+    
+    // Force token renewal
+    tokenCache = null;
+    renewOmadaTokenWithCallbacks(credentials).then(token => {
+      // If callback wasn't triggered yet, trigger it now
+      if (tokenRenewalCallbacks.has(callbackId)) {
+        const callback = tokenRenewalCallbacks.get(callbackId)!;
+        callback.callback(token);
+      }
+    }).catch(error => {
+      if (tokenRenewalCallbacks.has(callbackId)) {
+        tokenRenewalCallbacks.delete(callbackId);
+      }
+      reject(error);
+    });
+    
+    // Timeout after 15 seconds for critical operations
+    setTimeout(() => {
+      if (tokenRenewalCallbacks.has(callbackId)) {
+        tokenRenewalCallbacks.delete(callbackId);
+        reject(new Error(`Critical token timeout for ${operationName}`));
+      }
+    }, 15000);
+  });
 }
 
 // Função para sincronizar status dos vouchers com a API do Omada
@@ -2173,66 +2285,8 @@ export function registerRoutes(app: Express): Server {
       if (voucher.omadaVoucherId) {
         console.log(`Deleting voucher ${voucher.omadaVoucherId} from Omada API...`);
         
-        // Obter token válido com múltiplas tentativas para operação crítica
-        console.log('Getting valid token for voucher deletion with retry...');
-        
-        let freshAccessToken;
-        let attempts = 0;
-        const maxAttempts = 3;
-        
-        while (attempts < maxAttempts) {
-          attempts++;
-          console.log(`Token attempt ${attempts}/${maxAttempts}`);
-          
-          // Limpar cache em cada tentativa
-          tokenCache = null;
-          
-          try {
-            // Obter token fresco direto da API
-            const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                'omadacId': credentials.omadacId,
-                'client_id': credentials.clientId,
-                'client_secret': credentials.clientSecret
-              }),
-              // Ignore SSL certificate issues for self-signed certificates
-              ...(process.env.NODE_ENV === 'development' && {
-                agent: new (await import('https')).Agent({
-                  rejectUnauthorized: false
-                })
-              })
-            });
-
-            if (!tokenResponse.ok) {
-              throw new Error(`Token request failed: ${tokenResponse.status}`);
-            }
-
-            const tokenData = await tokenResponse.json();
-            console.log(`Token response attempt ${attempts}:`, { errorCode: tokenData.errorCode, hasResult: !!tokenData.result });
-            
-            if (tokenData.errorCode === 0 && tokenData.result?.accessToken) {
-              freshAccessToken = tokenData.result.accessToken;
-              console.log(`✓ Got valid token on attempt ${attempts}: ${freshAccessToken.substring(0, 10)}...`);
-              break;
-            } else {
-              throw new Error(`Invalid token response: ${tokenData.msg || 'No access token'}`);
-            }
-          } catch (error) {
-            console.error(`Token attempt ${attempts} failed:`, error);
-            if (attempts === maxAttempts) {
-              return res.status(500).json({ 
-                message: "Não foi possível obter token válido após múltiplas tentativas",
-                error: error.message 
-              });
-            }
-            // Aguardar 1 segundo antes da próxima tentativa
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
+        // Usar sistema de callback para obter token crítico
+        const freshAccessToken = await getCriticalToken(credentials, `delete_voucher_${voucher.omadaVoucherId}`);
         
         const deleteResponse = await fetch(
           `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/${voucher.omadaVoucherId}`,

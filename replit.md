@@ -6,6 +6,13 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 
 ## Recent Changes (July 31, 2025)
 
+✓ **Sistema de Exclusão de Vouchers com Callback Token**: Implementação robusta de delete via API Omada
+- **Callback System**: Sistema de renovação de token com callbacks para operações críticas
+- **Token Crítico**: Função `getCriticalToken` garante tokens válidos para operações sensíveis
+- **Queue Management**: Gerencia múltiplas requisições simultâneas de token
+- **High Priority**: Operações críticas como delete têm prioridade alta
+- **Timeout Protection**: Sistema de timeout para evitar travamentos
+
 ✓ **Sistema de Tokens e Autenticação Omada - FINAL**: Sistema robusto de autenticação implementado
 - **Auto-renovação de tokens**: Sistema renova tokens automaticamente 30 minutos antes do vencimento
 - **Cache inteligente**: Tokens ficam em cache com timer automático de renovação
