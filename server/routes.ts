@@ -431,18 +431,19 @@ async function getValidOmadaToken(credentials: any): Promise<string> {
     'client_secret': credentials.clientSecret
   };
   
+  // Import https module and configure SSL options
+  const https = await import('https');
+  const agent = process.env.NODE_ENV === 'development' 
+    ? new https.Agent({ rejectUnauthorized: false })
+    : undefined;
+
   const tokenResponse = await fetch(tokenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(requestBody),
-    // Ignore SSL certificate issues for development
-    ...(process.env.NODE_ENV === 'development' && {
-      agent: new (await import('https')).Agent({
-        rejectUnauthorized: false
-      })
-    })
+    ...(agent && { agent })
   });
 
   if (!tokenResponse.ok) {
@@ -1225,6 +1226,12 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Creating admin voucher group with data:', JSON.stringify(voucherGroupData, null, 2));
 
+      // Configure SSL agent for voucher creation
+      const https = await import('https');
+      const voucherAgent = process.env.NODE_ENV === 'development' 
+        ? new https.Agent({ rejectUnauthorized: false })
+        : undefined;
+
       const voucherResponse = await fetch(voucherApiUrl, {
         method: 'POST',
         headers: {
@@ -1232,11 +1239,7 @@ export function registerRoutes(app: Express): Server {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(voucherGroupData),
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        ...(voucherAgent && { agent: voucherAgent })
       });
 
       if (!voucherResponse.ok) {
@@ -1259,6 +1262,11 @@ export function registerRoutes(app: Express): Server {
       // Get voucher details from Omada
       await new Promise(resolve => setTimeout(resolve, 2000));
 
+      // Configure SSL agent for voucher details
+      const detailAgent = process.env.NODE_ENV === 'development' 
+        ? new https.Agent({ rejectUnauthorized: false })
+        : undefined;
+
       const detailResponse = await fetch(
         `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${omadaGroupId}?page=1&pageSize=1000`,
         {
@@ -1266,11 +1274,7 @@ export function registerRoutes(app: Express): Server {
             'Authorization': `AccessToken=${accessToken}`,
             'Content-Type': 'application/json',
           },
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          ...(detailAgent && { agent: detailAgent })
         }
       );
 
