@@ -617,51 +617,61 @@ export default function VendedorDashboard() {
                             </small>
                           </div>
                           
-                          <div 
-                            onClick={() => {
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               console.log('A4 print button clicked!', lastGeneratedVouchers);
                               printVouchers(lastGeneratedVouchers);
                               setLastGeneratedVouchers([]);
                             }}
-                            className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center"
-                            style={{ height: '48px', cursor: 'pointer' }}
-                            role="button"
+                            className="btn btn-outline-primary w-100"
+                            style={{ height: '48px' }}
                           >
-                            <Printer className="me-2" size={20} />
-                            <div className="text-start">
-                              <div>Imprimir A4</div>
-                              <small className="text-muted">Formato padrão ({lastGeneratedVouchers.length} vouchers)</small>
+                            <div className="d-flex align-items-center justify-content-center">
+                              <Printer className="me-2" size={20} />
+                              <div className="text-start">
+                                <div>Imprimir A4</div>
+                                <small className="text-muted">Formato padrão ({lastGeneratedVouchers.length} vouchers)</small>
+                              </div>
                             </div>
-                          </div>
+                          </button>
                           
-                          <div 
-                            onClick={() => {
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               console.log('Thermal print button clicked!', lastGeneratedVouchers);
                               printVouchersRoll(lastGeneratedVouchers);
                               setLastGeneratedVouchers([]);
                             }}
-                            className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center"
-                            style={{ height: '48px', cursor: 'pointer' }}
-                            role="button"
+                            className="btn btn-outline-secondary w-100"
+                            style={{ height: '48px' }}
                           >
-                            <Printer className="me-2" size={20} />
-                            <div className="text-start">
-                              <div>Cupom Térmico</div>
-                              <small className="text-muted">58mm/80mm ({lastGeneratedVouchers.length} vouchers)</small>
+                            <div className="d-flex align-items-center justify-content-center">
+                              <Printer className="me-2" size={20} />
+                              <div className="text-start">
+                                <div>Cupom Térmico</div>
+                                <small className="text-muted">58mm/80mm ({lastGeneratedVouchers.length} vouchers)</small>
+                              </div>
                             </div>
-                          </div>
+                          </button>
                           
-                          <div 
-                            onClick={() => {
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               console.log('Cancel button clicked!');
                               setLastGeneratedVouchers([]);
                             }}
                             className="btn btn-outline-danger w-100"
-                            style={{ height: '40px', cursor: 'pointer' }}
-                            role="button"
+                            style={{ height: '40px' }}
                           >
                             Cancelar Impressão
-                          </div>
+                          </button>
                         </div>
                       </div>
                     </div>
