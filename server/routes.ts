@@ -412,6 +412,19 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.get("/api/sites/:siteId", requireAuth, async (req, res) => {
+    try {
+      const siteId = req.params.siteId;
+      const site = await storage.getSiteById(siteId);
+      if (!site) {
+        return res.status(404).json({ message: "Site not found" });
+      }
+      res.json(site);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch site" });
+    }
+  });
+
   // IMPORTANT: More specific routes must come BEFORE general routes
   // Site Access Management for users - BULK assignment (must come before /:siteId)
   app.post("/api/users/:userId/sites/assign", requireAuth, requireRole(["master"]), async (req, res) => {

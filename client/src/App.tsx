@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import MasterDashboard from "@/pages/master-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
+import SiteSelectionPage from "@/pages/site-selection-page";
 import VendedorDashboard from "@/pages/vendedor-dashboard";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <ProtectedRoute path="/" component={MasterDashboard} />
       <ProtectedRoute path="/master" component={MasterDashboard} />
       <ProtectedRoute path="/admin" component={AdminDashboard} />
+      <ProtectedRoute path="/site-selection" component={SiteSelectionPage} />
       <ProtectedRoute path="/vendedor" component={VendedorDashboard} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
