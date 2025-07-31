@@ -4,10 +4,11 @@ import * as schema from "@shared/schema";
 
 // MySQL connection pool configuration
 const pool = mysql.createPool({
-  host: 'hsstm.shop',
-  user: 'root',
-  password: '11032020',
-  database: 'omada_dev',
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'omada_user',
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || 'omada_voucher',
+  port: parseInt(process.env.DB_PORT || '3306'),
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
