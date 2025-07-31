@@ -10,6 +10,7 @@ import https from "https";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { omadaFetch, makeOmadaRequest } from "./fetch-utils";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), 'server/uploads');
@@ -124,18 +125,12 @@ async function renewOmadaTokenWithCallbacks(credentials: any): Promise<string> {
       'client_secret': credentials.clientSecret
     };
     
-    const tokenResponse = await fetch(tokenUrl, {
+    const tokenResponse = await omadaFetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
-      // Ignore SSL certificate issues for development
-      ...(process.env.NODE_ENV === 'development' && {
-        agent: new (await import('https')).Agent({
-          rejectUnauthorized: false
-        })
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!tokenResponse.ok) {
@@ -200,18 +195,12 @@ async function validateToken(token: string, credentials: any): Promise<boolean> 
       pageSize: '10'
     });
     
-    const testResponse = await fetch(`${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites?${params}`, {
+    const testResponse = await omadaFetch(`${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites?${params}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `AccessToken=${token}`
-      },
-      // Ignore SSL certificate issues for development
-      ...(process.env.NODE_ENV === 'development' && {
-        agent: new (await import('https')).Agent({
-          rejectUnauthorized: false
-        })
-      })
+      }
     });
 
     if (!testResponse.ok) {

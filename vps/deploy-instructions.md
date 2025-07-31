@@ -60,7 +60,21 @@ pm2 monit           # Monitor em tempo real
 ### Se a aplicação não iniciar:
 1. Verificar logs: `npm run pm2:logs`
 2. Verificar conectividade MySQL: `mysql -h hsstm.shop -u root -p`
-3. Executar script de correção: `./deploy/fix-session-store.sh`
+3. Executar script de correção de sessão: `./deploy/fix-session-store.sh`
+
+### Para erro de certificado SSL (UNABLE_TO_VERIFY_LEAF_SIGNATURE):
+```bash
+# Execute o script de correção SSL
+./deploy/fix-ssl-certificates.sh
+
+# Se necessário, reinstalar dependências
+./deploy/fix-ssl-certificates.sh --reinstall
+```
+
+### Erro específico na API Omada:
+- O sistema já está configurado para ignorar certificados SSL auto-assinados
+- Verifique se OMADA_URL está correto em .env
+- Teste conectividade: `curl -k -s https://omada.camstm.com:8043`
 
 ### Portas em Uso:
 ```bash

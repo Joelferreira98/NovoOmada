@@ -2,10 +2,10 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
-// Ignore SSL certificate errors in development
-if (process.env.NODE_ENV === 'development') {
+// Ignore SSL certificate errors in development and production (for self-signed certificates)
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  console.log('⚠️ SSL certificate verification disabled for development environment');
+  console.log('⚠️ SSL certificate verification disabled for Omada controller compatibility');
 }
 
 const app = express();

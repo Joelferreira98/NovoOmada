@@ -87,6 +87,12 @@ Se houver problemas:
    ./deploy/fix-session-store.sh
    ```
 
+3. **Erro de Certificado SSL**
+   ```bash
+   # Execute o script de correção SSL
+   ./deploy/fix-ssl-certificates.sh
+   ```
+
 3. **Porta em Uso**
    ```bash
    # Verificar processos na porta 3000

@@ -1,0 +1,40 @@
+0|omada-vo | 2025-07-31T21:44:59: 9:44:59 PM [express] serving on port 3000
+
+0|omada-voucher  | 2025-07-31T21:45:27: 9:45:27 PM [express] GET /api/user 401 in 3ms
+0|omada-voucher  | 2025-07-31T21:45:34: 9:45:34 PM [express] POST /api/login 200 in 1206ms :: {"id":"462567f6-6d82-11f0-ba5f-00505657299a","…
+0|omada-voucher  | 2025-07-31T21:45:35: 9:45:35 PM [express] GET /api/sites 200 in 429ms :: [{"id":"dd55bd05-6da8-11f0-ba5f-00505657299a","n…
+0|omada-voucher  | 2025-07-31T21:45:35: 9:45:35 PM [express] GET /api/users 200 in 1201ms :: [{"id":"e127cfcf-5b33-4b2a-bcb2-516d70b33a61","…
+0|omada-voucher  | 2025-07-31T21:45:35: 9:45:35 PM [express] GET /api/omada-credentials 200 in 1210ms :: {"id":"7f560a96-6d82-11f0-ba5f-0050…
+0|omada-voucher  | 2025-07-31T21:45:40: Test Request - URL: https://omada.camstm.com:8043/openapi/authorize/token?grant_type=client_credentials
+0|omada-voucher  | 2025-07-31T21:45:40: Test Request - Body: {
+0|omada-voucher  |   "omadacId": "4cca9807cd4dcfb6202bcda798f170d5",
+0|omada-voucher  |   "client_id": "a72febf8cc2647e2a74737f4c500268b",
+0|omada-voucher  |   "client_secret": "b4e60e503bb943b7ab7172f2f6f1669e"
+0|omada-voucher  | }
+0|omada-voucher  | 2025-07-31T21:45:41: 9:45:41 PM [express] POST /api/omada-credentials/test 200 in 953ms :: {"success":false,"message":"❌ …
+0|omada-voucher  | 2025-07-31T21:45:45: Attempting to sync sites for Omada ID: 4cca9807cd4dcfb6202bcda798f170d5
+0|omada-voucher  | 2025-07-31T21:45:45: Trying OpenAPI: https://omada.camstm.com:8043/openapi/v1/4cca9807cd4dcfb6202bcda798f170d5/sites?page=1&pageSize=1000
+0|omada-voucher  | 2025-07-31T21:45:45: Getting fresh token from Omada API using client credentials
+0|omada-voucher  | 2025-07-31T21:45:45: Failed to get access token: FetchError: request to https://omada.camstm.com:8043/openapi/authorize/token?grant_type=client_credentials failed, reason: unable to verify the first certificate
+0|omada-voucher  |     at ClientRequest.<anonymous> (file:///opt/omada-voucher/vps/node_modules/node-fetch/src/index.js:108:11)
+0|omada-voucher  |     at ClientRequest.emit (node:events:536:35)
+0|omada-voucher  |     at emitErrorEvent (node:_http_client:101:11)
+0|omada-voucher  |     at TLSSocket.socketErrorListener (node:_http_client:504:5)
+0|omada-voucher  |     at TLSSocket.emit (node:events:524:28)
+0|omada-voucher  |     at emitErrorNT (node:internal/streams/destroy:169:8)
+0|omada-voucher  |     at emitErrorCloseNT (node:internal/streams/destroy:128:3)
+0|omada-voucher  |     at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+0|omada-voucher  |   type: 'system',
+0|omada-voucher  |   errno: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+0|omada-voucher  |   code: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+0|omada-voucher  |   erroredSysCall: undefined
+0|omada-voucher  | }
+0|omada-voucher  | 2025-07-31T21:45:45: 9:45:45 PM [express] POST /api/sites/sync 200 in 861ms :: {"message":"Falha na autenticação com a AP…
+0|omada-voucher  | 2025-07-31T21:45:46: 9:45:46 PM [express] GET /api/sites 304 in 404ms :: [{"id":"dd55bd05-6da8-11f0-ba5f-00505657299a","n…
+0|omada-voucher  | 2025-07-31T21:46:00: Test Request - URL: https://omada.camstm.com:8043/openapi/authorize/token?grant_type=client_credentials
+0|omada-voucher  | 2025-07-31T21:46:00: Test Request - Body: {
+0|omada-voucher  |   "omadacId": "4cca9807cd4dcfb6202bcda798f170d5",
+0|omada-voucher  |   "client_id": "a72febf8cc2647e2a74737f4c500268b",
+0|omada-voucher  |   "client_secret": "b4e60e503bb943b7ab7172f2f6f1669e"
+0|omada-voucher  | }
+0|omada-voucher  | 2025-07-31T21:46:00: 9:46:00 PM [express] POST /api/omada-credentials/test 200 in 864ms :: {"success":false,"message":"❌ …
