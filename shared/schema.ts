@@ -117,6 +117,18 @@ export const sales = mysqlTable("sales", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const printHistory = mysqlTable("print_history", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
+  vendedorId: varchar("vendedor_id", { length: 36 }).notNull().references(() => users.id),
+  siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
+  printType: mysqlEnum("print_type", ["a4", "thermal"]).notNull(),
+  voucherCodes: json("voucher_codes").notNull(), // Array of voucher codes
+  printTitle: text("print_title").notNull(),
+  htmlContent: text("html_content").notNull(), // Complete HTML for reprinting
+  voucherCount: int("voucher_count").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   siteAccess: many(userSiteAccess),
@@ -165,6 +177,11 @@ export const cashClosuresRelations = relations(cashClosures, ({ one }) => ({
   vendedor: one(users, { fields: [cashClosures.vendedorId], references: [users.id] }),
 }));
 
+export const printHistoryRelations = relations(printHistory, ({ one }) => ({
+  vendedor: one(users, { fields: [printHistory.vendedorId], references: [users.id] }),
+  site: one(sites, { fields: [printHistory.siteId], references: [sites.id] }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -201,6 +218,11 @@ export const insertOmadaCredentialsSchema = createInsertSchema(omadaCredentials)
   createdAt: true,
 });
 
+export const insertPrintHistorySchema = createInsertSchema(printHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -217,3 +239,5 @@ export type VoucherGroup = typeof voucherGroups.$inferSelect;
 export type InsertVoucherGroup = z.infer<typeof insertVoucherGroupSchema>;
 export type CashClosure = typeof cashClosures.$inferSelect;
 export type InsertCashClosure = z.infer<typeof insertCashClosureSchema>;
+export type PrintHistory = typeof printHistory.$inferSelect;
+export type InsertPrintHistory = z.infer<typeof insertPrintHistorySchema>;

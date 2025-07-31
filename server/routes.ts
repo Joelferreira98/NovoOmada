@@ -1984,6 +1984,61 @@ export function registerRoutes(app: Express): Server {
 
   // FUNCIONALIDADES DO VENDEDOR
 
+  // Print History API Routes
+  app.post("/api/print-history", requireAuth, requireRole(["vendedor"]), async (req, res) => {
+    try {
+      const { printType, voucherCodes, printTitle, htmlContent } = req.body;
+      
+      const userSites = await storage.getUserSites(req.user!.id);
+      if (userSites.length === 0) {
+        return res.status(403).json({ message: "No site access" });
+      }
+      
+      const siteId = userSites[0].id;
+      
+      const printHistory = await storage.savePrintHistory({
+        vendedorId: req.user!.id,
+        siteId,
+        printType,
+        voucherCodes,
+        printTitle,
+        htmlContent,
+        voucherCount: voucherCodes.length
+      });
+      
+      res.status(201).json(printHistory);
+    } catch (error: any) {
+      console.error("Error saving print history:", error);
+      res.status(500).json({ message: error.message || "Failed to save print history" });
+    }
+  });
+
+  app.get("/api/print-history/:siteId", requireAuth, requireRole(["vendedor"]), async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      const history = await storage.getPrintHistory(req.user!.id, siteId);
+      res.json(history);
+    } catch (error: any) {
+      console.error("Error fetching print history:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch print history" });
+    }
+  });
+
+  app.delete("/api/print-history/:id", requireAuth, requireRole(["vendedor"]), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deletePrintHistory(id);
+      if (success) {
+        res.json({ message: "Print history deleted" });
+      } else {
+        res.status(404).json({ message: "Print history not found" });
+      }
+    } catch (error: any) {
+      console.error("Error deleting print history:", error);
+      res.status(500).json({ message: error.message || "Failed to delete print history" });
+    }
+  });
+
   // Gerar vouchers na API do Omada
   app.post("/api/vouchers/generate", requireAuth, async (req, res) => {
     try {

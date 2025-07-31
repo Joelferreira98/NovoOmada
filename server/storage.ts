@@ -1,11 +1,12 @@
 import { 
   users, sites, plans, vouchers, sales, omadaCredentials, userSiteAccess,
-  voucherGroups, cashClosures,
+  voucherGroups, cashClosures, printHistory,
   type User, type InsertUser, type Site, type InsertSite, 
   type Plan, type InsertPlan, type Voucher, type InsertVoucher,
   type OmadaCredentials, type InsertOmadaCredentials, type Sale,
   type VoucherGroup, type InsertVoucherGroup,
-  type CashClosure, type InsertCashClosure
+  type CashClosure, type InsertCashClosure,
+  type PrintHistory, type InsertPrintHistory
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -80,6 +81,11 @@ export interface IStorage {
   // Cash closure system
   createCashClosure(closure: Omit<InsertCashClosure, 'id' | 'createdAt'>): Promise<CashClosure>;
   getCashClosures(siteId: string): Promise<CashClosure[]>;
+
+  // Print History
+  savePrintHistory(printData: InsertPrintHistory): Promise<PrintHistory>;
+  getPrintHistory(vendedorId: string, siteId: string): Promise<PrintHistory[]>;
+  deletePrintHistory(id: string): Promise<boolean>;
 
   sessionStore: session.Store;
 }
@@ -687,6 +693,109 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(cashClosures.closureDate));
     
     return closures;
+  }
+
+  // Print History methods
+  async savePrintHistory(printData: InsertPrintHistory): Promise<PrintHistory> {
+    const printId = crypto.randomUUID();
+    const printWithId = { ...printData, id: printId };
+    
+    try {
+      const { pool } = await import("./db");
+      
+      // First, create the table if it doesn't exist
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS print_history (
+          id VARCHAR(36) PRIMARY KEY,
+          vendedor_id VARCHAR(36) NOT NULL,
+          site_id VARCHAR(36) NOT NULL,
+          print_type ENUM('a4', 'thermal') NOT NULL,
+          voucher_codes JSON NOT NULL,
+          print_title TEXT NOT NULL,
+          html_content LONGTEXT NOT NULL,
+          voucher_count INT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (vendedor_id) REFERENCES users(id),
+          FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+        )
+      `);
+      
+      await pool.execute(`
+        INSERT INTO print_history (id, vendedor_id, site_id, print_type, voucher_codes, print_title, html_content, voucher_count)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        printWithId.id,
+        printWithId.vendedorId,
+        printWithId.siteId,
+        printWithId.printType,
+        JSON.stringify(printWithId.voucherCodes),
+        printWithId.printTitle,
+        printWithId.htmlContent,
+        printWithId.voucherCount
+      ]);
+      
+      const [rows] = await pool.execute(
+        'SELECT * FROM print_history WHERE id = ?',
+        [printId]
+      );
+      
+      const result = (rows as any[])[0];
+      return {
+        id: result.id,
+        vendedorId: result.vendedor_id,
+        siteId: result.site_id,
+        printType: result.print_type,
+        voucherCodes: JSON.parse(result.voucher_codes),
+        printTitle: result.print_title,
+        htmlContent: result.html_content,
+        voucherCount: result.voucher_count,
+        createdAt: result.created_at
+      };
+    } catch (error) {
+      console.error('Error saving print history:', error);
+      throw error;
+    }
+  }
+
+  async getPrintHistory(vendedorId: string, siteId: string): Promise<PrintHistory[]> {
+    try {
+      const { pool } = await import("./db");
+      const [rows] = await pool.execute(`
+        SELECT * FROM print_history 
+        WHERE vendedor_id = ? AND site_id = ?
+        ORDER BY created_at DESC
+        LIMIT 50
+      `, [vendedorId, siteId]);
+      
+      return (rows as any[]).map(row => ({
+        id: row.id,
+        vendedorId: row.vendedor_id,
+        siteId: row.site_id,
+        printType: row.print_type,
+        voucherCodes: JSON.parse(row.voucher_codes),
+        printTitle: row.print_title,
+        htmlContent: row.html_content,
+        voucherCount: row.voucher_count,
+        createdAt: row.created_at
+      }));
+    } catch (error) {
+      console.error('Error getting print history:', error);
+      return [];
+    }
+  }
+
+  async deletePrintHistory(id: string): Promise<boolean> {
+    try {
+      const { pool } = await import("./db");
+      const [result] = await pool.execute(
+        'DELETE FROM print_history WHERE id = ?',
+        [id]
+      );
+      return (result as any).affectedRows > 0;
+    } catch (error) {
+      console.error('Error deleting print history:', error);
+      return false;
+    }
   }
 
   // Métodos para gerenciar vouchers individuais

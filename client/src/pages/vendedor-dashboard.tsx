@@ -21,6 +21,7 @@ export default function VendedorDashboard() {
   const [selectedPlan, setSelectedPlan] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [lastGeneratedVouchers, setLastGeneratedVouchers] = useState<any[]>([]);
+  const [showPrintHistory, setShowPrintHistory] = useState(false);
 
   if (!user || user.role !== "vendedor") {
     return <Redirect to="/auth" />;
@@ -44,6 +45,11 @@ export default function VendedorDashboard() {
 
   const { data: vouchers = [] } = useQuery({
     queryKey: ["/api/vouchers", userSite?.id],
+    enabled: !!userSite,
+  });
+
+  const { data: printHistory = [] } = useQuery({
+    queryKey: ["/api/print-history", userSite?.id],
     enabled: !!userSite,
   });
 
@@ -105,6 +111,18 @@ export default function VendedorDashboard() {
   const totalPrice = selectedPlanData ? (selectedPlanData.unitPrice * quantity).toFixed(2) : "0.00";
 
   const selectedSite = userSite?.id;
+
+  // Save print history mutation
+  const savePrintHistoryMutation = useMutation({
+    mutationFn: async (data: { printType: string; voucherCodes: string[]; printTitle: string; htmlContent: string }) => {
+      const res = await apiRequest("POST", "/api/print-history", data);
+      if (!res.ok) throw new Error("Failed to save print history");
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/print-history", userSite?.id] });
+    },
+  });
 
   const onGenerateVouchers = () => {
     if (!selectedPlan) {
@@ -344,10 +362,21 @@ export default function VendedorDashboard() {
     printWindow.document.write(printContent);
     printWindow.document.close();
     
-    // Auto print after loading
+    // Auto print after loading and save to history
     printWindow.onload = () => {
       printWindow.focus();
       printWindow.print();
+      
+      // Save A4 print history
+      const printTitle = `${siteName} - ${planName} (${vouchersToPrint.length} vouchers) - ${currentDate}`;
+      const voucherCodes = vouchersToPrint.map(v => v.code);
+      
+      savePrintHistoryMutation.mutate({
+        printType: 'a4',
+        voucherCodes,
+        printTitle,
+        htmlContent: printContent
+      });
     };
   };
 
@@ -486,10 +515,21 @@ export default function VendedorDashboard() {
     printWindow.document.write(printContent);
     printWindow.document.close();
     
-    // Auto print after loading
+    // Auto print after loading and save to history
     printWindow.onload = () => {
       printWindow.focus();
       printWindow.print();
+      
+      // Save thermal print history
+      const printTitle = `CUPOM ${siteName} (${vouchersToPrint.length} vouchers) - ${currentDate}`;
+      const voucherCodes = vouchersToPrint.map(v => v.code);
+      
+      savePrintHistoryMutation.mutate({
+        printType: 'thermal',
+        voucherCodes,
+        printTitle,
+        htmlContent: printContent
+      });
     };
   };
 
@@ -518,6 +558,12 @@ export default function VendedorDashboard() {
       active: activeTab === "history",
       onClick: () => setActiveTab("history")
     },
+    { 
+      icon: Printer, 
+      label: "Reimprimir Vouchers", 
+      active: activeTab === "print-history",
+      onClick: () => setActiveTab("print-history")
+    }
   ];
 
   return (
@@ -846,6 +892,138 @@ export default function VendedorDashboard() {
                 <p className="text-slate-600 text-center py-8">
                   Histórico detalhado será implementado aqui
                 </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "print-history" && (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-800">Histórico de Impressões</h1>
+              <p className="text-slate-600 mt-2">Reimpressão de vouchers anteriores</p>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Printer className="h-5 w-5 mr-2" />
+                  Vouchers Impressos Recentemente
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {printHistory && printHistory.length > 0 ? (
+                  <div className="space-y-4">
+                    {printHistory.map((print: any) => (
+                      <div key={print.id} className="border rounded-lg p-4 hover:bg-slate-50">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-semibold text-slate-800">{print.printTitle}</h3>
+                            <p className="text-sm text-slate-600">
+                              {print.voucherCount} vouchers • {new Date(print.createdAt).toLocaleDateString('pt-BR')} às {new Date(print.createdAt).toLocaleTimeString('pt-BR')}
+                            </p>
+                          </div>
+                          <Badge variant={print.printType === 'a4' ? 'default' : 'secondary'}>
+                            {print.printType === 'a4' ? 'A4' : 'Térmico'}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
+                          <Copy className="h-4 w-4" />
+                          <span>Códigos: {print.voucherCodes.join(', ').substring(0, 50)}...</span>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const printWindow = window.open('', '_blank');
+                              if (printWindow) {
+                                printWindow.document.write(print.htmlContent);
+                                printWindow.document.close();
+                                printWindow.onload = () => {
+                                  printWindow.focus();
+                                  printWindow.print();
+                                };
+                              }
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Printer className="h-4 w-4 mr-1" />
+                            Reimprimir
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const blob = new Blob([print.htmlContent], { type: 'text/html' });
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `vouchers-${print.printTitle.replace(/[^a-zA-Z0-9]/g, '-')}.html`;
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="outline">
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Excluir
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir este registro de impressão? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={async () => {
+                                    try {
+                                      const res = await apiRequest("DELETE", `/api/print-history/${print.id}`);
+                                      if (res.ok) {
+                                        queryClient.invalidateQueries({ queryKey: ["/api/print-history", userSite?.id] });
+                                        toast({
+                                          title: "Registro excluído",
+                                          description: "O histórico de impressão foi removido com sucesso."
+                                        });
+                                      }
+                                    } catch (error) {
+                                      toast({
+                                        title: "Erro",
+                                        description: "Falha ao excluir o registro de impressão.",
+                                        variant: "destructive"
+                                      });
+                                    }
+                                  }}
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Printer className="h-12 w-12 mx-auto text-slate-400 mb-4" />
+                    <p className="text-slate-600">Nenhuma impressão encontrada</p>
+                    <p className="text-sm text-slate-500 mt-2">
+                      Quando você imprimir vouchers, eles aparecerão aqui para reimpressão
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
