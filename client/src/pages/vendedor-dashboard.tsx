@@ -143,54 +143,54 @@ export default function VendedorDashboard() {
             width: 210mm; 
             height: 297mm;
             margin: 0 auto; 
-            padding: 8mm;
+            padding: 4mm;
             display: flex;
             flex-direction: column;
           }
           .voucher-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8mm;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 3mm;
             flex: 1;
             align-content: start;
           }
           .voucher {
-            border: 2px solid #000;
-            padding: 12px;
-            border-radius: 8px;
+            border: 1.5px solid #000;
+            padding: 8px;
+            border-radius: 6px;
             background: #fff;
             page-break-inside: avoid;
             height: fit-content;
-            min-height: 120px;
+            min-height: 80px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
           }
           .voucher-site {
             text-align: center;
-            font-size: 11px;
+            font-size: 8px;
             font-weight: bold;
             color: #666;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             text-transform: uppercase;
             border-bottom: 1px solid #ddd;
-            padding-bottom: 6px;
+            padding-bottom: 3px;
           }
           .voucher-code {
-            font-size: 20px;
+            font-size: 14px;
             font-weight: bold;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             background: #000;
             color: white;
-            padding: 10px 8px;
+            padding: 6px 4px;
             text-align: center;
-            margin: 8px 0;
-            border-radius: 4px;
+            margin: 4px 0;
+            border-radius: 3px;
             font-family: 'Courier New', monospace;
           }
           .voucher-info {
-            font-size: 10px;
-            margin: 4px 0;
+            font-size: 8px;
+            margin: 2px 0;
             color: #333;
             display: flex;
             justify-content: space-between;
@@ -200,35 +200,39 @@ export default function VendedorDashboard() {
           }
           .voucher-footer {
             text-align: center;
-            font-size: 8px;
+            font-size: 6px;
             color: #888;
-            margin-top: 6px;
+            margin-top: 3px;
             border-top: 1px solid #eee;
-            padding-top: 4px;
+            padding-top: 2px;
           }
           
-          /* Responsive grid for different quantities */
+          /* Responsive grid for different quantities - A4 optimized */
           @media print {
-            .page { margin: 0; padding: 5mm; }
+            .page { margin: 0; padding: 3mm; }
             .voucher { 
               page-break-inside: avoid;
-              min-height: 100px;
+              min-height: 70px;
             }
-            /* Adjust grid based on quantity */
-            .voucher-grid.small { grid-template-columns: repeat(3, 1fr); gap: 12mm; }
-            .voucher-grid.medium { grid-template-columns: repeat(4, 1fr); gap: 8mm; }
-            .voucher-grid.large { grid-template-columns: repeat(5, 1fr); gap: 6mm; }
+            /* Adjust grid based on quantity for maximum A4 usage */
+            .voucher-grid.tiny { grid-template-columns: repeat(4, 1fr); gap: 6mm; }
+            .voucher-grid.small { grid-template-columns: repeat(5, 1fr); gap: 4mm; }
+            .voucher-grid.medium { grid-template-columns: repeat(6, 1fr); gap: 3mm; }
+            .voucher-grid.large { grid-template-columns: repeat(7, 1fr); gap: 2mm; }
+            .voucher-grid.xlarge { grid-template-columns: repeat(8, 1fr); gap: 2mm; }
           }
           
-          /* Dynamic sizing based on quantity */
-          ${vouchersToPrint.length <= 6 ? '.voucher-grid { grid-template-columns: repeat(3, 1fr); gap: 12mm; } .voucher { min-height: 140px; padding: 16px; } .voucher-code { font-size: 24px; padding: 12px; }' : ''}
-          ${vouchersToPrint.length > 6 && vouchersToPrint.length <= 12 ? '.voucher-grid { grid-template-columns: repeat(4, 1fr); gap: 8mm; }' : ''}
-          ${vouchersToPrint.length > 12 ? '.voucher-grid { grid-template-columns: repeat(5, 1fr); gap: 6mm; } .voucher { min-height: 100px; padding: 10px; } .voucher-code { font-size: 18px; padding: 8px; }' : ''}
+          /* Dynamic sizing based on quantity - A4 space optimization */
+          ${vouchersToPrint.length <= 8 ? '.voucher-grid { grid-template-columns: repeat(4, 1fr); gap: 6mm; } .voucher { min-height: 100px; padding: 12px; } .voucher-code { font-size: 16px; padding: 8px; }' : ''}
+          ${vouchersToPrint.length > 8 && vouchersToPrint.length <= 15 ? '.voucher-grid { grid-template-columns: repeat(5, 1fr); gap: 4mm; } .voucher { min-height: 90px; padding: 10px; } .voucher-code { font-size: 15px; padding: 7px; }' : ''}
+          ${vouchersToPrint.length > 15 && vouchersToPrint.length <= 30 ? '.voucher-grid { grid-template-columns: repeat(6, 1fr); gap: 3mm; } .voucher { min-height: 80px; padding: 8px; } .voucher-code { font-size: 14px; padding: 6px; }' : ''}
+          ${vouchersToPrint.length > 30 && vouchersToPrint.length <= 56 ? '.voucher-grid { grid-template-columns: repeat(7, 1fr); gap: 2mm; } .voucher { min-height: 70px; padding: 6px; } .voucher-code { font-size: 12px; padding: 5px; }' : ''}
+          ${vouchersToPrint.length > 56 ? '.voucher-grid { grid-template-columns: repeat(8, 1fr); gap: 2mm; } .voucher { min-height: 65px; padding: 5px; } .voucher-code { font-size: 11px; padding: 4px; }' : ''}
         </style>
       </head>
       <body>
         <div class="page">
-          <div class="voucher-grid ${vouchersToPrint.length <= 6 ? 'small' : vouchersToPrint.length <= 12 ? 'medium' : 'large'}">
+          <div class="voucher-grid ${vouchersToPrint.length <= 8 ? 'tiny' : vouchersToPrint.length <= 15 ? 'small' : vouchersToPrint.length <= 30 ? 'medium' : vouchersToPrint.length <= 56 ? 'large' : 'xlarge'}">
             ${vouchersToPrint.map((voucher, index) => `
               <div class="voucher">
                 <div class="voucher-site">${siteName}</div>
@@ -390,7 +394,7 @@ export default function VendedorDashboard() {
                       id="quantity"
                       type="number"
                       min="1"
-                      max="50"
+                      max="100"
                       value={quantity}
                       onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
                     />
