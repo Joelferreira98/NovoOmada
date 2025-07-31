@@ -485,6 +485,17 @@ function OverviewSection({ selectedSite, setActiveTab }: {
 
 // Vendedores Section Component
 function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAdd }: any) {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingVendedor, setEditingVendedor] = useState<any>(null);
+  const { data: site } = useQuery<any>({
+    queryKey: ["/api/sites", siteId],
+  });
+
+  // Auto close modals when prop changes
+  React.useEffect(() => {
+    setShowCreateModal(false);
+    setEditingVendedor(null);
+  }, [vendedores]);
   if (loading) {
     return (
       <div className="d-flex justify-content-center py-5">
@@ -502,7 +513,7 @@ function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAd
           <h2 className="h3 fw-bold text-dark mb-1">Gerenciar Vendedores</h2>
           <p className="text-muted mb-0">Criar, editar e gerenciar vendedores do site</p>
         </div>
-        <button className="btn btn-primary d-flex align-items-center mt-3 mt-lg-0" onClick={onAdd}>
+        <button className="btn btn-primary d-flex align-items-center mt-3 mt-lg-0" onClick={() => setShowCreateModal(true)}>
           <Plus size={18} className="me-2" />
           Novo Vendedor
         </button>
@@ -554,7 +565,7 @@ function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAd
                         <div className="btn-group" role="group">
                           <button
                             className="btn btn-outline-primary btn-sm d-flex align-items-center"
-                            onClick={() => onEdit(vendedor)}
+                            onClick={() => setEditingVendedor(vendedor)}
                             title="Editar vendedor"
                           >
                             <Edit size={16} />
@@ -580,7 +591,7 @@ function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAd
               </div>
               <h5 className="fw-semibold text-dark mb-2">Nenhum vendedor encontrado</h5>
               <p className="text-muted mb-4">Crie o primeiro vendedor para este site</p>
-              <button className="btn btn-primary d-flex align-items-center mx-auto" onClick={onAdd}>
+              <button className="btn btn-primary d-flex align-items-center mx-auto" onClick={() => setShowCreateModal(true)}>
                 <Plus size={18} className="me-2" />
                 Criar Vendedor
               </button>
@@ -588,6 +599,25 @@ function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAd
           )}
         </div>
       </div>
+
+      {/* Vendedor Modals */}
+      {showCreateModal && (
+        <VendedorModal 
+          siteId={siteId}
+          siteName={site?.name || ""}
+          vendedor={null}
+          mode="create"
+        />
+      )}
+      
+      {editingVendedor && (
+        <VendedorModal 
+          siteId={siteId}
+          siteName={site?.name || ""}
+          vendedor={editingVendedor}
+          mode="edit"
+        />
+      )}
     </div>
   );
 }
