@@ -423,21 +423,13 @@ async function getValidOmadaToken(credentials: any): Promise<string> {
     'client_secret': credentials.clientSecret
   };
   
-  // Use node-fetch with proper SSL configuration
-  const nodeFetch = (await import('node-fetch')).default;
-  const https = await import('https');
-  
-  const agent = process.env.NODE_ENV === 'development' 
-    ? new https.Agent({ rejectUnauthorized: false })
-    : undefined;
-
-  const tokenResponse = await nodeFetch(tokenUrl, {
+  // Use omadaFetch for SSL certificate handling
+  const tokenResponse = await omadaFetch(tokenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(requestBody),
-    agent
+    body: JSON.stringify(requestBody)
   });
 
   if (!tokenResponse.ok) {
@@ -2291,6 +2283,33 @@ export function registerRoutes(app: Express): Server {
   // FUNCIONALIDADES DO VENDEDOR
 
   // Print History API Routes
+  app.get("/api/print-history/:siteId", requireAuth, async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      
+      // Check if user has access to this site
+      if (req.user!.role === "vendedor") {
+        const userSites = await storage.getUserSites(req.user!.id);
+        const hasAccess = userSites.some(site => site.id === siteId);
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied to this site" });
+        }
+      } else if (req.user!.role === "admin") {
+        const userSites = await storage.getUserSites(req.user!.id);
+        const hasAccess = userSites.some(site => site.id === siteId);
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied to this site" });
+        }
+      }
+      
+      const history = await storage.getPrintHistoryBySite(siteId);
+      res.json(history);
+    } catch (error: any) {
+      console.error("Error fetching print history:", error);
+      res.status(500).json({ message: "Failed to fetch print history" });
+    }
+  });
+
   app.post("/api/print-history", requireAuth, requireRole(["vendedor"]), async (req, res) => {
     try {
       const { printType, voucherCodes, printTitle, htmlContent } = req.body;

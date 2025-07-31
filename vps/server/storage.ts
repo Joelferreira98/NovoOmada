@@ -161,7 +161,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: string): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
-    return result.rowsAffected > 0;
+    return (result as any).affectedRows > 0;
   }
 
   async getAdminsBySite(siteId: string): Promise<User[]> {
@@ -257,7 +257,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // Remove existing assignments
       const deleteResult = await db.delete(userSiteAccess).where(eq(userSiteAccess.userId, userId));
-      console.log(`Deleted ${deleteResult.affectedRows || 0} existing assignments`);
+      console.log(`Deleted ${(deleteResult as any).affectedRows || 0} existing assignments`);
       
       // Add new assignments
       if (siteIds && siteIds.length > 0) {
@@ -269,7 +269,7 @@ export class DatabaseStorage implements IStorage {
         console.log(`Creating assignments:`, assignments);
         
         const insertResult = await db.insert(userSiteAccess).values(assignments);
-        console.log(`Inserted ${insertResult.affectedRows || 0} new assignments`);
+        console.log(`Inserted ${(insertResult as any).affectedRows || 0} new assignments`);
       }
     } catch (error) {
       console.error(`Error in assignSitesToUser:`, error);
@@ -353,7 +353,7 @@ export class DatabaseStorage implements IStorage {
 
   async deletePlan(id: string): Promise<boolean> {
     const result = await db.delete(plans).where(eq(plans.id, id));
-    return (result.affectedRows || 0) > 0;
+    return ((result as any).affectedRows || 0) > 0;
   }
 
   async createVoucher(voucher: InsertVoucher): Promise<Voucher> {
@@ -994,6 +994,56 @@ export class DatabaseStorage implements IStorage {
       }
     } catch (error) {
       console.error('Error updating app settings:', error);
+      throw error;
+    }
+  }
+
+  async getPrintHistoryBySite(siteId: string): Promise<PrintHistory[]> {
+    try {
+      const { pool } = await import("./db");
+      console.log('🔍 Getting print history for site:', siteId);
+      
+      const [rows] = await pool.execute(`
+        SELECT ph.*, u.username as printed_by 
+        FROM print_history ph
+        JOIN users u ON ph.vendedor_id = u.id
+        WHERE ph.site_id = ?
+        ORDER BY ph.created_at DESC
+        LIMIT 100
+      `, [siteId]);
+      
+      const results = (rows as any[]).map(row => {
+        let voucherCodes = [];
+        try {
+          if (typeof row.voucher_codes === 'string') {
+            const cleanJson = row.voucher_codes.trim();
+            voucherCodes = JSON.parse(cleanJson);
+          } else {
+            voucherCodes = row.voucher_codes || [];
+          }
+        } catch (parseError) {
+          console.error('❌ Error parsing voucher codes JSON:', parseError);
+          voucherCodes = [];
+        }
+        
+        return {
+          id: row.id,
+          vendedorId: row.vendedor_id,
+          siteId: row.site_id,
+          printType: row.print_type,
+          voucherCodes,
+          printTitle: row.print_title,
+          htmlContent: row.html_content,
+          voucherCount: row.voucher_count,
+          createdAt: row.created_at,
+          printedBy: row.printed_by
+        };
+      });
+      
+      console.log('📋 Found print history records for site:', results.length);
+      return results;
+    } catch (error) {
+      console.error('❌ Error getting print history by site:', error);
       throw error;
     }
   }

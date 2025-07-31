@@ -184,8 +184,8 @@ export default function AdminDashboard() {
     { 
       icon: FileText, 
       label: "Relatórios", 
-      active: activeTab === "reports",
-      onClick: () => setActiveTab("reports")
+      active: false,
+      onClick: () => setLocation("/reports")
     },
     { 
       icon: History, 
@@ -306,7 +306,7 @@ export default function AdminDashboard() {
                 />
               )}
               {activeTab === "vouchers" && <VouchersSection siteId={selectedSiteId!} />}
-              {activeTab === "reports" && <ReportsSection siteId={selectedSiteId!} />}
+
               {activeTab === "print-history" && <PrintHistorySection siteId={selectedSiteId!} />}
             </div>
           </div>
@@ -1240,41 +1240,15 @@ function VouchersSection({ siteId }: { siteId: string }) {
   );
 }
 
-// Reports Section Component
-function ReportsSection({ siteId }: { siteId: string }) {
-  const [, setLocation] = useLocation();
 
-  return (
-    <div className="mb-4">
-      <div className="mb-4">
-        <h1 className="h2 h1-lg fw-bold text-dark mb-2">Relatórios</h1>
-        <p className="text-muted">Acessar relatórios detalhados de vendas e vouchers</p>
-      </div>
-
-      <div className="card">
-        <div className="card-body text-center py-5">
-          <FileText size={48} className="text-muted mb-3" />
-          <h5>Relatórios Detalhados</h5>
-          <p className="text-muted">Acesse relatórios completos de vendas, distribuição e histórico</p>
-          <button
-            className="btn btn-primary"
-            onClick={() => setLocation("/reports")}
-          >
-            <BarChart3 size={16} className="me-1" />
-            Acessar Relatórios
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Print History Section Component
 function PrintHistorySection({ siteId }: { siteId: string }) {
   const { toast } = useToast();
   
   const { data: printHistory = [], isLoading } = useQuery({
-    queryKey: ["/api/print-history"],
+    queryKey: ["/api/print-history", siteId],
+    enabled: !!siteId,
     refetchInterval: 30000,
   });
 
