@@ -896,45 +896,7 @@ export function registerRoutes(app: Express): Server {
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
         console.error('Token request failed:', tokenResponse.status, errorText);
-        console.log('Omada API not accessible, generating local vouchers for demo purposes');
-        
-        // Generate demo vouchers when Omada API is not accessible
-        const demoVouchers = [];
-        for (let i = 0; i < quantity; i++) {
-          const code = generateVoucherCode(plan.tipoCodigo, plan.comprimentoVoucher);
-          
-          const voucher = await storage.createVoucher({
-            code: code,
-            planId: plan.id,
-            siteId: plan.siteId,
-            vendedorId: req.user!.id,
-            omadaGroupId: `demo-group-${Date.now()}`,
-            omadaVoucherId: `demo-voucher-${Date.now()}-${i}`,
-            unitPrice: plan.unitPrice,
-            status: 'available'
-          });
-
-          // Create sale record
-          await storage.createSale({
-            voucherId: voucher.id,
-            sellerId: req.user!.id,
-            siteId: plan.siteId,
-            amount: plan.unitPrice
-          });
-
-          demoVouchers.push({
-            id: voucher.id,
-            code: code,
-            planName: plan.nome,
-            unitPrice: plan.unitPrice,
-            duration: plan.duration,
-            createdAt: voucher.createdAt,
-            note: "Voucher demo - Configure credenciais Omada para gerar vouchers reais"
-          });
-        }
-
-        console.log('Generated demo vouchers:', demoVouchers.length);
-        return res.status(201).json(demoVouchers);
+        throw new Error(`Failed to get access token: ${tokenResponse.status} - ${errorText}`);
       }
 
       const tokenData = await tokenResponse.json();
