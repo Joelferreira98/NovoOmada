@@ -10,8 +10,13 @@ import https from "https";
 // Temporarily disable SSL verification for development (self-signed certs)
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 
-// Token cache to avoid multiple rapid requests to Omada
-let tokenCache: { token: string; expires: number; omadacId: string } | null = null;
+// Token cache with automatic renewal system
+let tokenCache: { 
+  token: string; 
+  expires: number; 
+  omadacId: string;
+  renewalTimer?: NodeJS.Timeout;
+} | null = null;
 
 // Função para gerar códigos de voucher
 function generateVoucherCode(tipoCodigo: string, comprimento: number): string {
@@ -26,6 +31,49 @@ function generateVoucherCode(tipoCodigo: string, comprimento: number): string {
   return result;
 }
 
+async function renewOmadaToken(credentials: any): Promise<string> {
+  console.log('Renewing Omada token...');
+  
+  const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
+  const requestBody = {
+    'omadacId': credentials.omadacId,
+    'client_id': credentials.clientId,
+    'client_secret': credentials.clientSecret
+  };
+  
+  const tokenResponse = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+    // Ignore SSL certificate issues for development
+    ...(process.env.NODE_ENV === 'development' && {
+      agent: new (await import('https')).Agent({
+        rejectUnauthorized: false
+      })
+    })
+  });
+
+  if (!tokenResponse.ok) {
+    const errorText = await tokenResponse.text();
+    throw new Error(`Token renewal failed: ${tokenResponse.status} - ${errorText}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  
+  if (tokenData.errorCode !== 0) {
+    throw new Error(`Token renewal error: ${tokenData.msg || 'Authentication failed'}`);
+  }
+
+  const accessToken = tokenData.result?.accessToken;
+  if (!accessToken) {
+    throw new Error('No access token received from Omada API during renewal');
+  }
+
+  return accessToken;
+}
+
 async function getValidOmadaToken(credentials: any): Promise<string> {
   const now = Date.now();
   
@@ -37,7 +85,12 @@ async function getValidOmadaToken(credentials: any): Promise<string> {
     return tokenCache.token;
   }
   
-  // Get new token using client credentials (following Python implementation)
+  // Clear existing renewal timer if any
+  if (tokenCache?.renewalTimer) {
+    clearTimeout(tokenCache.renewalTimer);
+  }
+  
+  // Get new token
   console.log('Getting fresh token from Omada API using client credentials');
   
   const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
@@ -47,15 +100,18 @@ async function getValidOmadaToken(credentials: any): Promise<string> {
     'client_secret': credentials.clientSecret
   };
   
-  console.log(`Token request URL: ${tokenUrl}`);
-  console.log(`Request body:`, requestBody);
-  
   const tokenResponse = await fetch(tokenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(requestBody)
+    body: JSON.stringify(requestBody),
+    // Ignore SSL certificate issues for development
+    ...(process.env.NODE_ENV === 'development' && {
+      agent: new (await import('https')).Agent({
+        rejectUnauthorized: false
+      })
+    })
   });
 
   if (!tokenResponse.ok) {
@@ -64,7 +120,6 @@ async function getValidOmadaToken(credentials: any): Promise<string> {
   }
 
   const tokenData = await tokenResponse.json();
-  console.log('Token response:', tokenData);
   
   if (tokenData.errorCode !== 0) {
     throw new Error(`Token error: ${tokenData.msg || 'Authentication failed'}`);
@@ -75,13 +130,39 @@ async function getValidOmadaToken(credentials: any): Promise<string> {
     throw new Error('No access token received from Omada API');
   }
 
+  const expiresIn = tokenData.result.expiresIn || 7200; // Default 2 hours
+  const expiryTime = now + (expiresIn * 1000) - 300000; // 5 minutes before actual expiry
+  
   // Cache the token
   tokenCache = {
     token: accessToken,
-    expires: now + (tokenData.result.expiresIn * 1000) - 300000, // 5 minutes before actual expiry
+    expires: expiryTime,
     omadacId: credentials.omadacId
   };
 
+  // Set up automatic renewal 30 minutes before expiry
+  const renewalTime = (expiresIn - 1800) * 1000; // 30 minutes before expiry
+  tokenCache.renewalTimer = setTimeout(async () => {
+    try {
+      console.log('Auto-renewing Omada token...');
+      const newToken = await renewOmadaToken(credentials);
+      
+      if (tokenCache && tokenCache.omadacId === credentials.omadacId) {
+        tokenCache.token = newToken;
+        tokenCache.expires = Date.now() + (expiresIn * 1000) - 300000;
+        
+        // Schedule next renewal
+        tokenCache.renewalTimer = setTimeout(arguments.callee, renewalTime);
+        console.log('✓ Token auto-renewed successfully');
+      }
+    } catch (error) {
+      console.error('Token auto-renewal failed:', error);
+      // Clear cache on renewal failure
+      tokenCache = null;
+    }
+  }, renewalTime);
+
+  console.log(`✓ Token cached with auto-renewal in ${renewalTime/1000/60} minutes`);
   return accessToken;
 }
 

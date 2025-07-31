@@ -442,14 +442,23 @@ export class DatabaseStorage implements IStorage {
 
   async createSale(sale: Omit<Sale, 'id' | 'createdAt'>): Promise<Sale> {
     const saleId = crypto.randomUUID();
-    const saleWithId = {
-      id: saleId,
-      ...sale,
-      createdAt: new Date()
-    };
     
-    console.log('Creating sale with data:', saleWithId);
-    await db.insert(sales).values(saleWithId);
+    // Use raw SQL to handle exact field mapping for MySQL sales table
+    const { pool } = await import("./db");
+    await pool.execute(`
+      INSERT INTO sales (
+        id, voucher_id, seller_id, site_id, amount, created_by, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+      saleId,
+      sale.voucherId,
+      sale.sellerId,
+      sale.siteId,
+      sale.amount,
+      sale.sellerId, // Use seller as creator
+      new Date()
+    ]);
+    
     const [newSale] = await db.select().from(sales).where(eq(sales.id, saleId));
     return newSale;
   }
