@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   Users, 
   CreditCard, 
@@ -12,7 +17,11 @@ import {
   MapPin,
   Wifi,
   ArrowLeft,
-  RefreshCw
+  RefreshCw,
+  Edit,
+  Trash2,
+  Eye,
+  Plus
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Site } from "@shared/schema";
@@ -23,6 +32,8 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Get selected site from localStorage on component mount
   useEffect(() => {
@@ -40,6 +51,59 @@ export default function AdminDashboard() {
 
   const { data: selectedSite } = useQuery<Site>({
     queryKey: ["/api/sites", selectedSiteId],
+    enabled: !!selectedSiteId,
+  });
+
+  // Fetch plans for the selected site
+  const { data: plans, isLoading: plansLoading } = useQuery({
+    queryKey: ["/api/sites", selectedSiteId, "plans"],
+    enabled: !!selectedSiteId,
+  });
+
+  // Delete mutations
+  const deleteVendedorMutation = useMutation({
+    mutationFn: async (vendedorId: string) => {
+      await apiRequest("DELETE", `/api/users/${vendedorId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso!",
+        description: "Vendedor excluído com sucesso",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", selectedSiteId, "vendedores"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir vendedor",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePlanMutation = useMutation({
+    mutationFn: async (planId: string) => {
+      await apiRequest("DELETE", `/api/plans/${planId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso!",
+        description: "Plano excluído com sucesso",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", selectedSiteId, "plans"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir plano",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Fetch vendedores for the selected site
+  const { data: vendedores, isLoading: vendedoresLoading } = useQuery({
+    queryKey: ["/api/sites", selectedSiteId, "vendedores"],
     enabled: !!selectedSiteId,
   });
 
@@ -257,6 +321,211 @@ export default function AdminDashboard() {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        {/* CRUD Tables */}
+        <div className="mt-8">
+          <Tabs defaultValue="vendedores" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="vendedores">Vendedores</TabsTrigger>
+              <TabsTrigger value="planos">Planos</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="vendedores" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center">
+                        <Users className="h-5 w-5 mr-2" />
+                        Vendedores - {selectedSite.name}
+                      </CardTitle>
+                      <CardDescription>
+                        Gerencie vendedores que podem criar vouchers neste site
+                      </CardDescription>
+                    </div>
+                    <VendedorModal siteId={selectedSiteId} siteName={selectedSite.name} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {vendedoresLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome de usuário</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Data de criação</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {vendedores && vendedores.length > 0 ? (
+                          vendedores.map((vendedor: any) => (
+                            <TableRow key={vendedor.id}>
+                              <TableCell className="font-medium">{vendedor.username}</TableCell>
+                              <TableCell>{vendedor.email}</TableCell>
+                              <TableCell>
+                                {new Date(vendedor.createdAt).toLocaleDateString('pt-BR')}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end space-x-2">
+                                  <VendedorModal 
+                                    siteId={selectedSiteId} 
+                                    siteName={selectedSite.name}
+                                    vendedor={vendedor}
+                                    mode="edit"
+                                  />
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Tem certeza que deseja excluir o vendedor "{vendedor.username}"? 
+                                          Esta ação não pode ser desfeita.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => deleteVendedorMutation.mutate(vendedor.id)}
+                                          className="bg-red-600 hover:bg-red-700"
+                                        >
+                                          Excluir
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                              Nenhum vendedor encontrado. 
+                              <br />
+                              Clique em "Adicionar Vendedor" para começar.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="planos" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center">
+                        <CreditCard className="h-5 w-5 mr-2" />
+                        Planos - {selectedSite.name}
+                      </CardTitle>
+                      <CardDescription>
+                        Configure planos de vouchers que vendedores podem usar
+                      </CardDescription>
+                    </div>
+                    <PlanModal siteId={selectedSiteId} siteName={selectedSite.name} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {plansLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome do Plano</TableHead>
+                          <TableHead>Duração</TableHead>
+                          <TableHead>Usuários Simultâneos</TableHead>
+                          <TableHead>Preço</TableHead>
+                          <TableHead>Data de criação</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {plans && plans.length > 0 ? (
+                          plans.map((plan: any) => (
+                            <TableRow key={plan.id}>
+                              <TableCell className="font-medium">{plan.nome}</TableCell>
+                              <TableCell>
+                                {plan.duration >= 60 
+                                  ? `${Math.floor(plan.duration / 60)}h ${plan.duration % 60 || ''}${plan.duration % 60 ? 'm' : ''}`
+                                  : `${plan.duration}m`
+                                }
+                              </TableCell>
+                              <TableCell>{plan.userLimit || 1}</TableCell>
+                              <TableCell>R$ {parseFloat(plan.unitPrice).toFixed(2)}</TableCell>
+                              <TableCell>
+                                {new Date(plan.createdAt).toLocaleDateString('pt-BR')}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end space-x-2">
+                                  <PlanModal 
+                                    siteId={selectedSiteId} 
+                                    siteName={selectedSite.name}
+                                    plan={plan}
+                                    mode="edit"
+                                  />
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Tem certeza que deseja excluir o plano "{plan.nome}"? 
+                                          Esta ação não pode ser desfeita.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => deletePlanMutation.mutate(plan.id)}
+                                          className="bg-red-600 hover:bg-red-700"
+                                        >
+                                          Excluir
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                              Nenhum plano encontrado. 
+                              <br />
+                              Clique em "Criar Plano" para começar.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Site Info */}

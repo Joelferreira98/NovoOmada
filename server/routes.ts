@@ -575,10 +575,24 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.put("/api/users/:userId", requireAuth, requireRole(["master"]), async (req, res) => {
+  app.put("/api/users/:userId", requireAuth, async (req, res) => {
     try {
       const userId = req.params.userId;
       const userData = req.body;
+      const requestingUser = req.user!;
+      
+      // Role-based restrictions: Master can update anyone, Admin can update vendedores
+      if (requestingUser.role === "master") {
+        // Master can update any user
+      } else if (requestingUser.role === "admin") {
+        // Admin can only update vendedores
+        const targetUser = await storage.getUser(userId);
+        if (!targetUser || targetUser.role !== "vendedor") {
+          return res.status(403).json({ message: "Admins só podem atualizar vendedores" });
+        }
+      } else {
+        return res.status(403).json({ message: "Sem permissão para atualizar usuários" });
+      }
       
       // If password is being updated, hash it
       if (userData.password) {
@@ -617,6 +631,18 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Delete user error:", error);
       res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Get vendedores for specific site
+  app.get("/api/sites/:siteId/vendedores", requireAuth, async (req, res) => {
+    try {
+      const siteId = req.params.siteId;
+      const vendedores = await storage.getVendedoresBySite(siteId);
+      res.json(vendedores);
+    } catch (error: any) {
+      console.error("Error fetching vendedores:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 

@@ -23,7 +23,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Edit } from "lucide-react";
 
 const vendedorSchema = insertUserSchema.extend({
   password: insertUserSchema.shape.password.min(6, "Senha deve ter pelo menos 6 caracteres"),
@@ -42,9 +42,11 @@ type VendedorFormData = {
 interface VendedorModalProps {
   siteId: string;
   siteName: string;
+  vendedor?: any;
+  mode?: "create" | "edit";
 }
 
-export function VendedorModal({ siteId, siteName }: VendedorModalProps) {
+export function VendedorModal({ siteId, siteName, vendedor, mode = "create" }: VendedorModalProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -52,43 +54,57 @@ export function VendedorModal({ siteId, siteName }: VendedorModalProps) {
   const form = useForm<VendedorFormData>({
     resolver: zodResolver(vendedorSchema),
     defaultValues: {
-      username: "",
-      email: "",
+      username: vendedor?.username || "",
+      email: vendedor?.email || "",
       password: "",
     },
   });
 
-  const createVendedorMutation = useMutation({
+  const vendedorMutation = useMutation({
     mutationFn: async (data: VendedorFormData) => {
-      // Create vendedor user
-      const vendedorData: InsertUser = {
-        ...data,
-        role: "vendedor",
-      };
-      
-      const response = await apiRequest("POST", "/api/users", vendedorData);
-      const vendedor = await response.json();
-      
-      // Assign the current site to the vendedor
-      await apiRequest("POST", `/api/users/${vendedor.id}/sites/assign`, {
-        siteIds: [siteId]
-      });
-      
-      return vendedor;
+      if (mode === "edit" && vendedor) {
+        // Update existing vendedor
+        const updateData = {
+          username: data.username,
+          email: data.email,
+          ...(data.password && { password: data.password })
+        };
+        const response = await apiRequest("PUT", `/api/users/${vendedor.id}`, updateData);
+        return await response.json();
+      } else {
+        // Create vendedor user
+        const vendedorData: InsertUser = {
+          ...data,
+          role: "vendedor",
+        };
+        
+        const response = await apiRequest("POST", "/api/users", vendedorData);
+        const newVendedor = await response.json();
+        
+        // Assign the current site to the vendedor
+        await apiRequest("POST", `/api/users/${newVendedor.id}/sites/assign`, {
+          siteIds: [siteId]
+        });
+        
+        return newVendedor;
+      }
     },
     onSuccess: () => {
       setOpen(false);
       form.reset();
       toast({
-        title: "Vendedor criado com sucesso",
-        description: `Vendedor foi criado e atribuído ao site "${siteName}"`,
+        title: mode === "edit" ? "Vendedor atualizado com sucesso" : "Vendedor criado com sucesso",
+        description: mode === "edit" 
+          ? `Vendedor foi atualizado com sucesso` 
+          : `Vendedor foi criado e atribuído ao site "${siteName}"`,
       });
-      // Invalidate users query to refresh the list
+      // Invalidate queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "vendedores"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao criar vendedor",
+        title: mode === "edit" ? "Erro ao atualizar vendedor" : "Erro ao criar vendedor",
         description: error.message || "Erro desconhecido",
         variant: "destructive",
       });
@@ -96,22 +112,33 @@ export function VendedorModal({ siteId, siteName }: VendedorModalProps) {
   });
 
   const onSubmit = (data: VendedorFormData) => {
-    createVendedorMutation.mutate(data);
+    vendedorMutation.mutate(data);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Criar Vendedor
-        </Button>
+        {mode === "edit" ? (
+          <Button variant="outline" size="sm">
+            <Edit className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Criar Vendedor
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Criar Novo Vendedor</DialogTitle>
+          <DialogTitle>
+            {mode === "edit" ? "Editar Vendedor" : "Criar Novo Vendedor"}
+          </DialogTitle>
           <DialogDescription>
-            Crie um vendedor para o site "{siteName}". O vendedor será automaticamente atribuído a este site.
+            {mode === "edit" 
+              ? `Edite as informações do vendedor "${vendedor?.username}"`
+              : `Crie um vendedor para o site "${siteName}". O vendedor será automaticamente atribuído a este site.`
+            }
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -173,9 +200,12 @@ export function VendedorModal({ siteId, siteName }: VendedorModalProps) {
               </Button>
               <Button
                 type="submit"
-                disabled={createVendedorMutation.isPending}
+                disabled={vendedorMutation.isPending}
               >
-                {createVendedorMutation.isPending ? "Criando..." : "Criar Vendedor"}
+                {vendedorMutation.isPending 
+                  ? (mode === "edit" ? "Atualizando..." : "Criando...") 
+                  : (mode === "edit" ? "Atualizar Vendedor" : "Criar Vendedor")
+                }
               </Button>
             </div>
           </form>
