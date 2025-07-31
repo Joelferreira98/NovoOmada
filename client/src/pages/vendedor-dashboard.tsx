@@ -137,124 +137,122 @@ export default function VendedorDashboard() {
             font-family: 'Arial', sans-serif; 
             background: white;
             color: black;
-            line-height: 1.3;
+            line-height: 1.2;
           }
           .page { 
             width: 210mm; 
+            height: 297mm;
             margin: 0 auto; 
-            padding: 15mm;
-          }
-          .header {
-            text-align: center;
-            border-bottom: 3px solid #333;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-          }
-          .header h1 { 
-            font-size: 28px; 
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #333;
-          }
-          .header p { 
-            font-size: 16px; 
-            margin: 3px 0;
-            color: #666;
+            padding: 8mm;
+            display: flex;
+            flex-direction: column;
           }
           .voucher-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8mm;
+            flex: 1;
+            align-content: start;
           }
           .voucher {
-            border: 3px solid #333;
-            padding: 20px;
-            border-radius: 12px;
-            background: #f8f9fa;
+            border: 2px solid #000;
+            padding: 12px;
+            border-radius: 8px;
+            background: #fff;
             page-break-inside: avoid;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: fit-content;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
           }
-          .voucher-header {
+          .voucher-site {
             text-align: center;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-          }
-          .voucher-header strong {
-            font-size: 14px;
-            color: #333;
+            font-size: 11px;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 6px;
           }
           .voucher-code {
-            font-size: 28px;
+            font-size: 20px;
             font-weight: bold;
-            letter-spacing: 3px;
-            background: #333;
+            letter-spacing: 2px;
+            background: #000;
             color: white;
-            padding: 15px;
+            padding: 10px 8px;
             text-align: center;
-            margin: 15px 0;
-            border-radius: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
             font-family: 'Courier New', monospace;
           }
           .voucher-info {
-            font-size: 13px;
-            margin: 8px 0;
-            color: #555;
+            font-size: 10px;
+            margin: 4px 0;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
           }
           .voucher-info strong {
-            display: inline-block;
-            width: 70px;
-            color: #333;
+            color: #000;
           }
-          .footer {
+          .voucher-footer {
             text-align: center;
-            margin-top: 30px;
-            font-size: 12px;
+            font-size: 8px;
             color: #888;
-            border-top: 1px solid #ddd;
-            padding-top: 15px;
+            margin-top: 6px;
+            border-top: 1px solid #eee;
+            padding-top: 4px;
           }
+          
+          /* Responsive grid for different quantities */
           @media print {
-            .page { margin: 0; padding: 10mm; }
-            .voucher { page-break-inside: avoid; }
-            .voucher-grid { gap: 15px; }
+            .page { margin: 0; padding: 5mm; }
+            .voucher { 
+              page-break-inside: avoid;
+              min-height: 100px;
+            }
+            /* Adjust grid based on quantity */
+            .voucher-grid.small { grid-template-columns: repeat(3, 1fr); gap: 12mm; }
+            .voucher-grid.medium { grid-template-columns: repeat(4, 1fr); gap: 8mm; }
+            .voucher-grid.large { grid-template-columns: repeat(5, 1fr); gap: 6mm; }
           }
+          
+          /* Dynamic sizing based on quantity */
+          ${vouchersToPrint.length <= 6 ? '.voucher-grid { grid-template-columns: repeat(3, 1fr); gap: 12mm; } .voucher { min-height: 140px; padding: 16px; } .voucher-code { font-size: 24px; padding: 12px; }' : ''}
+          ${vouchersToPrint.length > 6 && vouchersToPrint.length <= 12 ? '.voucher-grid { grid-template-columns: repeat(4, 1fr); gap: 8mm; }' : ''}
+          ${vouchersToPrint.length > 12 ? '.voucher-grid { grid-template-columns: repeat(5, 1fr); gap: 6mm; } .voucher { min-height: 100px; padding: 10px; } .voucher-code { font-size: 18px; padding: 8px; }' : ''}
         </style>
       </head>
       <body>
         <div class="page">
-          <div class="header">
-            <h1>VOUCHERS WiFi</h1>
-            <p><strong>${siteName}</strong></p>
-            <p>Data: ${currentDate} | Plano: ${planName}</p>
-            <p>Total: ${vouchersToPrint.length} vouchers</p>
-          </div>
-
-          <div class="voucher-grid">
+          <div class="voucher-grid ${vouchersToPrint.length <= 6 ? 'small' : vouchersToPrint.length <= 12 ? 'medium' : 'large'}">
             ${vouchersToPrint.map((voucher, index) => `
               <div class="voucher">
-                <div class="voucher-header">
-                  <strong>VOUCHER #${String(index + 1).padStart(2, '0')}</strong>
-                </div>
+                <div class="voucher-site">${siteName}</div>
                 
                 <div class="voucher-code">${voucher.code}</div>
                 
                 <div class="voucher-info">
-                  <strong>Plano:</strong> ${voucher.planName}
+                  <span><strong>Plano:</strong></span>
+                  <span>${voucher.planName}</span>
                 </div>
                 <div class="voucher-info">
-                  <strong>Tempo:</strong> ${voucher.duration}min
+                  <span><strong>Tempo:</strong></span>
+                  <span>${voucher.duration}min</span>
                 </div>
                 <div class="voucher-info">
-                  <strong>Valor:</strong> R$ ${voucher.unitPrice}
+                  <span><strong>Valor:</strong></span>
+                  <span>R$ ${voucher.unitPrice}</span>
+                </div>
+                
+                <div class="voucher-footer">
+                  #${String(index + 1).padStart(2, '0')} • ${currentDate}
                 </div>
               </div>
             `).join('')}
-          </div>
-          
-          <div class="footer">
-            Gerado em ${new Date().toLocaleString('pt-BR')} | Sistema Omada WiFi
           </div>
         </div>
       </body>

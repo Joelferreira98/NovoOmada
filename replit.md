@@ -6,6 +6,12 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 
 ## Recent Changes (July 31, 2025)
 
+✓ **Sistema de Impressão de Vouchers Otimizado**: Layout responsivo e profissional para impressão
+- **Responsive Print**: Grid adaptativo (3x1, 4x1, 5x1) baseado na quantidade de vouchers
+- **Clean Design**: Removido cabeçalho, nome do site em cada card individual
+- **Page Optimization**: Aproveitamento máximo da página A4 com espaçamento inteligente
+- **Professional Cards**: Cards compactos com todas as informações essenciais
+
 ✓ **Correção Sistema de Vendas Automáticas**: Corrigido problema de vouchers sendo vendidos ao serem criados
 - **Sale Logic Fixed**: Removida criação automática de vendas na geração de vouchers
 - **Available Status**: Vouchers agora ficam corretamente como 'available' até serem realmente usados
