@@ -57,8 +57,6 @@ export default function VendedorDashboard() {
       return await res.json();
     },
     onSuccess: (vouchers) => {
-      setSelectedPlan("");
-      setQuantity(1);
       setLastGeneratedVouchers(vouchers); // Armazenar vouchers para impressão
       queryClient.invalidateQueries({ queryKey: ["/api/vouchers", userSite?.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/daily", userSite?.id] });
@@ -125,7 +123,7 @@ export default function VendedorDashboard() {
     if (!printWindow) return;
 
     const siteName = userSite?.name || 'WiFi';
-    const planName = selectedPlanData?.nome || 'Internet';
+    const planName = vouchersToPrint[0]?.planName || 'Internet';
     const currentDate = new Date().toLocaleDateString('pt-BR');
     
     const printContent = `
@@ -136,105 +134,108 @@ export default function VendedorDashboard() {
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { 
-            font-family: 'Courier New', monospace; 
+            font-family: 'Arial', sans-serif; 
             background: white;
             color: black;
-            line-height: 1.2;
+            line-height: 1.3;
           }
           .page { 
             width: 210mm; 
             margin: 0 auto; 
-            padding: 10mm;
+            padding: 15mm;
           }
           .header {
             text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            border-bottom: 3px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
           }
           .header h1 { 
-            font-size: 24px; 
+            font-size: 28px; 
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            color: #333;
           }
           .header p { 
-            font-size: 14px; 
-            margin: 2px 0;
+            font-size: 16px; 
+            margin: 3px 0;
+            color: #666;
           }
           .voucher-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
           }
           .voucher {
-            border: 2px solid #000;
-            padding: 15px;
-            border-radius: 8px;
-            background: #f9f9f9;
+            border: 3px solid #333;
+            padding: 20px;
+            border-radius: 12px;
+            background: #f8f9fa;
             page-break-inside: avoid;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .voucher-header {
             text-align: center;
-            border-bottom: 1px solid #000;
-            padding-bottom: 8px;
-            margin-bottom: 10px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+          }
+          .voucher-header strong {
+            font-size: 14px;
+            color: #333;
           }
           .voucher-code {
-            font-size: 20px;
+            font-size: 28px;
             font-weight: bold;
-            letter-spacing: 2px;
-            background: #000;
+            letter-spacing: 3px;
+            background: #333;
             color: white;
-            padding: 8px;
+            padding: 15px;
             text-align: center;
-            margin: 10px 0;
-            border-radius: 4px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
           }
           .voucher-info {
-            font-size: 12px;
-            margin: 5px 0;
+            font-size: 13px;
+            margin: 8px 0;
+            color: #555;
           }
           .voucher-info strong {
             display: inline-block;
-            width: 80px;
+            width: 70px;
+            color: #333;
           }
-          .instructions {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #000;
-            background: #f0f0f0;
-          }
-          .instructions h3 {
-            margin-bottom: 10px;
+          .footer {
             text-align: center;
-          }
-          .instructions ol {
-            margin-left: 20px;
-          }
-          .instructions li {
-            margin: 5px 0;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #888;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
           }
           @media print {
-            .page { margin: 0; }
+            .page { margin: 0; padding: 10mm; }
             .voucher { page-break-inside: avoid; }
+            .voucher-grid { gap: 15px; }
           }
         </style>
       </head>
       <body>
         <div class="page">
           <div class="header">
-            <h1>VOUCHERS DE ACESSO WiFi</h1>
+            <h1>VOUCHERS WiFi</h1>
             <p><strong>${siteName}</strong></p>
-            <p>Data: ${currentDate}</p>
-            <p>Plano: ${planName} | Total: ${vouchersToPrint.length} vouchers</p>
+            <p>Data: ${currentDate} | Plano: ${planName}</p>
+            <p>Total: ${vouchersToPrint.length} vouchers</p>
           </div>
 
           <div class="voucher-grid">
             ${vouchersToPrint.map((voucher, index) => `
               <div class="voucher">
                 <div class="voucher-header">
-                  <strong>VOUCHER #${index + 1}</strong>
+                  <strong>VOUCHER #${String(index + 1).padStart(2, '0')}</strong>
                 </div>
                 
                 <div class="voucher-code">${voucher.code}</div>
@@ -243,36 +244,16 @@ export default function VendedorDashboard() {
                   <strong>Plano:</strong> ${voucher.planName}
                 </div>
                 <div class="voucher-info">
-                  <strong>Duração:</strong> ${voucher.duration} minutos
+                  <strong>Tempo:</strong> ${voucher.duration}min
                 </div>
                 <div class="voucher-info">
                   <strong>Valor:</strong> R$ ${voucher.unitPrice}
                 </div>
-                <div class="voucher-info">
-                  <strong>Válido até:</strong> ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')}
-                </div>
               </div>
             `).join('')}
           </div>
-
-          <div class="instructions">
-            <h3>INSTRUÇÕES DE USO</h3>
-            <ol>
-              <li>Conecte-se à rede WiFi "${siteName}"</li>
-              <li>Abra seu navegador (Chrome, Firefox, Safari, etc.)</li>
-              <li>Tente acessar qualquer site (ex: google.com)</li>
-              <li>Você será redirecionado para a página de login</li>
-              <li>Digite o código do voucher no campo indicado</li>
-              <li>Clique em "Conectar" e aguarde a confirmação</li>
-              <li>Aproveite sua internet!</li>
-            </ol>
-            <p style="margin-top: 15px; text-align: center; font-weight: bold;">
-              ⚠️ Cada voucher pode ser usado apenas uma vez<br>
-              📞 Dúvidas? Entre em contato conosco
-            </p>
-          </div>
           
-          <div style="text-align: center; margin-top: 20px; font-size: 10px; color: #666;">
+          <div class="footer">
             Gerado em ${new Date().toLocaleString('pt-BR')} | Sistema Omada WiFi
           </div>
         </div>
@@ -464,7 +445,10 @@ export default function VendedorDashboard() {
                     
                     {lastGeneratedVouchers.length > 0 && (
                       <Button 
-                        onClick={() => printVouchers(lastGeneratedVouchers)}
+                        onClick={() => {
+                          printVouchers(lastGeneratedVouchers);
+                          setLastGeneratedVouchers([]); // Limpar após imprimir
+                        }}
                         variant="outline"
                         className="flex items-center gap-2"
                       >
