@@ -305,8 +305,8 @@ export default function AdminDashboard() {
       </div>
 
       <VendedorModal 
-        isOpen={vendedorModalOpen || !!editingVendedor}
-        onClose={() => {
+        show={vendedorModalOpen || !!editingVendedor}
+        onHide={() => {
           setVendedorModalOpen(false);
           setEditingVendedor(null);
         }}
@@ -315,8 +315,8 @@ export default function AdminDashboard() {
       />
       
       <PlanModal 
-        isOpen={planModalOpen || !!editingPlan}
-        onClose={() => {
+        show={planModalOpen || !!editingPlan}
+        onHide={() => {
           setPlanModalOpen(false);
           setEditingPlan(null);
         }}
@@ -328,7 +328,10 @@ export default function AdminDashboard() {
 }
 
 // Overview Section Component
-function OverviewSection({ selectedSite, setActiveTab }: { selectedSite: Site; setActiveTab: (tab: string) => void }) {
+function OverviewSection({ selectedSite, setActiveTab }: { 
+  selectedSite: Site; 
+  setActiveTab: React.Dispatch<React.SetStateAction<"overview" | "vendedores" | "plans" | "vouchers" | "reports">>; 
+}) {
   const { data: vendedores = [] } = useQuery<any[]>({
     queryKey: ["/api/sites", selectedSite.id, "vendedores"],
   });
@@ -661,7 +664,7 @@ function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) 
                           {plan.name}
                         </div>
                       </td>
-                      <td>R$ {plan.price.toFixed(2)}</td>
+                      <td>R$ {(plan.price || 0).toFixed(2)}</td>
                       <td>{plan.duration} min</td>
                       <td>{plan.concurrentUsers}</td>
                       <td>{new Date(plan.createdAt).toLocaleDateString('pt-BR')}</td>
@@ -838,7 +841,7 @@ function VouchersSection({ siteId }: { siteId: string }) {
                 <option value="">Escolha um plano...</option>
                 {plans.map((plan: any) => (
                   <option key={plan.id} value={plan.id}>
-                    {plan.name} - R$ {plan.price.toFixed(2)} ({plan.duration}min)
+                    {plan.name} - R$ {(plan.price || 0).toFixed(2)} ({plan.duration}min)
                   </option>
                 ))}
               </select>
