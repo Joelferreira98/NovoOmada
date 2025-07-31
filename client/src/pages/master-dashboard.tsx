@@ -204,271 +204,351 @@ export default function MasterDashboard() {
       <div className="flex-fill p-3 p-lg-4 overflow-auto">
         <div className="container-fluid px-0">
           {activeTab === "sync" && (
-            <div className="space-y-8">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-800">Sincronização Omada</h1>
-              <p className="text-slate-600 mt-2">Configure as credenciais e sincronize sites</p>
+            <div className="mb-4">
+              <div className="mb-4">
+                <h1 className="h2 h1-lg fw-bold text-dark mb-2">Sincronização Omada</h1>
+                <p className="text-muted">Configure as credenciais e sincronize sites</p>
+              </div>
+
+              {/* Omada Credentials - Bootstrap Card */}
+              <div className="card mb-4">
+                <div className="card-header">
+                  <h5 className="card-title mb-0 d-flex align-items-center">
+                    <Settings className="me-2" size={20} />
+                    Credenciais Omada Software
+                  </h5>
+                </div>
+                <div className="card-body">
+                  <form onSubmit={credentialsForm.handleSubmit(onSaveCredentials)}>
+                    <div className="row g-3">
+                      <div className="col-12 col-md-6">
+                        <label htmlFor="omadaUrl" className="form-label">URL do Omada</label>
+                        <input
+                          id="omadaUrl"
+                          type="url"
+                          className="form-control"
+                          {...credentialsForm.register("omadaUrl")}
+                          placeholder="https://omada.tplinkcloud.com"
+                        />
+                      </div>
+                      
+                      <div className="col-12 col-md-6">
+                        <label htmlFor="omadacId" className="form-label">Omada ID</label>
+                        <input
+                          id="omadacId"
+                          type="text"
+                          className="form-control"
+                          {...credentialsForm.register("omadacId")}
+                          placeholder="MSP ID ou Customer ID"
+                        />
+                      </div>
+                      
+                      <div className="col-12 col-md-6">
+                        <label htmlFor="clientId" className="form-label">Client ID</label>
+                        <input
+                          id="clientId"
+                          type="text"
+                          className="form-control"
+                          {...credentialsForm.register("clientId")}
+                          placeholder="Client ID da aplicação"
+                        />
+                      </div>
+                      
+                      <div className="col-12 col-md-6">
+                        <label htmlFor="clientSecret" className="form-label">Client Secret</label>
+                        <input
+                          id="clientSecret"
+                          type="password"
+                          className="form-control"
+                          {...credentialsForm.register("clientSecret")}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                    </div>
+                  
+
+                    
+                    <div className="d-flex flex-column flex-lg-row gap-3 mt-4">
+                      <button 
+                        type="submit" 
+                        disabled={saveCredentialsMutation.isPending}
+                        className="btn btn-primary d-flex align-items-center justify-content-center"
+                      >
+                        <Save className="me-2" size={16} />
+                        {saveCredentialsMutation.isPending ? "Salvando..." : "Salvar Credenciais"}
+                      </button>
+                      
+                      <button 
+                        type="button"
+                        onClick={() => testCredentialsMutation.mutate()}
+                        disabled={testCredentialsMutation.isPending || !omadaCredentials}
+                        className="btn btn-outline-secondary d-flex align-items-center justify-content-center"
+                      >
+                        <ShieldQuestion className="me-2" size={16} />
+                        {testCredentialsMutation.isPending ? "Testando..." : "Testar Conexão"}
+                      </button>
+                      
+                      <button 
+                        type="button"
+                        onClick={() => syncSitesMutation.mutate()}
+                        disabled={syncSitesMutation.isPending}
+                        className="btn btn-success d-flex align-items-center justify-content-center"
+                      >
+                        <FolderSync className="me-2" size={16} />
+                        {syncSitesMutation.isPending ? "Sincronizando..." : "Sincronizar Sites"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
-
-            {/* Omada Credentials */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Credenciais Omada Software</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={credentialsForm.handleSubmit(onSaveCredentials)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <Label htmlFor="omadaUrl">URL do Omada</Label>
-                      <Input
-                        id="omadaUrl"
-                        {...credentialsForm.register("omadaUrl")}
-                        placeholder="https://omada.tplinkcloud.com"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="omadacId">Omada ID</Label>
-                      <Input
-                        id="omadacId"
-                        {...credentialsForm.register("omadacId")}
-                        placeholder="MSP ID ou Customer ID"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="clientId">Client ID</Label>
-                      <Input
-                        id="clientId"
-                        {...credentialsForm.register("clientId")}
-                        placeholder="Client ID da aplicação"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="clientSecret">Client Secret</Label>
-                      <Input
-                        id="clientSecret"
-                        type="password"
-                        {...credentialsForm.register("clientSecret")}
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
-                  
-
-                  
-                  <div className="flex space-x-4">
-                    <Button 
-                      type="submit" 
-                      disabled={saveCredentialsMutation.isPending}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      {saveCredentialsMutation.isPending ? "Salvando..." : "Salvar Credenciais"}
-                    </Button>
-                    
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      onClick={() => testCredentialsMutation.mutate()}
-                      disabled={testCredentialsMutation.isPending || !omadaCredentials}
-                    >
-                      <ShieldQuestion className="w-4 h-4 mr-2" />
-                      {testCredentialsMutation.isPending ? "Testando..." : "Testar Conexão"}
-                    </Button>
-                    
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      onClick={() => syncSitesMutation.mutate()}
-                      disabled={syncSitesMutation.isPending}
-                      className="bg-emerald-500 text-white hover:bg-emerald-600"
-                    >
-                      <FolderSync className="w-4 h-4 mr-2" />
-                      {syncSitesMutation.isPending ? "Sincronizando..." : "Sincronizar Sites"}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          )}
 
         {activeTab === "sites" && (
-          <div className="space-y-8">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-800">Sites Sincronizados</h1>
-              <p className="text-slate-600 mt-2">Sites obtidos via sincronização com Omada</p>
+          <div className="mb-4">
+            <div className="mb-4">
+              <h1 className="h2 h1-lg fw-bold text-dark mb-2">Sites Sincronizados</h1>
+              <p className="text-muted">Sites obtidos via sincronização com Omada</p>
             </div>
 
-            {/* Sites List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Sites Disponíveis</CardTitle>
-              </CardHeader>
-              <CardContent>
+            {/* Sites List - Bootstrap Card */}
+            <div className="card">
+              <div className="card-header">
+                <h5 className="card-title mb-0 d-flex align-items-center">
+                  <Building className="me-2" size={20} />
+                  Sites Disponíveis
+                </h5>
+              </div>
+              <div className="card-body">
                 {(sites as any[]).length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-slate-600">Nenhum site sincronizado</p>
-                    <p className="text-sm text-slate-400 mt-2">Execute a sincronização na aba "Sincronização Omada"</p>
+                  <div className="text-center py-5">
+                    <p className="text-muted">Nenhum site sincronizado</p>
+                    <p className="small text-muted mt-2">Execute a sincronização na aba "Sincronização Omada"</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="row g-3">
                     {(sites as any[]).map((site: any) => (
-                      <div key={site.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-emerald-100 p-2 rounded-lg">
-                            <Building className="w-5 h-5 text-emerald-600" />
+                      <div key={site.id} className="col-12">
+                        <div className="border rounded p-3 d-flex align-items-center justify-content-between">
+                          <div className="d-flex align-items-center">
+                            <div className="bg-success bg-opacity-10 p-2 rounded me-3">
+                              <Building className="text-success" size={20} />
+                            </div>
+                            <div>
+                              <h6 className="mb-1 fw-semibold">{site.name}</h6>
+                              <p className="small text-muted mb-1">{site.location}</p>
+                              <p className="small text-muted mb-0">ID Omada: {site.omadaSiteId}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-slate-800">{site.name}</p>
-                            <p className="text-sm text-slate-500">{site.location}</p>
-                            <p className="text-xs text-slate-400">ID Omada: {site.omadaSiteId}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-4">
-                          <Badge variant={site.status === "active" ? "default" : "secondary"}>
-                            {site.status === "active" ? "Ativo" : "Inativo"}
-                          </Badge>
                           
-                          <div className="text-xs text-slate-400">
-                            {site.lastSync ? `Última sync: ${new Date(site.lastSync).toLocaleDateString()}` : "Nunca sincronizado"}
+                          <div className="d-flex align-items-center gap-3">
+                            <span className={`badge ${site.status === "active" ? "bg-success" : "bg-secondary"}`}>
+                              {site.status === "active" ? "Ativo" : "Inativo"}
+                            </span>
+                            
+                            <div className="small text-muted">
+                              {site.lastSync ? `Última sync: ${new Date(site.lastSync).toLocaleDateString()}` : "Nunca sincronizado"}
+                            </div>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         )}
 
         {activeTab === "admins" && (
-          <div className="space-y-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-slate-800">Administradores</h1>
-                <p className="text-slate-600 mt-2">Gerencie usuários administrativos e vendedores</p>
+          <div className="mb-4">
+            <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4">
+              <div className="mb-3 mb-lg-0">
+                <h1 className="h2 h1-lg fw-bold text-dark mb-2">Administradores</h1>
+                <p className="text-muted">Gerencie usuários administrativos e vendedores</p>
               </div>
-              <Button onClick={() => setUserModalOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
+              <button 
+                onClick={() => setUserModalOpen(true)}
+                className="btn btn-primary d-flex align-items-center"
+              >
+                <Plus className="me-2" size={16} />
                 Criar Usuário
-              </Button>
+              </button>
             </div>
 
-            {/* Admins Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="w-5 h-5 mr-2" />
+            {/* Admins Section - Bootstrap Card */}
+            <div className="card">
+              <div className="card-header">
+                <h5 className="card-title mb-0 d-flex align-items-center">
+                  <Users className="me-2" size={20} />
                   Administradores
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </h5>
+              </div>
+              <div className="card-body">
                 {(users as any[]).filter((u: any) => u.role === 'admin').length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-slate-600">Nenhum administrador cadastrado</p>
-                    <p className="text-sm text-slate-400 mt-2">Clique em "Criar Usuário" para adicionar um administrador</p>
+                  <div className="text-center py-5">
+                    <p className="text-muted">Nenhum administrador cadastrado</p>
+                    <p className="small text-muted mt-2">Clique em "Criar Usuário" para adicionar um administrador</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="row g-3">
                     {(users as any[]).filter((u: any) => u.role === 'admin').map((admin: any) => (
-                      <div key={admin.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-blue-100 p-2 rounded-lg">
-                            <Users className="w-5 h-5 text-blue-600" />
+                      <div key={admin.id} className="col-12">
+                        <div className="border rounded p-3 d-flex align-items-center justify-content-between">
+                          <div className="d-flex align-items-center">
+                            <div className="bg-primary bg-opacity-10 p-2 rounded me-3">
+                              <Users className="text-primary" size={20} />
+                            </div>
+                            <div>
+                              <h6 className="mb-1 fw-semibold">{admin.username}</h6>
+                              <p className="small text-muted mb-1 d-flex align-items-center">
+                                <Mail className="me-1" size={14} />
+                                {admin.email}
+                              </p>
+                              <p className="small text-muted mb-0 d-flex align-items-center">
+                                <Calendar className="me-1" size={14} />
+                                Criado em {new Date(admin.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-slate-800">{admin.username}</p>
-                            <p className="text-sm text-slate-500 flex items-center">
-                              <Mail className="w-4 h-4 mr-1" />
-                              {admin.email}
-                            </p>
-                            <p className="text-xs text-slate-400 flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              Criado em {new Date(admin.createdAt).toLocaleDateString()}
-                            </p>
+                          
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="badge bg-primary">Administrador</span>
+                            <button 
+                              className="btn btn-outline-secondary btn-sm d-flex align-items-center"
+                              onClick={() => handleEditUser(admin)}
+                            >
+                              <Edit className="me-1" size={14} />
+                              Editar
+                            </button>
+                            <button 
+                              className="btn btn-outline-danger btn-sm d-flex align-items-center"
+                              onClick={() => handleDeleteUser(admin)}
+                            >
+                              <Trash2 className="me-1" size={14} />
+                              Deletar
+                            </button>
                           </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="default">Administrador</Badge>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditUser(admin)}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Editar
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleDeleteUser(admin)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Deletar
-                          </Button>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Vendedores Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Building className="w-5 h-5 mr-2" />
+            {/* Vendedores Section - Bootstrap Card */}
+            <div className="card mt-4">
+              <div className="card-header">
+                <h5 className="card-title mb-0 d-flex align-items-center">
+                  <Building className="me-2" size={20} />
                   Vendedores
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </h5>
+              </div>
+              <div className="card-body">
                 {(users as any[]).filter((u: any) => u.role === 'vendedor').length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-slate-600">Nenhum vendedor cadastrado</p>
-                    <p className="text-sm text-slate-400 mt-2">Vendedores são criados pelos administradores de cada site</p>
+                  <div className="text-center py-5">
+                    <p className="text-muted">Nenhum vendedor cadastrado</p>
+                    <p className="small text-muted mt-2">Vendedores são criados pelos administradores de cada site</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="row g-3">
                     {(users as any[]).filter((u: any) => u.role === 'vendedor').map((vendedor: any) => (
-                      <div key={vendedor.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-green-100 p-2 rounded-lg">
-                            <Building className="w-5 h-5 text-green-600" />
+                      <div key={vendedor.id} className="col-12">
+                        <div className="border rounded p-3 d-flex align-items-center justify-content-between">
+                          <div className="d-flex align-items-center">
+                            <div className="bg-success bg-opacity-10 p-2 rounded me-3">
+                              <Building className="text-success" size={20} />
+                            </div>
+                            <div>
+                              <h6 className="mb-1 fw-semibold">{vendedor.username}</h6>
+                              <p className="small text-muted mb-1 d-flex align-items-center">
+                                <Mail className="me-1" size={14} />
+                                {vendedor.email}
+                              </p>
+                              <p className="small text-muted mb-0 d-flex align-items-center">
+                                <Calendar className="me-1" size={14} />
+                                Criado em {new Date(vendedor.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-slate-800">{vendedor.username}</p>
-                            <p className="text-sm text-slate-500 flex items-center">
-                              <Mail className="w-4 h-4 mr-1" />
-                              {vendedor.email}
-                            </p>
-                            <p className="text-xs text-slate-400 flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              Criado em {new Date(vendedor.createdAt).toLocaleDateString()}
-                            </p>
+                          
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="badge bg-success">Vendedor</span>
+                            <button className="btn btn-outline-secondary btn-sm">
+                              Ver Sites
+                            </button>
                           </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-4">
-                          <Badge variant="secondary">Vendedor</Badge>
-                          <Button variant="outline" size="sm">
-                            Ver Sites
-                          </Button>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
-          )}
+        )}
+
+        {/* Dashboard Tab - Overview */}
+        {activeTab === "dashboard" && (
+          <div className="mb-4">
+            <div className="mb-4">
+              <h1 className="h2 h1-lg fw-bold text-dark mb-2">Dashboard Master</h1>
+              <p className="text-muted">Visão geral do sistema</p>
+            </div>
+
+            <div className="row g-4">
+              <div className="col-12 col-md-6 col-lg-3">
+                <div className="card text-center">
+                  <div className="card-body">
+                    <div className="bg-warning bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
+                      <Crown className="text-warning" size={24} />
+                    </div>
+                    <h5 className="fw-bold">{(users as any[]).filter((u: any) => u.role === 'admin').length}</h5>
+                    <p className="text-muted mb-0 small">Administradores</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="col-12 col-md-6 col-lg-3">
+                <div className="card text-center">
+                  <div className="card-body">
+                    <div className="bg-success bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
+                      <Building className="text-success" size={24} />
+                    </div>
+                    <h5 className="fw-bold">{(sites as any[]).length}</h5>
+                    <p className="text-muted mb-0 small">Sites Ativos</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="col-12 col-md-6 col-lg-3">
+                <div className="card text-center">
+                  <div className="card-body">
+                    <div className="bg-primary bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
+                      <Users className="text-primary" size={24} />
+                    </div>
+                    <h5 className="fw-bold">{(users as any[]).filter((u: any) => u.role === 'vendedor').length}</h5>
+                    <p className="text-muted mb-0 small">Vendedores</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="col-12 col-md-6 col-lg-3">
+                <div className="card text-center">
+                  <div className="card-body">
+                    <div className="bg-info bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
+                      <Settings className="text-info" size={24} />
+                    </div>
+                    <h5 className="fw-bold">{omadaCredentials ? "Ativo" : "Inativo"}</h5>
+                    <p className="text-muted mb-0 small">Status Omada</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         </div>
       </div>
 
