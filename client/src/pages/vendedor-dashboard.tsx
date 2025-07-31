@@ -617,48 +617,51 @@ export default function VendedorDashboard() {
                             </small>
                           </div>
                           
-                          <button 
+                          <div 
                             onClick={() => {
                               console.log('A4 print button clicked!', lastGeneratedVouchers);
                               printVouchers(lastGeneratedVouchers);
                               setLastGeneratedVouchers([]);
                             }}
                             className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center"
-                            style={{ height: '48px' }}
+                            style={{ height: '48px', cursor: 'pointer' }}
+                            role="button"
                           >
                             <Printer className="me-2" size={20} />
                             <div className="text-start">
                               <div>Imprimir A4</div>
                               <small className="text-muted">Formato padrão ({lastGeneratedVouchers.length} vouchers)</small>
                             </div>
-                          </button>
+                          </div>
                           
-                          <button 
+                          <div 
                             onClick={() => {
                               console.log('Thermal print button clicked!', lastGeneratedVouchers);
                               printVouchersRoll(lastGeneratedVouchers);
                               setLastGeneratedVouchers([]);
                             }}
                             className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center"
-                            style={{ height: '48px' }}
+                            style={{ height: '48px', cursor: 'pointer' }}
+                            role="button"
                           >
                             <Printer className="me-2" size={20} />
                             <div className="text-start">
                               <div>Cupom Térmico</div>
                               <small className="text-muted">58mm/80mm ({lastGeneratedVouchers.length} vouchers)</small>
                             </div>
-                          </button>
+                          </div>
                           
-                          <button 
+                          <div 
                             onClick={() => {
                               console.log('Cancel button clicked!');
                               setLastGeneratedVouchers([]);
                             }}
                             className="btn btn-outline-danger w-100"
-                            style={{ height: '40px' }}
+                            style={{ height: '40px', cursor: 'pointer' }}
+                            role="button"
                           >
                             Cancelar Impressão
-                          </button>
+                          </div>
                         </div>
                       </div>
                     </div>
