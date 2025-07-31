@@ -40,6 +40,10 @@ export default function VendedorDashboard() {
     enabled: !!userSite,
   });
 
+  // Debug: log plans data when it changes
+  console.log('Plans data in vendedor dashboard:', plans);
+  console.log('User site:', userSite);
+
   const { data: vouchers = [] } = useQuery({
     queryKey: ["/api/vouchers", userSite?.id],
     enabled: !!userSite,
@@ -522,21 +526,27 @@ export default function VendedorDashboard() {
                     <div className="card-body">
                       <div className="mb-3">
                         <Label htmlFor="plan-select" className="form-label">Plano</Label>
-                        <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                          <SelectTrigger className="form-select" style={{ height: '48px' }}>
-                            <SelectValue placeholder="Selecione um plano" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(plans as any[]).map((plan) => {
-                              console.log('Plan data:', plan);
-                              return (
-                                <SelectItem key={plan.id} value={plan.id}>
-                                  {plan.nome || 'Nome não encontrado'} - R$ {parseFloat(plan.unitPrice || 0).toFixed(2)} ({plan.duration || 0}min)
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
+                        {!plans || plans.length === 0 ? (
+                          <div className="alert alert-warning" role="alert">
+                            <small>Nenhum plano disponível. Entre em contato com o administrador.</small>
+                          </div>
+                        ) : (
+                          <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                            <SelectTrigger className="form-select" style={{ height: '48px' }}>
+                              <SelectValue placeholder="Selecione um plano" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(plans as any[]).map((plan) => {
+                                console.log('Plan data in select:', plan);
+                                return (
+                                  <SelectItem key={plan.id} value={plan.id}>
+                                    {plan.nome || 'Nome não encontrado'} - R$ {parseFloat(plan.unitPrice || 0).toFixed(2)} ({plan.duration || 0}min)
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
 
                       <div className="mb-3">
