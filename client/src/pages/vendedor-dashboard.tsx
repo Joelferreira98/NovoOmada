@@ -61,6 +61,8 @@ export default function VendedorDashboard() {
     },
     onSuccess: (data) => {
       const vouchers = data.vouchers || data || [];
+      console.log('Generated vouchers response:', data);
+      console.log('Processed vouchers for printing:', vouchers);
       setLastGeneratedVouchers(vouchers);
       queryClient.invalidateQueries({ queryKey: ["/api/vouchers", userSite?.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/daily", userSite?.id] });

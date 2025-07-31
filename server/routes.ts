@@ -1303,10 +1303,13 @@ export function registerRoutes(app: Express): Server {
           const voucher = await storage.createVoucher({
             code: omadaVoucher.id,
             planId: planId,
+            siteId: plan.siteId,
             status: 'available',
             omadaVoucherId: omadaVoucher.id,
             omadaGroupId: omadaGroupId,
             createdBy: req.user!.id,
+            vendedorId: req.user!.id,
+            unitPrice: parseFloat(plan.unitPrice || "0"),
             expiresAt: new Date(Date.now() + (plan.duration * 60 * 1000))
           });
           
