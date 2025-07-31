@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Crown, FolderSync, Building, ShieldQuestion, Settings, Save, Plus, Users, Mail, Calendar, Edit, Trash2 } from "lucide-react";
+import { Crown, FolderSync, Building, ShieldQuestion, Settings, Save, Plus, Users, Mail, Calendar, Edit, Trash2, Upload, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertOmadaCredentialsSchema } from "@shared/schema";
@@ -580,6 +580,8 @@ function AppSettingsSection() {
     faviconUrl: "",
     primaryColor: "#007bff"
   });
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [faviconUploading, setFaviconUploading] = useState(false);
 
   const { data: appSettings, isLoading } = useQuery({
     queryKey: ["/api/app-settings"],
@@ -627,6 +629,101 @@ function AppSettingsSection() {
 
   const handleSave = () => {
     saveSettingsMutation.mutate(settingsForm);
+  };
+
+  // Upload functions
+  const uploadLogo = async (file: File) => {
+    setLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const response = await fetch('/api/upload-logo', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erro ao enviar logo');
+      }
+
+      const result = await response.json();
+      handleInputChange('logoUrl', result.fileUrl);
+      
+      toast({
+        title: "Logo enviado",
+        description: "Logo carregado com sucesso"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro no upload",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const uploadFavicon = async (file: File) => {
+    setFaviconUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('favicon', file);
+
+      const response = await fetch('/api/upload-favicon', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erro ao enviar favicon');
+      }
+
+      const result = await response.json();
+      handleInputChange('faviconUrl', result.fileUrl);
+      
+      toast({
+        title: "Favicon enviado",
+        description: "Favicon carregado com sucesso"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro no upload",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setFaviconUploading(false);
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'favicon') => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "O arquivo deve ter no máximo 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (type === 'logo') {
+      uploadLogo(file);
+    } else {
+      uploadFavicon(file);
+    }
+
+    // Reset input
+    event.target.value = '';
   };
 
   if (isLoading) {
@@ -685,32 +782,86 @@ function AppSettingsSection() {
             </div>
             
             <div className="col-12">
-              <label htmlFor="logoUrl" className="form-label">URL do Logo</label>
-              <input
-                id="logoUrl"
-                type="url"
-                className="form-control"
-                value={settingsForm.logoUrl}
-                onChange={(e) => handleInputChange("logoUrl", e.target.value)}
-                placeholder="https://exemplo.com/logo.png"
-              />
+              <label className="form-label">Logo da Aplicação</label>
+              <div className="row g-2">
+                <div className="col-12 col-md-8">
+                  <input
+                    type="url"
+                    className="form-control"
+                    value={settingsForm.logoUrl}
+                    onChange={(e) => handleInputChange("logoUrl", e.target.value)}
+                    placeholder="https://exemplo.com/logo.png ou use upload"
+                  />
+                </div>
+                <div className="col-12 col-md-4">
+                  <div className="d-flex gap-2">
+                    <label className={`btn btn-outline-primary ${logoUploading ? 'disabled' : ''}`}>
+                      <Upload size={16} className="me-1" />
+                      {logoUploading ? 'Enviando...' : 'Upload'}
+                      <input
+                        type="file"
+                        className="d-none"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, 'logo')}
+                        disabled={logoUploading}
+                      />
+                    </label>
+                    {settingsForm.logoUrl && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-danger"
+                        onClick={() => handleInputChange("logoUrl", "")}
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
               <div className="form-text">
-                URL de uma imagem para usar como logo (opcional)
+                Faça upload de uma imagem ou insira uma URL (opcional)
               </div>
             </div>
             
             <div className="col-12">
-              <label htmlFor="faviconUrl" className="form-label">URL do Favicon</label>
-              <input
-                id="faviconUrl"
-                type="url"
-                className="form-control"
-                value={settingsForm.faviconUrl}
-                onChange={(e) => handleInputChange("faviconUrl", e.target.value)}
-                placeholder="https://exemplo.com/favicon.ico"
-              />
+              <label className="form-label">Favicon da Aplicação</label>
+              <div className="row g-2">
+                <div className="col-12 col-md-8">
+                  <input
+                    type="url"
+                    className="form-control"
+                    value={settingsForm.faviconUrl}
+                    onChange={(e) => handleInputChange("faviconUrl", e.target.value)}
+                    placeholder="https://exemplo.com/favicon.ico ou use upload"
+                  />
+                </div>
+                <div className="col-12 col-md-4">
+                  <div className="d-flex gap-2">
+                    <label className={`btn btn-outline-primary ${faviconUploading ? 'disabled' : ''}`}>
+                      <Upload size={16} className="me-1" />
+                      {faviconUploading ? 'Enviando...' : 'Upload'}
+                      <input
+                        type="file"
+                        className="d-none"
+                        accept="image/*,.ico"
+                        onChange={(e) => handleFileUpload(e, 'favicon')}
+                        disabled={faviconUploading}
+                      />
+                    </label>
+                    {settingsForm.faviconUrl && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-danger"
+                        onClick={() => handleInputChange("faviconUrl", "")}
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
               <div className="form-text">
-                URL do ícone que aparece na aba do navegador (opcional)
+                Ícone que aparece na aba do navegador (PNG, ICO, etc.)
               </div>
             </div>
           </div>

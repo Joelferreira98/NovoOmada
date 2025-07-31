@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
@@ -6,9 +7,54 @@ import { insertSiteSchema, insertPlanSchema, insertOmadaCredentialsSchema, inser
 import { hashPassword } from "./auth";
 import { z } from "zod";
 import https from "https";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
-// Temporarily disable SSL verification for development (self-signed certs)
-process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
+// Configure multer for file uploads
+const uploadDir = path.join(process.cwd(), 'server/uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage_multer = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const fileExtension = path.extname(file.originalname);
+    const baseName = file.fieldname === 'logo' ? 'logo' : 'favicon';
+    cb(null, `${baseName}-${uniqueSuffix}${fileExtension}`);
+  }
+});
+
+const fileFilter = (req: any, file: any, cb: any) => {
+  // Accept only image files
+  if (file.fieldname === 'logo') {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas arquivos de imagem são permitidos para logo'), false);
+    }
+  } else if (file.fieldname === 'favicon') {
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'image/x-icon') {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas arquivos de imagem ou .ico são permitidos para favicon'), false);
+    }
+  } else {
+    cb(new Error('Campo de arquivo não reconhecido'), false);
+  }
+};
+
+const upload = multer({ 
+  storage: storage_multer,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 // Token cache with automatic renewal system
 let tokenCache: { 
@@ -2659,6 +2705,48 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Failed to update app settings" });
     }
   });
+
+  // Upload routes for logo and favicon
+  app.post("/api/upload-logo", requireAuth, requireRole(["master"]), upload.single('logo'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo de logo enviado" });
+      }
+
+      const fileUrl = `/uploads/${req.file.filename}`;
+      
+      res.json({
+        success: true,
+        fileUrl,
+        message: "Logo enviado com sucesso"
+      });
+    } catch (error: any) {
+      console.error('Error uploading logo:', error);
+      res.status(500).json({ message: error.message || "Erro ao enviar logo" });
+    }
+  });
+
+  app.post("/api/upload-favicon", requireAuth, requireRole(["master"]), upload.single('favicon'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo de favicon enviado" });
+      }
+
+      const fileUrl = `/uploads/${req.file.filename}`;
+      
+      res.json({
+        success: true,
+        fileUrl,
+        message: "Favicon enviado com sucesso"
+      });
+    } catch (error: any) {
+      console.error('Error uploading favicon:', error);
+      res.status(500).json({ message: error.message || "Erro ao enviar favicon" });
+    }
+  });
+
+  // Serve uploaded files statically
+  app.use('/uploads', express.static(path.join(process.cwd(), 'server/uploads')));
 
   const httpServer = createServer(app);
   return httpServer;

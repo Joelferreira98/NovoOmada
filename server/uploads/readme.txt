@@ -1,0 +1,1 @@
+Esta pasta contém os arquivos de upload da aplicação (logos, favicons, etc.)
