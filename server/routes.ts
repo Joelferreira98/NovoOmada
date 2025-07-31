@@ -732,38 +732,56 @@ export function registerRoutes(app: Express): Server {
     try {
       const { planId, quantity = 1 } = req.body;
       
+      console.log('Generating vouchers with data:', { planId, quantity, userId: req.user!.id });
+      
       const plan = await storage.getPlanById(planId);
       if (!plan) {
+        console.log('Plan not found:', planId);
         return res.status(404).json({ message: "Plan not found" });
       }
+
+      console.log('Found plan:', plan);
 
       const vouchers = [];
       for (let i = 0; i < quantity; i++) {
         // Generate voucher code based on plan configuration
         const code = generateVoucherCode(plan.tipoCodigo, plan.comprimentoVoucher);
         
-        const voucher = await storage.createVoucher({
+        console.log(`Creating voucher ${i + 1}/${quantity} with code:`, code);
+        
+        const voucherData = {
           code,
           planId,
           siteId: plan.siteId,
-          createdBy: req.user!.id,
-          status: "available"
-        });
+          vendedorId: req.user!.id,
+          unitPrice: plan.unitPrice,
+          status: "available" as const
+        };
+        
+        console.log('Voucher data to create:', voucherData);
+        
+        const voucher = await storage.createVoucher(voucherData);
+        console.log('Created voucher:', voucher);
 
         // Create sale record
-        await storage.createSale({
+        const saleData = {
           voucherId: voucher.id,
           sellerId: req.user!.id,
-          siteId: plan.siteId,
+          siteId: plan.siteId,  
           amount: plan.unitPrice
-        });
+        };
+        
+        console.log('Sale data to create:', saleData);
+        await storage.createSale(saleData);
 
         vouchers.push(voucher);
       }
 
+      console.log('Successfully created vouchers:', vouchers.length);
       res.status(201).json(vouchers);
-    } catch (error) {
-      res.status(400).json({ message: "Failed to generate vouchers" });
+    } catch (error: any) {
+      console.error('Error generating vouchers:', error);
+      res.status(400).json({ message: `Failed to generate vouchers: ${error.message}` });
     }
   });
 

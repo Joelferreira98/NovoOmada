@@ -345,8 +345,13 @@ export class DatabaseStorage implements IStorage {
 
   async createVoucher(voucher: InsertVoucher): Promise<Voucher> {
     const voucherId = crypto.randomUUID();
-    const voucherWithId = { ...voucher, id: voucherId };
+    const voucherWithId = { 
+      ...voucher, 
+      id: voucherId,
+      createdAt: new Date()
+    };
     
+    console.log('Creating voucher with data:', voucherWithId);
     await db.insert(vouchers).values(voucherWithId);
     const [newVoucher] = await db.select().from(vouchers).where(eq(vouchers.id, voucherId));
     return newVoucher;
@@ -400,11 +405,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSale(sale: Omit<Sale, 'id' | 'createdAt'>): Promise<Sale> {
-    await db.insert(sales).values({
+    const saleId = crypto.randomUUID();
+    const saleWithId = {
+      id: saleId,
       ...sale,
       createdAt: new Date()
-    } as any);
-    const [newSale] = await db.select().from(sales).orderBy(desc(sales.createdAt)).limit(1);
+    };
+    
+    console.log('Creating sale with data:', saleWithId);
+    await db.insert(sales).values(saleWithId);
+    const [newSale] = await db.select().from(sales).where(eq(sales.id, saleId));
     return newSale;
   }
 
