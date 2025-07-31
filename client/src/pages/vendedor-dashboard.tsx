@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/layout/sidebar";
-import { User, TicketIcon, TrendingUp, History, DollarSign, Calendar, Printer, Copy, Download, Calculator, BarChart3 } from "lucide-react";
+import { User, TicketIcon, TrendingUp, History, DollarSign, Calendar, Printer, Copy, Download, Calculator, BarChart3, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -69,6 +70,32 @@ export default function VendedorDashboard() {
       toast({
         title: "Erro ao gerar vouchers",
         description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteVoucherMutation = useMutation({
+    mutationFn: async (voucherId: string) => {
+      const res = await apiRequest("DELETE", `/api/vouchers/${voucherId}`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete voucher");
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vouchers", userSite?.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats/daily", userSite?.id] });
+      toast({
+        title: "Voucher deletado!",
+        description: `Voucher ${data.voucherCode} foi removido com sucesso.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao deletar voucher",
+        description: error.message || "Tente novamente.",
         variant: "destructive",
       });
     },
@@ -319,9 +346,46 @@ export default function VendedorDashboard() {
                                 <Button size="sm" variant="ghost" className="text-primary-600">
                                   <Printer className="w-4 h-4" />
                                 </Button>
-                                <Button size="sm" variant="ghost" className="text-amber-600">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="text-amber-600"
+                                  onClick={() => navigator.clipboard.writeText(voucher.code)}
+                                >
                                   <Copy className="w-4 h-4" />
                                 </Button>
+                                {voucher.status === "available" && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button 
+                                        size="sm" 
+                                        variant="ghost" 
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Deletar Voucher</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Tem certeza que deseja deletar o voucher <strong>{voucher.code}</strong>?
+                                          Esta ação não pode ser desfeita e o voucher será removido do sistema Omada.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => deleteVoucherMutation.mutate(voucher.id)}
+                                          disabled={deleteVoucherMutation.isPending}
+                                          className="bg-red-600 hover:bg-red-700"
+                                        >
+                                          {deleteVoucherMutation.isPending ? "Deletando..." : "Deletar"}
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
                               </div>
                             </td>
                           </tr>

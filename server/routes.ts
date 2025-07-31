@@ -2133,6 +2133,108 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Endpoint para deletar voucher individual via API Omada
+  app.delete("/api/vouchers/:voucherId", requireAuth, async (req, res) => {
+    try {
+      const { voucherId } = req.params;
+      const userId = req.user!.id;
+      
+      // Buscar voucher para verificar se pertence ao usuário e obter dados do Omada
+      const voucher = await storage.getVoucherById(voucherId);
+      if (!voucher) {
+        return res.status(404).json({ message: "Voucher não encontrado" });
+      }
+
+      // Verificar se o usuário tem permissão para deletar este voucher
+      if (req.user!.role === "vendedor" && voucher.vendedorId !== userId) {
+        return res.status(403).json({ message: "Sem permissão para deletar este voucher" });
+      }
+
+      // Verificar se o usuário tem acesso ao site do voucher
+      const userSites = await storage.getUserSites(userId);
+      const hasAccess = userSites.some(site => site.id === voucher.siteId) || req.user!.role === "master";
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Sem acesso ao site deste voucher" });
+      }
+
+      // Buscar site e credenciais Omada
+      const site = await storage.getSiteById(voucher.siteId);
+      if (!site) {
+        return res.status(404).json({ message: "Site não encontrado" });
+      }
+
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Credenciais Omada não configuradas" });
+      }
+
+      // Obter token de acesso
+      const accessToken = await getValidOmadaToken(credentials);
+
+      // Deletar voucher via API Omada se tiver omadaVoucherId
+      if (voucher.omadaVoucherId) {
+        console.log(`Deleting voucher ${voucher.omadaVoucherId} from Omada API...`);
+        
+        const deleteResponse = await fetch(
+          `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/${voucher.omadaVoucherId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            // Ignore SSL certificate issues for self-signed certificates
+            ...(process.env.NODE_ENV === 'development' && {
+              agent: new (await import('https')).Agent({
+                rejectUnauthorized: false
+              })
+            })
+          }
+        );
+
+        if (!deleteResponse.ok) {
+          console.error(`Failed to delete voucher from Omada: ${deleteResponse.status}`);
+          const errorText = await deleteResponse.text();
+          console.error('Omada delete error:', errorText);
+          return res.status(500).json({ 
+            message: "Erro ao deletar voucher na API Omada",
+            omadaError: errorText 
+          });
+        }
+
+        const deleteData = await deleteResponse.json();
+        console.log('Omada delete response:', deleteData);
+
+        if (deleteData.errorCode !== 0) {
+          return res.status(500).json({ 
+            message: "Erro na API Omada",
+            omadaMessage: deleteData.msg 
+          });
+        }
+      }
+
+      // Deletar voucher do banco local
+      const deleted = await storage.deleteVoucher(voucherId);
+      if (!deleted) {
+        return res.status(500).json({ message: "Erro ao deletar voucher do banco local" });
+      }
+
+      console.log(`Voucher ${voucher.code} deleted successfully`);
+      res.json({ 
+        message: "Voucher deletado com sucesso",
+        voucherCode: voucher.code 
+      });
+
+    } catch (error: any) {
+      console.error('Error deleting voucher:', error);
+      res.status(500).json({ 
+        message: "Erro interno do servidor",
+        error: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

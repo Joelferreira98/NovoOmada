@@ -688,6 +688,54 @@ export class DatabaseStorage implements IStorage {
     
     return closures;
   }
+
+  // Métodos para gerenciar vouchers individuais
+  async deleteVoucher(id: string): Promise<boolean> {
+    try {
+      const { pool } = await import("./db");
+      const [result] = await pool.execute(
+        'DELETE FROM vouchers WHERE id = ?',
+        [id]
+      );
+      return (result as any).affectedRows > 0;
+    } catch (error) {
+      console.error('Error deleting voucher:', error);
+      return false;
+    }
+  }
+
+  async getVoucherById(id: string): Promise<Voucher | null> {
+    try {
+      const { pool } = await import("./db");
+      const [rows] = await pool.execute(`
+        SELECT v.*, p.nome as plan_name 
+        FROM vouchers v 
+        LEFT JOIN plans p ON v.plan_id = p.id 
+        WHERE v.id = ?
+      `, [id]);
+      
+      const vouchers = rows as any[];
+      if (vouchers.length === 0) return null;
+      
+      const row = vouchers[0];
+      return {
+        id: row.id,
+        code: row.code,
+        planId: row.plan_id,
+        siteId: row.site_id,
+        vendedorId: row.vendedor_id,
+        omadaGroupId: row.omada_group_id,
+        omadaVoucherId: row.omada_voucher_id,
+        status: row.status,
+        unitPrice: row.unit_price,
+        usedAt: row.used_at,
+        createdAt: row.created_at
+      };
+    } catch (error) {
+      console.error('Error getting voucher by ID:', error);
+      return null;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
