@@ -852,68 +852,22 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Site not found" });
       }
 
-      // Use environment variables for Omada credentials
-      const credentials = {
-        omadaUrl: process.env.OMADA_URL,
-        omadacId: process.env.OMADA_OMADAC_ID,
-        clientId: process.env.OMADA_CLIENT_ID,
-        clientSecret: process.env.OMADA_CLIENT_SECRET
-      };
-
-      if (!credentials.omadaUrl || !credentials.omadacId || !credentials.clientId || !credentials.clientSecret) {
-        return res.status(500).json({ message: "Omada credentials not configured in environment variables" });
+      // Use the same credentials source as site sync (from database)
+      const credentials = await storage.getOmadaCredentials();
+      if (!credentials) {
+        return res.status(500).json({ message: "Omada credentials not configured. Configure them in Master dashboard first." });
       }
 
-      // Obter token de acesso (sempre novo para evitar expiração)
-      console.log('Getting fresh access token from:', `${credentials.omadaUrl}/openapi/authorize/token`);
-      console.log('Client ID:', credentials.clientId);
-      
-      const tokenRequestData = {
-        grant_type: 'client_credentials',
-        client_id: credentials.clientId,
-        client_secret: credentials.clientSecret,
-      };
-      
-      console.log('Token request data:', { ...tokenRequestData, client_secret: '***' });
-      
-      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(tokenRequestData),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
-      });
+      // Use the same token function that works for site sync
+      console.log('Getting access token using same method as site sync...');
+      const accessToken = await getValidOmadaToken(credentials);
+      console.log('Successfully obtained access token for voucher generation');
 
-      console.log('Token response status:', tokenResponse.status);
-      console.log('Token response headers:', Object.fromEntries(tokenResponse.headers));
-
-      if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text();
-        console.error('Token request failed:', tokenResponse.status, errorText);
-        throw new Error(`Failed to get access token: ${tokenResponse.status} - ${errorText}`);
-      }
-
-      const tokenData = await tokenResponse.json();
-      console.log('Token response data:', tokenData);
+      console.log(`Site Omada ID: ${site.omadaSiteId}`);
       
-      if (tokenData.error) {
-        throw new Error(`Token error: ${tokenData.error_description || tokenData.error}`);
-      }
+      // Create voucher group via Omada API using the same URL structure as site sync
+      const voucherApiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups`;
       
-      const accessToken = tokenData.access_token;
-      if (!accessToken) {
-        throw new Error('No access token in response');
-      }
-      
-      console.log('Successfully obtained access token');
-
-      // Criar grupo de vouchers via API do Omada
       const voucherGroupData = {
         name: `${plan.nome} - ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`,
         amount: parseInt(quantity),
@@ -947,11 +901,11 @@ export function registerRoutes(app: Express): Server {
       console.log('Creating voucher group with data:', voucherGroupData);
 
       const createResponse = await fetch(
-        `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups`,
+        voucherApiUrl,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `AccessToken=${accessToken}`, // Use same format as site sync
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(voucherGroupData),
@@ -984,7 +938,7 @@ export function registerRoutes(app: Express): Server {
         {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `AccessToken=${accessToken}`, // Use same format as site sync
           },
           ...(process.env.NODE_ENV === 'development' && {
             agent: new (await import('https')).Agent({
