@@ -129,6 +129,18 @@ export const printHistory = mysqlTable("print_history", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const appSettings = mysqlTable("app_settings", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
+  appName: varchar("app_name", { length: 100 }).notNull().default("Omada Vouchers"),
+  appDescription: text("app_description").default("Sistema de gestão de vouchers WiFi"),
+  themeColor: varchar("theme_color", { length: 7 }).notNull().default("#2563eb"),
+  hasCustomIcons: boolean("has_custom_icons").default(false),
+  manifestData: json("manifest_data"), // Store dynamic manifest.json
+  updatedBy: varchar("updated_by", { length: 36 }).references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   siteAccess: many(userSiteAccess),
@@ -204,6 +216,12 @@ export const insertVoucherSchema = createInsertSchema(vouchers).omit({
   createdAt: true,
 });
 
+export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertVoucherGroupSchema = createInsertSchema(voucherGroups).omit({
   createdAt: true,
 });
@@ -242,21 +260,6 @@ export type InsertCashClosure = z.infer<typeof insertCashClosureSchema>;
 export type PrintHistory = typeof printHistory.$inferSelect;
 export type InsertPrintHistory = z.infer<typeof insertPrintHistorySchema>;
 
-export const appSettings = mysqlTable("app_settings", {
-  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
-  appName: varchar("app_name", { length: 100 }).notNull().default("Omada Voucher System"),
-  logoUrl: varchar("logo_url", { length: 500 }),
-  faviconUrl: varchar("favicon_url", { length: 500 }),
-  primaryColor: varchar("primary_color", { length: 7 }).default("#007bff"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 
 export type AppSettings = typeof appSettings.$inferSelect;
 export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;

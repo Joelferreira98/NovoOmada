@@ -10,6 +10,8 @@ import https from "https";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import sharp from "sharp";
+import { omadaFetch } from "./fetch-utils";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), 'server/uploads');
@@ -2862,7 +2864,281 @@ export function registerRoutes(app: Express): Server {
   app.use('/uploads', express.static(path.join(process.cwd(), 'server/uploads')));
 
   const httpServer = createServer(app);
+  // PWA and App Settings Management
+  
+  // Get app settings
+  app.get("/api/app-settings", async (req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching app settings:", error);
+      res.status(500).json({ message: "Failed to fetch app settings" });
+    }
+  });
+
+  // Update app settings
+  app.put("/api/app-settings", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const settings = await storage.updateAppSettings(req.body, req.user!.id);
+      
+      // Update manifest.json with new settings
+      await updateManifestFile(settings);
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating app settings:", error);
+      res.status(500).json({ message: "Failed to update app settings" });
+    }
+  });
+
+  // Upload custom icons for PWA
+  app.post("/api/upload-icons", requireAuth, requireRole(["master"]), upload.single("icon"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Generate all required icon sizes
+      const iconSizes = [16, 32, 72, 96, 128, 144, 152, 180, 192, 384, 512];
+      const iconsGenerated = [];
+
+      // Ensure icons directory exists
+      const iconsDir = path.join(process.cwd(), "dist", "public", "icons");
+      if (!fs.existsSync(iconsDir)) {
+        fs.mkdirSync(iconsDir, { recursive: true });
+      }
+
+      for (const size of iconSizes) {
+        const outputPath = path.join(iconsDir, `icon-${size}x${size}.png`);
+        
+        await sharp(req.file.buffer)
+          .resize(size, size, { fit: 'cover' })
+          .png()
+          .toFile(outputPath);
+          
+        iconsGenerated.push(`/icons/icon-${size}x${size}.png`);
+      }
+
+      // Update app settings to mark custom icons as available
+      await storage.updateAppSettings({ hasCustomIcons: true }, req.user!.id);
+      
+      // Update manifest with new icons
+      const settings = await storage.getAppSettings();
+      await updateManifestFile(settings);
+
+      res.json({ 
+        message: "Icons uploaded successfully", 
+        icons: iconsGenerated,
+        hasCustomIcons: true
+      });
+    } catch (error) {
+      console.error("Error uploading icons:", error);
+      res.status(500).json({ message: "Failed to upload icons" });
+    }
+  });
+
+  // Generate default icons
+  app.post("/api/generate-default-icons", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const iconSizes = [16, 32, 72, 96, 128, 144, 152, 180, 192, 384, 512];
+      
+      // Create a simple default icon with app initials
+      const settings = await storage.getAppSettings();
+      const appInitials = (settings?.appName || "OV").split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
+      
+      // Ensure icons directory exists
+      const iconsDir = path.join(process.cwd(), "dist", "public", "icons");
+      if (!fs.existsSync(iconsDir)) {
+        fs.mkdirSync(iconsDir, { recursive: true });
+      }
+
+      for (const size of iconSizes) {
+        const outputPath = path.join(iconsDir, `icon-${size}x${size}.png`);
+        
+        // Create SVG with app initials
+        const svg = `
+          <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="${settings?.themeColor || '#2563eb'}" rx="${size * 0.1}"/>
+            <text x="50%" y="50%" text-anchor="middle" dy="0.35em" 
+                  font-family="Arial, sans-serif" font-weight="bold" 
+                  font-size="${size * 0.4}" fill="white">${appInitials}</text>
+          </svg>
+        `;
+        
+        await sharp(Buffer.from(svg))
+          .png()
+          .toFile(outputPath);
+      }
+
+      // Update app settings
+      await storage.updateAppSettings({ hasCustomIcons: true }, req.user!.id);
+      
+      // Update manifest
+      await updateManifestFile(settings);
+
+      res.json({ 
+        message: "Default icons generated successfully",
+        hasCustomIcons: true 
+      });
+    } catch (error) {
+      console.error("Error generating default icons:", error);
+      res.status(500).json({ message: "Failed to generate default icons" });
+    }
+  });
+
+  // Serve dynamic manifest.json
+  app.get("/manifest.json", async (req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      
+      const manifest = {
+        name: settings?.appName || "Omada Voucher Management",
+        short_name: (settings?.appName || "Omada Vouchers").split(' ')[0],
+        description: settings?.appDescription || "Sistema de gestão de vouchers WiFi para controladores Omada",
+        start_url: "/",
+        display: "standalone",
+        theme_color: settings?.themeColor || "#2563eb",
+        background_color: "#ffffff",
+        orientation: "portrait-primary",
+        scope: "/",
+        categories: ["business", "productivity"],
+        icons: [
+          {
+            "src": "/icons/icon-72x72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "maskable any"
+          },
+          {
+            "src": "/icons/icon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "maskable any"
+          },
+          {
+            "src": "/icons/icon-128x128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "maskable any"
+          },
+          {
+            "src": "/icons/icon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "maskable any"
+          },
+          {
+            "src": "/icons/icon-152x152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "maskable any"
+          },
+          {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable any"
+          },
+          {
+            "src": "/icons/icon-384x384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "maskable any"
+          },
+          {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable any"
+          }
+        ]
+      };
+
+      res.setHeader('Content-Type', 'application/json');
+      res.json(manifest);
+    } catch (error) {
+      console.error("Error serving manifest:", error);
+      // Fallback to static manifest
+      res.sendFile(path.join(process.cwd(), "dist", "public", "manifest.json"));
+    }
+  });
+
   return httpServer;
+}
+
+// Helper function to update manifest file
+async function updateManifestFile(settings: any) {
+  try {
+    const manifestPath = path.join(process.cwd(), "dist", "public", "manifest.json");
+    
+    const manifest = {
+      name: settings?.appName || "Omada Voucher Management",
+      short_name: (settings?.appName || "Omada Vouchers").split(' ')[0],
+      description: settings?.appDescription || "Sistema de gestão de vouchers WiFi",
+      start_url: "/",
+      display: "standalone",
+      theme_color: settings?.themeColor || "#2563eb",
+      background_color: "#ffffff",
+      orientation: "portrait-primary",
+      scope: "/",
+      categories: ["business", "productivity"],
+      icons: [
+        {
+          "src": "/icons/icon-72x72.png",
+          "sizes": "72x72",
+          "type": "image/png",
+          "purpose": "maskable any"
+        },
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png",
+          "purpose": "maskable any"
+        },
+        {
+          "src": "/icons/icon-128x128.png",
+          "sizes": "128x128",
+          "type": "image/png",
+          "purpose": "maskable any"
+        },
+        {
+          "src": "/icons/icon-144x144.png",
+          "sizes": "144x144",
+          "type": "image/png",
+          "purpose": "maskable any"
+        },
+        {
+          "src": "/icons/icon-152x152.png",
+          "sizes": "152x152",
+          "type": "image/png",
+          "purpose": "maskable any"
+        },
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "maskable any"
+        },
+        {
+          "src": "/icons/icon-384x384.png",
+          "sizes": "384x384",
+          "type": "image/png",
+          "purpose": "maskable any"
+        },
+        {
+          "src": "/icons/icon-512x512.png",
+          "sizes": "512x512",
+          "type": "image/png",
+          "purpose": "maskable any"
+        }
+      ]
+    };
+
+    await fs.promises.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+  } catch (error) {
+    console.error("Error updating manifest file:", error);
+  }
 }
 
 
