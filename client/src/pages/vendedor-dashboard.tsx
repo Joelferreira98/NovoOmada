@@ -95,6 +95,18 @@ export default function VendedorDashboard() {
     },
   });
 
+  // Save print history mutation
+  const savePrintHistoryMutation = useMutation({
+    mutationFn: async (data: { printType: string; voucherCodes: string[]; printTitle: string; htmlContent: string }) => {
+      const res = await apiRequest("POST", "/api/print-history", data);
+      if (!res.ok) throw new Error("Failed to save print history");
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/print-history", userSite?.id] });
+    },
+  });
+
   const handleGenerateVouchers = () => {
     if (!selectedPlan || quantity < 1) {
       toast({
@@ -109,6 +121,244 @@ export default function VendedorDashboard() {
       planId: selectedPlan,
       quantity: quantity,
     });
+  };
+
+  const printVouchers = (vouchersToPrint: any[]) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const siteName = userSite?.name || 'WiFi';
+    const planName = vouchersToPrint[0]?.planName || 'Internet';
+    const currentDate = new Date().toLocaleDateString('pt-BR');
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Vouchers WiFi - ${siteName}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Arial', sans-serif; 
+            background: white;
+            color: black;
+            line-height: 1.2;
+          }
+          .page { 
+            width: 210mm; 
+            height: 297mm;
+            margin: 0 auto; 
+            padding: 4mm;
+            display: flex;
+            flex-direction: column;
+          }
+          .voucher-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 3mm;
+            flex: 1;
+            align-content: start;
+          }
+          
+          .voucher {
+            border: 1.5px solid #000;
+            padding: 8px;
+            border-radius: 6px;
+            background: #fff;
+            page-break-inside: avoid;
+            height: fit-content;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .voucher-site {
+            font-size: 8px;
+            font-weight: bold;
+            text-align: center;
+            color: #333;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+          }
+          .voucher-code {
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            background: #f0f0f0;
+            padding: 6px 4px;
+            border-radius: 4px;
+            letter-spacing: 2px;
+            margin: 4px 0;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', monospace;
+          }
+          .voucher-info {
+            font-size: 7px;
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+            color: #666;
+          }
+          .voucher-footer {
+            font-size: 6px;
+            text-align: center;
+            color: #999;
+            margin-top: 4px;
+            border-top: 1px solid #eee;
+            padding-top: 2px;
+          }
+          
+          /* Dynamic sizing based on quantity */
+          ${vouchersToPrint.length <= 8 ? '.voucher-grid { grid-template-columns: repeat(4, 1fr); gap: 6mm; } .voucher { min-height: 100px; padding: 12px; } .voucher-code { font-size: 16px; padding: 8px; }' : ''}
+          ${vouchersToPrint.length > 8 && vouchersToPrint.length <= 15 ? '.voucher-grid { grid-template-columns: repeat(5, 1fr); gap: 4mm; } .voucher { min-height: 90px; padding: 10px; } .voucher-code { font-size: 15px; padding: 7px; }' : ''}
+          ${vouchersToPrint.length > 15 && vouchersToPrint.length <= 30 ? '.voucher-grid { grid-template-columns: repeat(6, 1fr); gap: 3mm; } .voucher { min-height: 80px; padding: 8px; } .voucher-code { font-size: 14px; padding: 6px; }' : ''}
+          ${vouchersToPrint.length > 30 && vouchersToPrint.length <= 56 ? '.voucher-grid { grid-template-columns: repeat(7, 1fr); gap: 2mm; } .voucher { min-height: 70px; padding: 6px; } .voucher-code { font-size: 12px; padding: 5px; }' : ''}
+          ${vouchersToPrint.length > 56 && vouchersToPrint.length <= 80 ? '.voucher-grid { grid-template-columns: repeat(8, 1fr); gap: 2mm; } .voucher { min-height: 65px; padding: 5px; } .voucher-code { font-size: 11px; padding: 4px; }' : ''}
+          
+          @media print {
+            body { margin: 0; }
+            .page { margin: 0; width: 100%; height: 100%; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="voucher-grid">
+            ${vouchersToPrint.map(voucher => `
+              <div class="voucher">
+                <div class="voucher-site">${siteName}</div>
+                <div class="voucher-code">${voucher.code}</div>
+                <div class="voucher-info">
+                  <span>Plano: ${planName}</span>
+                  <span>R$ ${voucher.unitPrice}</span>
+                </div>
+                <div class="voucher-info">
+                  <span>Válido: ${voucher.duracao || '60'}min</span>
+                  <span>${currentDate}</span>
+                </div>
+                <div class="voucher-footer">Conecte-se ao WiFi e digite este código</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Save to print history
+    savePrintHistoryMutation.mutate({
+      printType: 'a4',
+      voucherCodes: vouchersToPrint.map(v => v.code),
+      printTitle: `${planName} - ${currentDate} - ${vouchersToPrint.length} vouchers`,
+      htmlContent: printContent
+    });
+
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  };
+
+  const printVouchersRoll = (vouchersToPrint: any[]) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const siteName = userSite?.name || 'WiFi';
+    const planName = vouchersToPrint[0]?.planName || 'Internet';
+    const currentDate = new Date().toLocaleDateString('pt-BR');
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Vouchers Térmicos - ${siteName}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Arial', sans-serif; 
+            background: white;
+            color: black;
+            width: 80mm;
+            margin: 0;
+            padding: 0;
+          }
+          .voucher {
+            width: 100%;
+            padding: 8mm;
+            border-bottom: 2px dashed #333;
+            page-break-after: always;
+            text-align: center;
+          }
+          .voucher:last-child {
+            border-bottom: none;
+          }
+          .voucher-site {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+          }
+          .voucher-code {
+            font-size: 24px;
+            font-weight: bold;
+            background: #f0f0f0;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
+            letter-spacing: 4px;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #333;
+          }
+          .voucher-info {
+            font-size: 12px;
+            margin: 4px 0;
+          }
+          .voucher-footer {
+            font-size: 10px;
+            margin-top: 8px;
+            color: #666;
+          }
+          
+          @media print {
+            body { margin: 0; width: auto; }
+            .voucher { page-break-after: always; }
+          }
+        </style>
+      </head>
+      <body>
+        ${vouchersToPrint.map(voucher => `
+          <div class="voucher">
+            <div class="voucher-site">${siteName}</div>
+            <div class="voucher-code">${voucher.code}</div>
+            <div class="voucher-info">Plano: ${planName}</div>
+            <div class="voucher-info">Valor: R$ ${voucher.unitPrice}</div>
+            <div class="voucher-info">Válido: ${voucher.duracao || '60'} minutos</div>
+            <div class="voucher-info">Data: ${currentDate}</div>
+            <div class="voucher-footer">Conecte-se ao WiFi e digite este código</div>
+          </div>
+        `).join('')}
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Save to print history
+    savePrintHistoryMutation.mutate({
+      printType: 'thermal',
+      voucherCodes: vouchersToPrint.map(v => v.code),
+      printTitle: `${planName} Térmico - ${currentDate} - ${vouchersToPrint.length} vouchers`,
+      htmlContent: printContent
+    });
+
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
   };
 
   const sidebarItems = [
@@ -264,6 +514,71 @@ export default function VendedorDashboard() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Print Options - Show when vouchers are generated */}
+                {lastGeneratedVouchers.length > 0 && (
+                  <div className="col-12 col-lg-6">
+                    <div className="card">
+                      <div className="card-header">
+                        <h5 className="card-title mb-0 d-flex align-items-center">
+                          <Printer className="me-2" size={20} />
+                          Opções de Impressão
+                        </h5>
+                      </div>
+                      <div className="card-body">
+                        <div className="d-flex flex-column gap-3">
+                          <div className="text-center mb-3">
+                            <p className="text-success fw-semibold mb-1">
+                              ✓ {lastGeneratedVouchers.length} vouchers gerados com sucesso!
+                            </p>
+                            <small className="text-muted">
+                              Escolha o formato de impressão abaixo
+                            </small>
+                          </div>
+                          
+                          <Button 
+                            onClick={() => {
+                              printVouchers(lastGeneratedVouchers);
+                              setLastGeneratedVouchers([]);
+                            }}
+                            className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center"
+                            style={{ height: '48px' }}
+                          >
+                            <Printer className="me-2" size={20} />
+                            <div className="text-start">
+                              <div>Imprimir A4</div>
+                              <small className="text-muted">Formato padrão ({lastGeneratedVouchers.length} vouchers)</small>
+                            </div>
+                          </Button>
+                          
+                          <Button 
+                            onClick={() => {
+                              printVouchersRoll(lastGeneratedVouchers);
+                              setLastGeneratedVouchers([]);
+                            }}
+                            className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center"
+                            style={{ height: '48px' }}
+                          >
+                            <Printer className="me-2" size={20} />
+                            <div className="text-start">
+                              <div>Cupom Térmico</div>
+                              <small className="text-muted">58mm/80mm ({lastGeneratedVouchers.length} vouchers)</small>
+                            </div>
+                          </Button>
+                          
+                          <Button 
+                            onClick={() => setLastGeneratedVouchers([])}
+                            variant="outline"
+                            className="btn btn-outline-danger w-100"
+                            style={{ height: '40px' }}
+                          >
+                            Cancelar Impressão
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -333,9 +648,9 @@ export default function VendedorDashboard() {
                   </h5>
                 </div>
                 <div className="card-body">
-                  {printHistory && printHistory.length > 0 ? (
+                  {(printHistory as any[]) && (printHistory as any[]).length > 0 ? (
                     <div className="row g-3">
-                      {printHistory.map((print: any) => (
+                      {(printHistory as any[]).map((print: any) => (
                         <div key={print.id} className="col-12">
                           <div className="card border">
                             <div className="card-body">

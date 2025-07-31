@@ -6,6 +6,16 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 
 ## Recent Changes (July 31, 2025)
 
+✓ **Sistema de Impressão Dual Restaurado - COMPLETO**: Opções de impressão A4 e cupom térmico funcionais
+- **Print Options Restored**: Botões de impressão A4 e cupom térmico restaurados após transformação Bootstrap
+- **Dual Format Support**: Impressão em formato A4 (papel padrão) e cupom térmico (58mm/80mm)
+- **Smart Layout**: Grid responsivo otimizado para papel A4 com ajuste automático baseado na quantidade
+- **Thermal Support**: Layout específico para impressoras térmicas com quebra de página individual
+- **Print History Integration**: Todas as impressões são salvas automaticamente no histórico
+- **Professional Output**: Vouchers com design limpo, códigos destacados e informações completas
+- **Real-time Feedback**: Mensagens de sucesso e contadores de vouchers em tempo real
+- **Cancel Option**: Botão para cancelar impressão e limpar vouchers gerados
+
 ✓ **Sistema de Menu Lateral Recolhível com Bootstrap - COMPLETO**: Menu responsivo mobile-first implementado
 - **Sidebar Recolhível**: Menu lateral que se transforma em offcanvas no mobile usando react-bootstrap
 - **Botão Hambúrguer**: Toggle fixo no canto superior esquerdo para dispositivos móveis
