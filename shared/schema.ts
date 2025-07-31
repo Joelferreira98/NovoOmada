@@ -24,8 +24,6 @@ export const omadaCredentials = mysqlTable("omada_credentials", {
   omadacId: text("omadac_id").notNull(),
   clientId: text("client_id").notNull(),
   clientSecret: text("client_secret").notNull(),
-  adminUsername: varchar("admin_username", { length: 100 }).notNull().default("admin"),
-  adminPassword: text("admin_password").notNull().default(""),
   createdBy: varchar("created_by", { length: 36 }).notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

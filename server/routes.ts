@@ -12,84 +12,36 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 // Token cache to avoid multiple rapid requests to Omada
 let tokenCache: { token: string; expires: number; omadacId: string } | null = null;
 
-async function getValidOmadaToken(credentials: any): Promise<{ accessToken: string; csrfToken: string; sessionId: string }> {
+async function getValidOmadaToken(credentials: any): Promise<string> {
   const now = Date.now();
   
   // Check if we have a valid cached token for this omadacId
   if (tokenCache && 
       tokenCache.omadacId === credentials.omadacId && 
       tokenCache.expires > now + 60000) { // 1 minute buffer
-    console.log('Using cached authorization token');
-    return JSON.parse(tokenCache.token);
+    console.log('Using cached token');
+    return tokenCache.token;
   }
   
-  // Get new token using authorization code flow
-  console.log('Getting fresh authorization token from Omada API using authorization code flow');
+  // Get new token using client credentials (following Python implementation)
+  console.log('Getting fresh token from Omada API using client credentials');
   
-  // Step 1: Login to get sessionId and csrfToken
-  const loginUrl = `${credentials.omadaUrl}/openapi/authorize/login?client_id=${credentials.clientId}&omadac_id=${credentials.omadacId}`;
+  const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
+  const requestBody = {
+    'omadacId': credentials.omadacId,
+    'client_id': credentials.clientId,
+    'client_secret': credentials.clientSecret
+  };
   
-  const loginResponse = await fetch(loginUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      'username': credentials.adminUsername || 'admin',
-      'password': credentials.adminPassword || 'admin'
-    })
-  });
-
-  if (!loginResponse.ok) {
-    const errorText = await loginResponse.text();
-    throw new Error(`Login failed: ${loginResponse.status} - ${errorText}`);
-  }
-
-  const loginData = await loginResponse.json();
-  
-  if (loginData.errorCode !== 0) {
-    throw new Error(`Login error: ${loginData.msg || 'Login failed'}`);
-  }
-
-  const { csrfToken, sessionId } = loginData.result;
-  
-  // Step 2: Get authorization code
-  const codeUrl = `${credentials.omadaUrl}/openapi/authorize/code?client_id=${credentials.clientId}&omadac_id=${credentials.omadacId}&response_type=code`;
-  
-  const codeResponse = await fetch(codeUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Csrf-Token': csrfToken,
-      'Cookie': `TPOMADA_SESSIONID=${sessionId}`
-    }
-  });
-
-  if (!codeResponse.ok) {
-    const errorText = await codeResponse.text();
-    throw new Error(`Authorization code request failed: ${codeResponse.status} - ${errorText}`);
-  }
-
-  const codeData = await codeResponse.json();
-  
-  if (codeData.errorCode !== 0) {
-    throw new Error(`Authorization code error: ${codeData.msg || 'Authorization failed'}`);
-  }
-
-  const authCode = codeData.result;
-  
-  // Step 3: Exchange authorization code for access token
-  const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=authorization_code&code=${authCode}`;
+  console.log(`Token request URL: ${tokenUrl}`);
+  console.log(`Request body:`, requestBody);
   
   const tokenResponse = await fetch(tokenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      'client_id': credentials.clientId,
-      'client_secret': credentials.clientSecret
-    })
+    body: JSON.stringify(requestBody)
   });
 
   if (!tokenResponse.ok) {
@@ -98,6 +50,7 @@ async function getValidOmadaToken(credentials: any): Promise<{ accessToken: stri
   }
 
   const tokenData = await tokenResponse.json();
+  console.log('Token response:', tokenData);
   
   if (tokenData.errorCode !== 0) {
     throw new Error(`Token error: ${tokenData.msg || 'Authentication failed'}`);
@@ -108,20 +61,14 @@ async function getValidOmadaToken(credentials: any): Promise<{ accessToken: stri
     throw new Error('No access token received from Omada API');
   }
 
-  const authTokens = {
-    accessToken,
-    csrfToken,
-    sessionId
-  };
-
-  // Cache the tokens
+  // Cache the token
   tokenCache = {
-    token: JSON.stringify(authTokens),
+    token: accessToken,
     expires: now + (tokenData.result.expiresIn * 1000) - 300000, // 5 minutes before actual expiry
     omadacId: credentials.omadacId
   };
 
-  return authTokens;
+  return accessToken;
 }
 
 async function processOmadaSites(omadaSites: any[], res: any) {
@@ -306,14 +253,14 @@ export function registerRoutes(app: Express): Server {
 
       console.log(`Trying OpenAPI: ${openApiUrl}?${params}`);
       
-      // Clear any cached tokens to force fresh authorization code flow
+      // Clear any cached tokens to force fresh request
       tokenCache = null;
       
-      // Step 1: Get access token using authorization code flow
-      let authTokens;
+      // Step 1: Get access token using client credentials (Python approach)
+      let accessToken;
       try {
-        authTokens = await getValidOmadaToken(credentials);
-        console.log('Successfully obtained authorization tokens using authorization code flow');
+        accessToken = await getValidOmadaToken(credentials);
+        console.log('Successfully obtained access token using client credentials');
 
       } catch (tokenError) {
         console.error("Failed to get access token:", tokenError);
@@ -350,13 +297,13 @@ export function registerRoutes(app: Express): Server {
         // Add small delay to ensure token is fully active
         await new Promise(resolve => setTimeout(resolve, 200));
         
-        console.log(`Making sites API call with access token: ${authTokens.accessToken.substring(0, 10)}...`);
+        console.log(`Making sites API call with access token: ${accessToken.substring(0, 10)}...`);
         
         const response = await fetch(`${openApiUrl}?${params}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `AccessToken=${authTokens.accessToken}`
+            'Authorization': `AccessToken=${accessToken}`
           }
         });
 
@@ -371,13 +318,13 @@ export function registerRoutes(app: Express): Server {
             console.log("Token expired, clearing cache and retrying...");
             tokenCache = null;
             
-            // Get fresh tokens and retry
-            const newAuthTokens = await getValidOmadaToken(credentials);
+            // Get fresh token and retry
+            const newAccessToken = await getValidOmadaToken(credentials);
             const retryResponse = await fetch(`${openApiUrl}?${params}`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `AccessToken=${newAuthTokens.accessToken}`
+                'Authorization': `AccessToken=${newAccessToken}`
               }
             });
             

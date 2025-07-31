@@ -42,8 +42,7 @@ export default function MasterDashboard() {
       omadacId: (omadaCredentials as any)?.omadacId || "",
       clientId: (omadaCredentials as any)?.clientId || "",
       clientSecret: "",
-      adminUsername: (omadaCredentials as any)?.adminUsername || "admin",
-      adminPassword: "",
+
     },
   });
 
@@ -214,33 +213,7 @@ export default function MasterDashboard() {
                     </div>
                   </div>
                   
-                  <div className="border-t pt-6">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4">Credenciais de Admin do Controlador</h3>
-                    <p className="text-sm text-slate-600 mb-4">
-                      Para sincronizar sites, é necessário informar as credenciais de um usuário admin do controlador Omada
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <Label htmlFor="adminUsername">Usuário Admin</Label>
-                        <Input
-                          id="adminUsername"
-                          {...credentialsForm.register("adminUsername")}
-                          placeholder="admin"
-                          defaultValue="admin"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="adminPassword">Senha Admin</Label>
-                        <Input
-                          id="adminPassword"
-                          type="password"
-                          {...credentialsForm.register("adminPassword")}
-                          placeholder="Senha do controlador"
-                        />
-                      </div>
-                    </div>
-                  </div>
+
                   
                   <div className="flex space-x-4">
                     <Button 
