@@ -1204,7 +1204,7 @@ export function registerRoutes(app: Express): Server {
       const voucherApiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups`;
       
       const voucherGroupData = {
-        name: `${plan.nome} - ADMIN - ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`,
+        name: `${plan.nome.substring(0, 15)} - ADM`,
         amount: parseInt(quantity),
         codeLength: plan.comprimentoVoucher,
         codeForm: JSON.parse(plan.codeForm || '[0]'),
@@ -1386,7 +1386,7 @@ export function registerRoutes(app: Express): Server {
       const voucherApiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups`;
       
       const voucherGroupData = {
-        name: `${plan.nome} - ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`,
+        name: `${plan.nome.substring(0, 20)} - VND`,
         amount: parseInt(quantity),
         codeLength: plan.comprimentoVoucher,
         codeForm: JSON.parse(plan.codeForm || '[0]'), // Parse do JSON: [0]=apenas números, [0,1]=números e letras
