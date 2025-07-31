@@ -57,6 +57,8 @@ export const plans = mysqlTable("plans", {
   downLimit: int("down_limit").default(0),
   upLimit: int("up_limit").default(0),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  userLimit: int("user_limit").default(1), // Number of simultaneous users
+  omadaLimitType: int("omada_limit_type").default(1), // Maps to Omada API: 0=Limited Usage, 1=Limited Online Users, 2=Unlimited
   createdBy: varchar("created_by", { length: 36 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

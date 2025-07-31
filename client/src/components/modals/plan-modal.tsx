@@ -45,7 +45,8 @@ const planFormSchema = insertPlanSchema.extend({
   downLimit: z.number().min(0).max(10485760).optional(),
   upLimit: z.number().min(0).max(10485760).optional(),
   durationUnit: z.string().default("horas").optional(), // Helper field for UI
-  userLimit: z.number().min(1).max(10).default(1).optional(), // Helper field for concurrent users
+  userLimit: z.number().min(1).max(10).default(1).optional(), // Number of concurrent users
+  omadaLimitType: z.number().min(0).max(2).default(1).optional(), // Omada API mapping: 0=Limited Usage, 1=Limited Online Users, 2=Unlimited
 });
 
 type PlanFormData = z.infer<typeof planFormSchema>;
@@ -76,7 +77,8 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
       downLimit: plan?.downLimit || 0,
       upLimit: plan?.upLimit || 0,
       unitPrice: plan?.unitPrice || "0.00",
-      userLimit: 1,
+      userLimit: plan?.userLimit || 1,
+      omadaLimitType: plan?.omadaLimitType || 1,
       siteId: siteId,
     } : {
       nome: "",
@@ -90,6 +92,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
       upLimit: 0,
       unitPrice: "0.00",
       userLimit: 1,
+      omadaLimitType: 1,
       siteId: siteId,
     },
   });
@@ -123,8 +126,8 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
   });
 
   const onSubmit = (data: PlanFormData) => {
-    // Remove the helper fields before sending to backend
-    const { durationUnit, userLimit, ...planData } = data;
+    // Remove the helper fields before sending to backend, keep userLimit and omadaLimitType
+    const { durationUnit, ...planData } = data;
     planMutation.mutate(planData);
   };
 

@@ -303,6 +303,8 @@ export class DatabaseStorage implements IStorage {
       downLimit: plan.downLimit || 0,
       upLimit: plan.upLimit || 0,
       unitPrice: plan.unitPrice,
+      userLimit: plan.userLimit || 1,
+      omadaLimitType: plan.omadaLimitType || 1,
       createdBy: plan.createdBy,
       createdAt: new Date(),
     };
