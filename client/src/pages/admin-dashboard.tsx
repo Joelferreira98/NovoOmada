@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -304,25 +304,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <VendedorModal 
-        show={vendedorModalOpen || !!editingVendedor}
-        onHide={() => {
-          setVendedorModalOpen(false);
-          setEditingVendedor(null);
-        }}
-        siteId={selectedSiteId!}
-        editVendedor={editingVendedor}
-      />
-      
-      <PlanModal 
-        show={planModalOpen || !!editingPlan}
-        onHide={() => {
-          setPlanModalOpen(false);
-          setEditingPlan(null);
-        }}
-        siteId={selectedSiteId!}
-        editPlan={editingPlan}
-      />
+
     </div>
   );
 }
@@ -610,8 +592,19 @@ function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAd
   );
 }
 
-// Plans Section Component
+// Plans Section Component  
 function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const { data: site } = useQuery<any>({
+    queryKey: ["/api/sites", siteId],
+  });
+
+  // Auto close modals when prop changes
+  React.useEffect(() => {
+    setShowCreateModal(false);
+    setEditingPlan(null);
+  }, [plans]);
   if (loading) {
     return (
       <div className="d-flex justify-content-center py-5">
@@ -629,7 +622,7 @@ function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) 
           <h1 className="h2 h1-lg fw-bold text-dark mb-2">Gerenciar Planos</h1>
           <p className="text-muted">Criar, editar e gerenciar planos de vouchers</p>
         </div>
-        <button className="btn btn-primary" onClick={onAdd}>
+        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
           <Plus size={16} className="me-1" />
           Novo Plano
         </button>
@@ -672,7 +665,7 @@ function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) 
                         <div className="btn-group" role="group">
                           <button
                             className="btn btn-outline-primary btn-sm"
-                            onClick={() => onEdit(plan)}
+                            onClick={() => setEditingPlan(plan)}
                           >
                             <Edit size={14} />
                           </button>
@@ -694,7 +687,7 @@ function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) 
               <Settings size={48} className="text-muted mb-3" />
               <h5>Nenhum plano encontrado</h5>
               <p className="text-muted">Crie o primeiro plano para este site</p>
-              <button className="btn btn-primary" onClick={onAdd}>
+              <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
                 <Plus size={16} className="me-1" />
                 Criar Plano
               </button>
@@ -702,6 +695,25 @@ function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) 
           )}
         </div>
       </div>
+
+      {/* Plan Modals */}
+      {showCreateModal && (
+        <PlanModal 
+          siteId={siteId}
+          siteName={site?.name || ""}
+          plan={null}
+          mode="create"
+        />
+      )}
+      
+      {editingPlan && (
+        <PlanModal 
+          siteId={siteId}
+          siteName={site?.name || ""}
+          plan={editingPlan}
+          mode="edit"
+        />
+      )}
     </div>
   );
 }
