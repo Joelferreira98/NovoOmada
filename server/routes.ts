@@ -2173,10 +2173,15 @@ export function registerRoutes(app: Express): Server {
       if (voucher.omadaVoucherId) {
         console.log(`Deleting voucher ${voucher.omadaVoucherId} from Omada API...`);
         
-        // Usar a função getValidOmadaToken que já trata renovação e cache
-        console.log('Getting valid token for voucher deletion...');
+        // Forçar renovação do token para operação crítica de delete
+        console.log('Forcing token refresh for voucher deletion...');
+        
+        // Limpar cache de token
+        tokenCache.delete('omada_token');
+        
+        // Obter token fresco
         const freshAccessToken = await getValidOmadaToken(credentials);
-        console.log(`Using token for delete: ${freshAccessToken.substring(0, 10)}...`);
+        console.log(`Using fresh token for delete: ${freshAccessToken.substring(0, 10)}...`);
         
         const deleteResponse = await fetch(
           `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/${voucher.omadaVoucherId}`,
