@@ -188,66 +188,89 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="d-flex bg-light min-vh-100">
+    <div className="d-flex min-vh-100" style={{backgroundColor: '#f8fafc'}}>
       <Sidebar
-        title={`Admin - ${selectedSite.name}`}
-        subtitle={selectedSite.location || "Localização não informada"}
+        title={`${selectedSite.name}`}
+        subtitle="Painel Administrativo"
         icon={User}
-        iconBg="bg-success"
+        iconBg="bg-primary"
         items={sidebarItems}
       />
 
-      <div className="flex-fill p-3 p-lg-4 overflow-auto">
-        {/* Header Actions */}
-        <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4">
-          <div>
-            <h1 className="h2 fw-bold text-dark mb-1">Admin Dashboard</h1>
-            <p className="text-muted mb-0">Site: {selectedSite.name}</p>
-          </div>
-          <div className="d-flex flex-column flex-lg-row gap-2 mt-3 mt-lg-0">
-            {userSites && userSites.length > 1 && (
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={handleChangeSite}
-              >
-                <ArrowLeft size={16} className="me-1" />
-                Trocar Site
-              </button>
-            )}
-            <button
-              className="btn btn-outline-primary btn-sm"
-              onClick={() => logoutMutation.mutate()}
-            >
-              <LogOut size={16} className="me-1" />
-              Sair
-            </button>
+      <div className="flex-fill">
+        {/* Modern Header */}
+        <div className="bg-white border-bottom shadow-sm">
+          <div className="container-fluid">
+            <div className="row align-items-center py-3">
+              <div className="col">
+                <div className="d-flex align-items-center">
+                  <div className="me-3">
+                    <div className="bg-primary bg-opacity-10 p-2 rounded-circle d-inline-flex">
+                      <MapPin className="text-primary" size={20} />
+                    </div>
+                  </div>
+                  <div>
+                    <h1 className="h4 mb-0 fw-semibold text-dark">{selectedSite.name}</h1>
+                    <small className="text-muted">
+                      {selectedSite.location} • 
+                      <span className={`ms-1 badge ${selectedSite.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
+                        {selectedSite.status === 'active' ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </small>
+                  </div>
+                </div>
+              </div>
+              <div className="col-auto">
+                <div className="d-flex gap-2">
+                  {userSites && userSites.length > 1 && (
+                    <button
+                      className="btn btn-outline-secondary btn-sm d-flex align-items-center"
+                      onClick={handleChangeSite}
+                    >
+                      <ArrowLeft size={16} className="me-1" />
+                      Trocar Site
+                    </button>
+                  )}
+                  <button
+                    className="btn btn-primary btn-sm d-flex align-items-center"
+                    onClick={() => logoutMutation.mutate()}
+                  >
+                    <LogOut size={16} className="me-1" />
+                    Sair
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="container-fluid px-0">
-          {activeTab === "overview" && <OverviewSection selectedSite={selectedSite} />}
-          {activeTab === "vendedores" && (
-            <VendedoresSection 
-              siteId={selectedSiteId!}
-              vendedores={vendedores}
-              loading={vendedoresLoading}
-              onEdit={setEditingVendedor}
-              onDelete={deleteVendedorMutation.mutate}
-              onAdd={() => setVendedorModalOpen(true)}
-            />
-          )}
-          {activeTab === "plans" && (
-            <PlansSection 
-              siteId={selectedSiteId!}
-              plans={plans}
-              loading={plansLoading}
-              onEdit={setEditingPlan}
-              onDelete={deletePlanMutation.mutate}
-              onAdd={() => setPlanModalOpen(true)}
-            />
-          )}
-          {activeTab === "vouchers" && <VouchersSection siteId={selectedSiteId!} />}
-          {activeTab === "reports" && <ReportsSection siteId={selectedSiteId!} />}
+        {/* Main Content */}
+        <div className="p-4">
+          <div className="container-fluid">
+            {activeTab === "overview" && <OverviewSection selectedSite={selectedSite} />}
+            {activeTab === "vendedores" && (
+              <VendedoresSection 
+                siteId={selectedSiteId!}
+                vendedores={vendedores}
+                loading={vendedoresLoading}
+                onEdit={setEditingVendedor}
+                onDelete={deleteVendedorMutation.mutate}
+                onAdd={() => setVendedorModalOpen(true)}
+              />
+            )}
+            {activeTab === "plans" && (
+              <PlansSection 
+                siteId={selectedSiteId!}
+                plans={plans}
+                loading={plansLoading}
+                onEdit={setEditingPlan}
+                onDelete={deletePlanMutation.mutate}
+                onAdd={() => setPlanModalOpen(true)}
+              />
+            )}
+            {activeTab === "vouchers" && <VouchersSection siteId={selectedSiteId!} />}
+            {activeTab === "reports" && <ReportsSection siteId={selectedSiteId!} />}
+          </div>
         </div>
       </div>
 
@@ -285,92 +308,172 @@ function OverviewSection({ selectedSite }: { selectedSite: Site }) {
   });
 
   return (
-    <div className="mb-4">
-      <div className="mb-4">
-        <h1 className="h2 h1-lg fw-bold text-dark mb-2">Dashboard Admin</h1>
-        <p className="text-muted">Visão geral do site {selectedSite.name}</p>
+    <div>
+      {/* Modern Stats Cards */}
+      <div className="row g-4 mb-5">
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body p-4">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="bg-primary bg-gradient rounded-circle p-3 d-flex align-items-center justify-content-center" style={{width: '56px', height: '56px'}}>
+                    <Users className="text-white" size={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <div className="text-muted small text-uppercase fw-semibold">Vendedores</div>
+                  <div className="h3 mb-0 fw-bold text-dark">{vendedores.length}</div>
+                  <div className="text-success small"><span className="fw-semibold">Ativos</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body p-4">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="bg-success bg-gradient rounded-circle p-3 d-flex align-items-center justify-content-center" style={{width: '56px', height: '56px'}}>
+                    <Settings className="text-white" size={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <div className="text-muted small text-uppercase fw-semibold">Planos</div>
+                  <div className="h3 mb-0 fw-bold text-dark">{plans.length}</div>
+                  <div className="text-success small"><span className="fw-semibold">Configurados</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body p-4">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="bg-warning bg-gradient rounded-circle p-3 d-flex align-items-center justify-content-center" style={{width: '56px', height: '56px'}}>
+                    <ShoppingCart className="text-white" size={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <div className="text-muted small text-uppercase fw-semibold">Vouchers</div>
+                  <div className="h3 mb-0 fw-bold text-dark">-</div>
+                  <div className="text-muted small"><span className="fw-semibold">Vendidos hoje</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body p-4">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="bg-info bg-gradient rounded-circle p-3 d-flex align-items-center justify-content-center" style={{width: '56px', height: '56px'}}>
+                    <Wifi className="text-white" size={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <div className="text-muted small text-uppercase fw-semibold">Status</div>
+                  <div className="h3 mb-0 fw-bold text-dark">
+                    {selectedSite.status === 'active' ? 'Online' : 'Offline'}
+                  </div>
+                  <div className={`small fw-semibold ${selectedSite.status === 'active' ? 'text-success' : 'text-danger'}`}>
+                    {selectedSite.status === 'active' ? 'Conectado' : 'Desconectado'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="row g-4 mb-4">
-        <div className="col-12 col-md-6 col-lg-3">
-          <div className="card text-center">
-            <div className="card-body">
-              <div className="bg-primary bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
-                <Users className="text-primary" size={24} />
+      {/* Quick Actions */}
+      <div className="row g-4 mb-5">
+        <div className="col-md-4">
+          <div className="card border-0 shadow-sm h-100 text-center">
+            <div className="card-body p-4">
+              <div className="bg-primary bg-opacity-10 rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{width: '64px', height: '64px'}}>
+                <Users className="text-primary" size={28} />
               </div>
-              <h5 className="fw-bold">{vendedores.length}</h5>
-              <p className="text-muted mb-0 small">Vendedores Ativos</p>
+              <h5 className="fw-semibold mb-2">Gerenciar Vendedores</h5>
+              <p className="text-muted small mb-3">Adicionar, editar e remover vendedores do sistema</p>
+              <button className="btn btn-primary btn-sm" onClick={() => setActiveTab("vendedores")}>
+                Acessar
+              </button>
             </div>
           </div>
         </div>
         
-        <div className="col-12 col-md-6 col-lg-3">
-          <div className="card text-center">
-            <div className="card-body">
-              <div className="bg-success bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
-                <Settings className="text-success" size={24} />
+        <div className="col-md-4">
+          <div className="card border-0 shadow-sm h-100 text-center">
+            <div className="card-body p-4">
+              <div className="bg-success bg-opacity-10 rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{width: '64px', height: '64px'}}>
+                <Settings className="text-success" size={28} />
               </div>
-              <h5 className="fw-bold">{plans.length}</h5>
-              <p className="text-muted mb-0 small">Planos Criados</p>
+              <h5 className="fw-semibold mb-2">Configurar Planos</h5>
+              <p className="text-muted small mb-3">Criar e gerenciar planos de vouchers WiFi</p>
+              <button className="btn btn-success btn-sm" onClick={() => setActiveTab("plans")}>
+                Acessar
+              </button>
             </div>
           </div>
         </div>
         
-        <div className="col-12 col-md-6 col-lg-3">
-          <div className="card text-center">
-            <div className="card-body">
-              <div className="bg-warning bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
-                <ShoppingCart className="text-warning" size={24} />
+        <div className="col-md-4">
+          <div className="card border-0 shadow-sm h-100 text-center">
+            <div className="card-body p-4">
+              <div className="bg-warning bg-opacity-10 rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{width: '64px', height: '64px'}}>
+                <ShoppingCart className="text-warning" size={28} />
               </div>
-              <h5 className="fw-bold">-</h5>
-              <p className="text-muted mb-0 small">Vouchers Vendidos</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="col-12 col-md-6 col-lg-3">
-          <div className="card text-center">
-            <div className="card-body">
-              <div className="bg-info bg-opacity-10 p-3 rounded-circle mx-auto mb-3" style={{width: '60px', height: '60px'}}>
-                <MapPin className="text-info" size={24} />
-              </div>
-              <h5 className="fw-bold">
-                <span className={`badge ${selectedSite.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
-                  {selectedSite.status === 'active' ? 'Ativo' : 'Inativo'}
-                </span>
-              </h5>
-              <p className="text-muted mb-0 small">Status do Site</p>
+              <h5 className="fw-semibold mb-2">Gerar Vouchers</h5>
+              <p className="text-muted small mb-3">Criar e imprimir vouchers WiFi rapidamente</p>
+              <button className="btn btn-warning btn-sm text-white" onClick={() => setActiveTab("vouchers")}>
+                Acessar
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Site Info Card */}
-      <div className="card">
-        <div className="card-header">
-          <h5 className="card-title mb-0 d-flex align-items-center">
-            <MapPin className="me-2" size={20} />
+      {/* Site Information */}
+      <div className="card border-0 shadow-sm">
+        <div className="card-header bg-white border-0 py-3">
+          <h5 className="card-title mb-0 d-flex align-items-center fw-semibold">
+            <MapPin className="me-2 text-primary" size={20} />
             Informações do Site
           </h5>
         </div>
-        <div className="card-body">
-          <div className="row g-3">
-            <div className="col-md-6">
-              <strong>Nome:</strong> {selectedSite.name}
+        <div className="card-body p-4">
+          <div className="row g-4">
+            <div className="col-lg-6">
+              <div className="d-flex align-items-center mb-3">
+                <div className="text-muted small text-uppercase fw-semibold" style={{minWidth: '140px'}}>Nome do Site:</div>
+                <div className="fw-semibold">{selectedSite.name}</div>
+              </div>
+              <div className="d-flex align-items-center mb-3">
+                <div className="text-muted small text-uppercase fw-semibold" style={{minWidth: '140px'}}>Localização:</div>
+                <div className="fw-semibold">{selectedSite.location || "Não informado"}</div>
+              </div>
             </div>
-            <div className="col-md-6">
-              <strong>Localização:</strong> {selectedSite.location || "Não informado"}
-            </div>
-            <div className="col-md-6">
-              <strong>ID Omada:</strong> {selectedSite.omadaSiteId || "Não configurado"}
-            </div>
-            <div className="col-md-6">
-              <strong>Última Sincronização:</strong> {
-                selectedSite.lastSync 
-                  ? new Date(selectedSite.lastSync).toLocaleDateString('pt-BR')
-                  : "Nunca"
-              }
+            <div className="col-lg-6">
+              <div className="d-flex align-items-center mb-3">
+                <div className="text-muted small text-uppercase fw-semibold" style={{minWidth: '140px'}}>ID Omada:</div>
+                <div className="fw-semibold font-monospace text-primary">{selectedSite.omadaSiteId || "Não configurado"}</div>
+              </div>
+              <div className="d-flex align-items-center mb-3">
+                <div className="text-muted small text-uppercase fw-semibold" style={{minWidth: '140px'}}>Sincronização:</div>
+                <div className="fw-semibold">
+                  {selectedSite.lastSync 
+                    ? new Date(selectedSite.lastSync).toLocaleDateString('pt-BR') + ' às ' + new Date(selectedSite.lastSync).toLocaleTimeString('pt-BR')
+                    : "Nunca sincronizado"
+                  }
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -392,64 +495,75 @@ function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAd
   }
 
   return (
-    <div className="mb-4">
-      <div className="mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center">
+    <div>
+      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4">
         <div>
-          <h1 className="h2 h1-lg fw-bold text-dark mb-2">Gerenciar Vendedores</h1>
-          <p className="text-muted">Criar, editar e gerenciar vendedores do site</p>
+          <h2 className="h3 fw-bold text-dark mb-1">Gerenciar Vendedores</h2>
+          <p className="text-muted mb-0">Criar, editar e gerenciar vendedores do site</p>
         </div>
-        <button className="btn btn-primary" onClick={onAdd}>
-          <Plus size={16} className="me-1" />
+        <button className="btn btn-primary d-flex align-items-center mt-3 mt-lg-0" onClick={onAdd}>
+          <Plus size={18} className="me-2" />
           Novo Vendedor
         </button>
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <h5 className="card-title mb-0">Lista de Vendedores</h5>
+      <div className="card border-0 shadow-sm">
+        <div className="card-header bg-white border-0 py-3">
+          <h5 className="card-title mb-0 fw-semibold">Lista de Vendedores</h5>
         </div>
-        <div className="card-body">
+        <div className="card-body p-0">
           {vendedores && vendedores.length > 0 ? (
             <div className="table-responsive">
-              <table className="table table-hover">
-                <thead>
+              <table className="table table-hover mb-0">
+                <thead className="table-light">
                   <tr>
-                    <th>Nome</th>
-                    <th>Email</th>
-                    <th>Status</th>
-                    <th>Criado em</th>
-                    <th>Ações</th>
+                    <th className="border-0 fw-semibold">Vendedor</th>
+                    <th className="border-0 fw-semibold">Email</th>
+                    <th className="border-0 fw-semibold">Status</th>
+                    <th className="border-0 fw-semibold">Criado em</th>
+                    <th className="border-0 fw-semibold text-center">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {vendedores.map((vendedor: any) => (
                     <tr key={vendedor.id}>
-                      <td>
+                      <td className="py-3">
                         <div className="d-flex align-items-center">
-                          <div className="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
-                            <User size={16} className="text-primary" />
+                          <div className="bg-primary bg-gradient rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style={{width: '40px', height: '40px'}}>
+                            <User size={18} className="text-white" />
                           </div>
-                          {vendedor.username}
+                          <div>
+                            <div className="fw-semibold text-dark">{vendedor.username}</div>
+                            <small className="text-muted">Vendedor</small>
+                          </div>
                         </div>
                       </td>
-                      <td>{vendedor.email || "Não informado"}</td>
-                      <td>
-                        <span className="badge bg-success">Ativo</span>
+                      <td className="py-3">
+                        <span className="text-dark">{vendedor.email || "Não informado"}</span>
                       </td>
-                      <td>{new Date(vendedor.createdAt).toLocaleDateString('pt-BR')}</td>
-                      <td>
+                      <td className="py-3">
+                        <span className="badge bg-success-subtle text-success border border-success-subtle">
+                          Ativo
+                        </span>
+                      </td>
+                      <td className="py-3">
+                        <span className="text-dark">{new Date(vendedor.createdAt).toLocaleDateString('pt-BR')}</span>
+                      </td>
+                      <td className="py-3 text-center">
                         <div className="btn-group" role="group">
                           <button
-                            className="btn btn-outline-primary btn-sm"
+                            className="btn btn-outline-primary btn-sm d-flex align-items-center"
                             onClick={() => onEdit(vendedor)}
+                            title="Editar vendedor"
                           >
-                            <Edit size={14} />
+                            <Edit size={16} />
                           </button>
                           <button
-                            className="btn btn-outline-danger btn-sm"
+                            className="btn btn-outline-danger btn-sm d-flex align-items-center"
                             onClick={() => onDelete(vendedor.id)}
+                            title="Excluir vendedor"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
@@ -460,11 +574,13 @@ function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAd
             </div>
           ) : (
             <div className="text-center py-5">
-              <Users size={48} className="text-muted mb-3" />
-              <h5>Nenhum vendedor encontrado</h5>
-              <p className="text-muted">Crie o primeiro vendedor para este site</p>
-              <button className="btn btn-primary" onClick={onAdd}>
-                <Plus size={16} className="me-1" />
+              <div className="bg-light rounded-circle mx-auto mb-4 d-flex align-items-center justify-content-center" style={{width: '80px', height: '80px'}}>
+                <Users size={40} className="text-muted" />
+              </div>
+              <h5 className="fw-semibold text-dark mb-2">Nenhum vendedor encontrado</h5>
+              <p className="text-muted mb-4">Crie o primeiro vendedor para este site</p>
+              <button className="btn btn-primary d-flex align-items-center mx-auto" onClick={onAdd}>
+                <Plus size={18} className="me-2" />
                 Criar Vendedor
               </button>
             </div>
@@ -680,26 +796,26 @@ function VouchersSection({ siteId }: { siteId: string }) {
   };
 
   return (
-    <div className="mb-4">
+    <div>
       <div className="mb-4">
-        <h1 className="h2 h1-lg fw-bold text-dark mb-2">Gerenciar Vouchers</h1>
-        <p className="text-muted">Gerar e imprimir vouchers para o site</p>
+        <h2 className="h3 fw-bold text-dark mb-1">Gerenciar Vouchers</h2>
+        <p className="text-muted mb-0">Gerar e imprimir vouchers para o site</p>
       </div>
 
       {/* Voucher Generation Form */}
-      <div className="card mb-4">
-        <div className="card-header">
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-header bg-gradient text-white" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
           <h5 className="card-title mb-0 d-flex align-items-center">
             <ShoppingCart className="me-2" size={20} />
             Gerar Novos Vouchers
           </h5>
         </div>
-        <div className="card-body">
-          <div className="row g-3">
+        <div className="card-body p-4">
+          <div className="row g-4">
             <div className="col-md-6">
-              <label className="form-label">Selecionar Plano</label>
+              <label className="form-label fw-semibold">Selecionar Plano</label>
               <select 
-                className="form-select"
+                className="form-select form-select-lg"
                 value={selectedPlan}
                 onChange={(e) => setSelectedPlan(e.target.value)}
               >
@@ -710,79 +826,89 @@ function VouchersSection({ siteId }: { siteId: string }) {
                   </option>
                 ))}
               </select>
+              {plans.length === 0 && (
+                <div className="form-text text-warning">Nenhum plano disponível. Configure planos primeiro.</div>
+              )}
             </div>
             <div className="col-md-6">
-              <label className="form-label">Quantidade</label>
+              <label className="form-label fw-semibold">Quantidade</label>
               <input
                 type="number"
-                className="form-control"
+                className="form-control form-control-lg"
                 min="1"
                 max="100"
                 value={quantity}
                 onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
               />
+              <div className="form-text">Máximo 100 vouchers por vez</div>
             </div>
           </div>
-          <div className="mt-3">
+          <div className="mt-4 d-flex gap-2">
             <button
-              className="btn btn-primary"
+              className="btn btn-primary btn-lg d-flex align-items-center"
               onClick={generateVouchers}
               disabled={isGenerating || !selectedPlan}
             >
               {isGenerating ? (
                 <>
                   <div className="spinner-border spinner-border-sm me-2" role="status"></div>
-                  Gerando...
+                  Gerando Vouchers...
                 </>
               ) : (
                 <>
-                  <ShoppingCart size={16} className="me-1" />
-                  Gerar Vouchers
+                  <ShoppingCart size={20} className="me-2" />
+                  Gerar {quantity} Voucher{quantity > 1 ? 's' : ''}
                 </>
               )}
             </button>
+            {generatedVouchers.length > 0 && (
+              <button
+                className="btn btn-outline-secondary"
+                onClick={() => setGeneratedVouchers([])}
+              >
+                Limpar Vouchers
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Generated Vouchers */}
       {generatedVouchers.length > 0 && (
-        <div className="card">
-          <div className="card-header d-flex justify-content-between align-items-center">
-            <h5 className="card-title mb-0">Vouchers Gerados ({generatedVouchers.length})</h5>
-            <div className="btn-group">
+        <div className="card border-0 shadow-sm">
+          <div className="card-header bg-white d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center py-3">
+            <h5 className="card-title mb-2 mb-lg-0 fw-semibold">
+              Vouchers Gerados ({generatedVouchers.length})
+            </h5>
+            <div className="d-flex flex-wrap gap-2">
               <button
-                className="btn btn-outline-primary"
+                className="btn btn-primary d-flex align-items-center"
                 onClick={() => printVouchers('A4')}
               >
-                <Printer size={16} className="me-1" />
+                <Printer size={16} className="me-2" />
                 Imprimir A4
               </button>
               <button
-                className="btn btn-outline-secondary"
+                className="btn btn-secondary d-flex align-items-center"
                 onClick={() => printVouchers('thermal')}
               >
-                <Printer size={16} className="me-1" />
+                <Printer size={16} className="me-2" />
                 Cupom Térmico
-              </button>
-              <button
-                className="btn btn-outline-danger"
-                onClick={() => setGeneratedVouchers([])}
-              >
-                Limpar
               </button>
             </div>
           </div>
-          <div className="card-body">
-            <div className="row g-2">
+          <div className="card-body p-4">
+            <div className="row g-3">
               {generatedVouchers.map((voucher, index) => (
-                <div key={index} className="col-md-4 col-lg-3">
-                  <div className="card border-primary">
-                    <div className="card-body text-center">
-                      <div className="fw-bold text-primary">{voucher.code}</div>
-                      <small className="text-muted">
-                        {voucher.plan?.duration}min - R$ {voucher.plan?.price?.toFixed(2)}
-                      </small>
+                <div key={index} className="col-12 col-sm-6 col-md-4 col-lg-3">
+                  <div className="card border border-primary-subtle bg-primary-subtle">
+                    <div className="card-body text-center p-3">
+                      <div className="fw-bold text-primary h5 mb-2 font-monospace">{voucher.code}</div>
+                      <div className="small text-muted">
+                        <div>{voucher.plan?.duration} minutos</div>
+                        <div>R$ {voucher.plan?.price?.toFixed(2)}</div>
+                        <div>{voucher.plan?.concurrentUsers} usuário{voucher.plan?.concurrentUsers > 1 ? 's' : ''}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
