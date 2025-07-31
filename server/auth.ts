@@ -29,8 +29,18 @@ export async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+  // Generate a session secret for development if not provided
+  const sessionSecret = process.env.SESSION_SECRET || 
+    (process.env.NODE_ENV === 'development' 
+      ? 'dev-secret-key-change-in-production' 
+      : undefined);
+
+  if (!sessionSecret) {
+    throw new Error('SESSION_SECRET environment variable is required in production');
+  }
+
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET!,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
