@@ -143,17 +143,22 @@ async function renewOmadaToken(credentials: any): Promise<string> {
   return renewOmadaTokenWithCallbacks(credentials);
 }
 
-// Function to validate token by making a test API call
+// Function to validate token by making a test API call using the same format as sync
 async function validateToken(token: string, credentials: any): Promise<boolean> {
   try {
-    console.log('Validating token with test API call...');
+    console.log('Validating token with sites API call...');
     
-    // Make a simple API call to verify token works
-    const testResponse = await fetch(`${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites`, {
+    // Use the same endpoint format that works for site sync
+    const params = new URLSearchParams({
+      page: '1',
+      pageSize: '10'
+    });
+    
+    const testResponse = await fetch(`${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites?${params}`, {
       method: 'GET',
       headers: {
-        'Authorization': `AccessToken=${token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `AccessToken=${token}`
       },
       // Ignore SSL certificate issues for development
       ...(process.env.NODE_ENV === 'development' && {
@@ -165,6 +170,8 @@ async function validateToken(token: string, credentials: any): Promise<boolean> 
 
     if (!testResponse.ok) {
       console.log(`Token validation failed: ${testResponse.status}`);
+      const errorText = await testResponse.text();
+      console.log(`Token validation error text: ${errorText}`);
       return false;
     }
 
@@ -172,6 +179,10 @@ async function validateToken(token: string, credentials: any): Promise<boolean> 
     const isValid = testData.errorCode === 0;
     
     console.log(`Token validation result: ${isValid ? 'VALID' : 'INVALID'} (errorCode: ${testData.errorCode})`);
+    if (!isValid && testData.msg) {
+      console.log(`Token validation error message: ${testData.msg}`);
+    }
+    
     return isValid;
     
   } catch (error) {
