@@ -123,27 +123,27 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Navigation Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:space-y-0 md:gap-4">
           <Link href={user?.role === "admin" ? "/admin" : "/vendedor"}>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 mobile-full">
               <ArrowLeft className="h-4 w-4" />
               Voltar ao Dashboard
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Relatórios</h1>
-            <p className="text-muted-foreground">Análise de vendas e uso de vouchers</p>
+            <h1 className="text-xl md:text-3xl font-bold">Relatórios</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Análise de vendas e uso de vouchers</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col space-y-2 md:flex-row md:items-center md:space-y-0 md:gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <User className="h-4 w-4" />
             {user?.username} ({user?.role})
           </div>
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2 mobile-full">
             <Download className="h-4 w-4" />
             Exportar PDF
           </Button>
@@ -156,7 +156,7 @@ export default function ReportsPage() {
           <CardTitle className="text-lg">Configurações do Relatório</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 form-grid">
             <div className="space-y-2">
               <label className="text-sm font-medium">Site</label>
               <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
@@ -217,7 +217,7 @@ export default function ReportsPage() {
 
       {/* Reports Tabs */}
       <Tabs defaultValue="summary" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 tabs-list">
           <TabsTrigger value="summary" className="gap-2">
             <BarChart3 className="h-4 w-4" />
             Resumo Geral
@@ -237,8 +237,8 @@ export default function ReportsPage() {
         </TabsList>
 
         {/* Summary Tab */}
-        <TabsContent value="summary" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <TabsContent value="summary" className="space-y-4 md:space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Vouchers Ativos</CardTitle>

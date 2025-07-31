@@ -567,26 +567,27 @@ export default function VendedorDashboard() {
   ];
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex flex-col md:flex-row h-screen bg-background">
       <Sidebar
         title="Vendedor"
         subtitle={userSite?.name || "Site não encontrado"}
         icon={User}
         iconBg="bg-amber-500"
         items={sidebarItems}
+        className="w-full md:w-64 order-2 md:order-1"
       />
 
-      <div className="flex-1 p-8 overflow-auto">
+      <div className="flex-1 p-4 md:p-8 overflow-auto order-1 md:order-2">
         {activeTab === "generate" && (
-          <div className="space-y-8">
+          <div className="space-y-4 md:space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-slate-800">Geração de Vouchers</h1>
-              <p className="text-slate-600 mt-2">Crie vouchers de acesso à internet</p>
+              <h1 className="text-xl md:text-3xl font-bold text-slate-800">Geração de Vouchers</h1>
+              <p className="text-sm md:text-base text-slate-600 mt-2">Crie vouchers de acesso à internet</p>
             </div>
 
             {/* Daily Stats */}
             {dailyStats && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center">

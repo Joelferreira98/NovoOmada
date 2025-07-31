@@ -1393,31 +1393,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(500).json({ message: "Omada credentials not configured" });
       }
 
-      // Get access token
-      const tokenResponse = await fetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'client_credentials',
-          client_id: credentials.clientId,
-          client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
-      });
-
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to get access token');
-      }
-
-      const tokenData = await tokenResponse.json();
-      const accessToken = tokenData.access_token;
+      // Get access token using the centralized function
+      const accessToken = await getValidOmadaToken(credentials);
 
       // Get voucher summary from Omada API
       const summaryResponse = await fetch(
@@ -1590,7 +1567,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const tokenData = await tokenResponse.json();
-      const accessToken = tokenData.access_token;
+      const accessToken = await getValidOmadaToken(credentials);
       
       // Call Omada API for price distribution with date range
       const apiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history/distribution/unit-price?filters.timeStart=${timeStart}&filters.timeEnd=${timeEnd}`;
@@ -1678,7 +1655,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const tokenData = await tokenResponse.json();
-      const accessToken = tokenData.access_token;
+      const accessToken = await getValidOmadaToken(credentials);
       
       // Call Omada API for duration distribution with date range
       const apiUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/vouchers/statistics/history/distribution/duration?filters.timeStart=${timeStart}&filters.timeEnd=${timeEnd}`;

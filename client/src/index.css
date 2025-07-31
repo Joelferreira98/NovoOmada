@@ -57,3 +57,70 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .container {
+    @apply px-4 py-4;
+  }
+  
+  /* Make cards stack on mobile */
+  .grid {
+    @apply grid-cols-1 !important;
+  }
+  
+  /* Adjust spacing for mobile */
+  .space-y-6 > * + * {
+    @apply mt-4;
+  }
+  
+  /* Make buttons full width on mobile */
+  .mobile-full {
+    @apply w-full;
+  }
+  
+  /* Better text sizes for mobile */
+  h1 {
+    @apply text-xl md:text-3xl;
+  }
+  
+  h2 {
+    @apply text-lg md:text-2xl;
+  }
+  
+  /* Table responsive */
+  .table-container {
+    @apply overflow-x-auto;
+  }
+  
+  table {
+    @apply min-w-full;
+  }
+  
+  /* Navigation responsive */
+  .nav-flex {
+    @apply flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-4;
+  }
+  
+  /* Form responsive */
+  .form-grid {
+    @apply grid-cols-1 md:grid-cols-2;
+  }
+  
+  /* Tabs responsive */
+  .tabs-list {
+    @apply grid-cols-2 md:grid-cols-4 text-xs md:text-sm;
+  }
+}
+
+/* Touch-friendly button sizes */
+@media (max-width: 768px) {
+  button, .button {
+    @apply min-h-[44px] px-4;
+  }
+  
+  /* Better spacing for touch */
+  .touch-spacing > * + * {
+    @apply mt-3;
+  }
+}
