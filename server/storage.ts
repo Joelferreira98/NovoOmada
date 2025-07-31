@@ -700,6 +700,13 @@ export class DatabaseStorage implements IStorage {
     const printId = crypto.randomUUID();
     const printWithId = { ...printData, id: printId };
     
+    console.log('💾 Saving print history:', {
+      id: printId,
+      voucherCodesType: typeof printWithId.voucherCodes,
+      voucherCodesLength: Array.isArray(printWithId.voucherCodes) ? printWithId.voucherCodes.length : 'not array',
+      printType: printWithId.printType
+    });
+    
     try {
       const { pool } = await import("./db");
       
@@ -720,6 +727,9 @@ export class DatabaseStorage implements IStorage {
         )
       `);
       
+      const voucherCodesJson = JSON.stringify(printWithId.voucherCodes);
+      console.log('📝 Inserting voucher codes as JSON:', voucherCodesJson.substring(0, 100) + '...');
+      
       await pool.execute(`
         INSERT INTO print_history (id, vendedor_id, site_id, print_type, voucher_codes, print_title, html_content, voucher_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -728,7 +738,7 @@ export class DatabaseStorage implements IStorage {
         printWithId.vendedorId,
         printWithId.siteId,
         printWithId.printType,
-        JSON.stringify(printWithId.voucherCodes),
+        voucherCodesJson,
         printWithId.printTitle,
         printWithId.htmlContent,
         printWithId.voucherCount
@@ -740,6 +750,8 @@ export class DatabaseStorage implements IStorage {
       );
       
       const result = (rows as any[])[0];
+      console.log('✅ Print history saved successfully:', { id: result.id, voucherCount: result.voucher_count });
+      
       return {
         id: result.id,
         vendedorId: result.vendedor_id,
@@ -752,7 +764,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: result.created_at
       };
     } catch (error) {
-      console.error('Error saving print history:', error);
+      console.error('❌ Error saving print history:', error);
       throw error;
     }
   }
@@ -760,6 +772,8 @@ export class DatabaseStorage implements IStorage {
   async getPrintHistory(vendedorId: string, siteId: string): Promise<PrintHistory[]> {
     try {
       const { pool } = await import("./db");
+      console.log('🔍 Getting print history for vendedor:', vendedorId, 'site:', siteId);
+      
       const [rows] = await pool.execute(`
         SELECT * FROM print_history 
         WHERE vendedor_id = ? AND site_id = ?
@@ -767,19 +781,22 @@ export class DatabaseStorage implements IStorage {
         LIMIT 50
       `, [vendedorId, siteId]);
       
-      return (rows as any[]).map(row => ({
+      const results = (rows as any[]).map(row => ({
         id: row.id,
         vendedorId: row.vendedor_id,
         siteId: row.site_id,
         printType: row.print_type,
-        voucherCodes: JSON.parse(row.voucher_codes),
+        voucherCodes: typeof row.voucher_codes === 'string' ? JSON.parse(row.voucher_codes) : row.voucher_codes,
         printTitle: row.print_title,
         htmlContent: row.html_content,
         voucherCount: row.voucher_count,
         createdAt: row.created_at
       }));
+      
+      console.log('📋 Found print history records:', results.length);
+      return results;
     } catch (error) {
-      console.error('Error getting print history:', error);
+      console.error('❌ Error getting print history:', error);
       return [];
     }
   }
