@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertSiteSchema, insertPlanSchema, insertOmadaCredentialsSchema } from "@shared/schema";
+import { insertSiteSchema, insertPlanSchema, insertOmadaCredentialsSchema, insertUserSchema } from "@shared/schema";
+import { hashPassword } from "./auth";
 import { z } from "zod";
 import https from "https";
 
@@ -429,6 +430,66 @@ export function registerRoutes(app: Express): Server {
       res.status(200).json({ message: "User removed from site" });
     } catch (error) {
       res.status(400).json({ message: "Failed to remove user from site" });
+    }
+  });
+
+  // User Management (Master only)
+  app.get("/api/users", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Remove passwords from response
+      const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+      res.json(usersWithoutPasswords);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/users", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      const existingUser = await storage.getUserByUsername(userData.username);
+      
+      if (existingUser) {
+        return res.status(400).json({ message: "Username já existe" });
+      }
+
+      const hashedPassword = await hashPassword(userData.password);
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword
+      });
+
+      // Remove password from response
+      const { password, ...userResponse } = user;
+      res.status(201).json(userResponse);
+    } catch (error) {
+      console.error("Create user error:", error);
+      res.status(400).json({ message: "Dados inválidos", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Site Access Management for users
+  app.get("/api/users/:userId/sites", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const userSites = await storage.getUserSites(userId);
+      res.json(userSites);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user sites" });
+    }
+  });
+
+  app.post("/api/users/:userId/sites/assign", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const { siteIds } = req.body;
+      
+      await storage.assignSitesToUser(userId, siteIds);
+      res.json({ message: "Sites atribuídos com sucesso" });
+    } catch (error) {
+      console.error("Assign sites error:", error);
+      res.status(500).json({ message: "Failed to assign sites" });
     }
   });
 

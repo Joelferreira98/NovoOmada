@@ -17,6 +17,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
   getAdminsBySite(siteId: string): Promise<User[]>;
   getVendedoresBySite(siteId: string): Promise<User[]>;
 
@@ -27,6 +28,7 @@ export interface IStorage {
   updateSite(id: string, site: Partial<Site>): Promise<Site | undefined>;
   getUserSites(userId: string): Promise<Site[]>;
   assignUserToSite(userId: string, siteId: string): Promise<void>;
+  assignSitesToUser(userId: string, siteIds: string[]): Promise<void>;
   removeUserFromSite(userId: string, siteId: string): Promise<void>;
 
   // Omada credentials
@@ -94,6 +96,10 @@ export class DatabaseStorage implements IStorage {
     await db.insert(users).values(insertUser);
     const [user] = await db.select().from(users).where(eq(users.username, insertUser.username));
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(users.username);
   }
 
   async getAdminsBySite(siteId: string): Promise<User[]> {
@@ -177,6 +183,17 @@ export class DatabaseStorage implements IStorage {
 
   async assignUserToSite(userId: string, siteId: string): Promise<void> {
     await db.insert(userSiteAccess).values({ userId, siteId });
+  }
+
+  async assignSitesToUser(userId: string, siteIds: string[]): Promise<void> {
+    // Remove existing assignments
+    await db.delete(userSiteAccess).where(eq(userSiteAccess.userId, userId));
+    
+    // Add new assignments
+    if (siteIds.length > 0) {
+      const assignments = siteIds.map(siteId => ({ userId, siteId }));
+      await db.insert(userSiteAccess).values(assignments);
+    }
   }
 
   async removeUserFromSite(userId: string, siteId: string): Promise<void> {

@@ -8,13 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Crown, FolderSync, Building, ShieldQuestion, Settings, Save, Plus } from "lucide-react";
+import { Crown, FolderSync, Building, ShieldQuestion, Settings, Save, Plus, Users, Mail, Calendar } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertOmadaCredentialsSchema } from "@shared/schema";
 import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { UserModal } from "@/components/modals/user-modal";
 
 type OmadaCredentialsForm = z.infer<typeof insertOmadaCredentialsSchema>;
 
@@ -22,6 +23,7 @@ export default function MasterDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("sync");
+  const [userModalOpen, setUserModalOpen] = useState(false);
 
   if (!user || user.role !== "master") {
     return <Redirect to="/auth" />;
@@ -33,6 +35,10 @@ export default function MasterDashboard() {
 
   const { data: sites = [] } = useQuery({
     queryKey: ["/api/sites"],
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ["/api/users"],
   });
 
   const credentialsForm = useForm<OmadaCredentialsForm>({
@@ -307,24 +313,117 @@ export default function MasterDashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold text-slate-800">Administradores</h1>
-                <p className="text-slate-600 mt-2">Gerencie usuários administrativos</p>
+                <p className="text-slate-600 mt-2">Gerencie usuários administrativos e vendedores</p>
               </div>
-              <Button>
+              <Button onClick={() => setUserModalOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Criar Admin
+                Criar Usuário
               </Button>
             </div>
 
+            {/* Admins Section */}
             <Card>
-              <CardContent className="p-6">
-                <p className="text-slate-600 text-center py-8">
-                  Funcionalidade de gerenciamento de admins será implementada aqui
-                </p>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Users className="w-5 h-5 mr-2" />
+                  Administradores
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(users as any[]).filter((u: any) => u.role === 'admin').length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-slate-600">Nenhum administrador cadastrado</p>
+                    <p className="text-sm text-slate-400 mt-2">Clique em "Criar Usuário" para adicionar um administrador</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {(users as any[]).filter((u: any) => u.role === 'admin').map((admin: any) => (
+                      <div key={admin.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className="bg-blue-100 p-2 rounded-lg">
+                            <Users className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-800">{admin.username}</p>
+                            <p className="text-sm text-slate-500 flex items-center">
+                              <Mail className="w-4 h-4 mr-1" />
+                              {admin.email}
+                            </p>
+                            <p className="text-xs text-slate-400 flex items-center">
+                              <Calendar className="w-4 h-4 mr-1" />
+                              Criado em {new Date(admin.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-4">
+                          <Badge variant="default">Administrador</Badge>
+                          <Button variant="outline" size="sm">
+                            Gerenciar Sites
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Vendedores Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Building className="w-5 h-5 mr-2" />
+                  Vendedores
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(users as any[]).filter((u: any) => u.role === 'vendedor').length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-slate-600">Nenhum vendedor cadastrado</p>
+                    <p className="text-sm text-slate-400 mt-2">Vendedores são criados pelos administradores de cada site</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {(users as any[]).filter((u: any) => u.role === 'vendedor').map((vendedor: any) => (
+                      <div key={vendedor.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className="bg-green-100 p-2 rounded-lg">
+                            <Building className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-800">{vendedor.username}</p>
+                            <p className="text-sm text-slate-500 flex items-center">
+                              <Mail className="w-4 h-4 mr-1" />
+                              {vendedor.email}
+                            </p>
+                            <p className="text-xs text-slate-400 flex items-center">
+                              <Calendar className="w-4 h-4 mr-1" />
+                              Criado em {new Date(vendedor.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-4">
+                          <Badge variant="secondary">Vendedor</Badge>
+                          <Button variant="outline" size="sm">
+                            Ver Sites
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         )}
       </div>
+
+      <UserModal 
+        open={userModalOpen} 
+        onOpenChange={setUserModalOpen} 
+      />
     </div>
   );
 }
