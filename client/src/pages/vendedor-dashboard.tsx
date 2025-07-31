@@ -155,8 +155,47 @@ export default function VendedorDashboard() {
             align-content: start;
           }
           
-          /* Landscape orientation optimization */
-          @media print and (orientation: landscape) {
+          /* Thermal roll 58mm/80mm printer support */
+          @media print and (max-width: 90mm) {
+            .page { 
+              width: auto;
+              height: auto;
+              padding: 2mm;
+              max-width: 80mm;
+            }
+            .voucher-grid {
+              grid-template-columns: 1fr;
+              gap: 3mm;
+            }
+            .voucher {
+              min-height: auto;
+              padding: 8px;
+              margin-bottom: 3mm;
+              page-break-after: always;
+            }
+            .voucher-site {
+              font-size: 10px;
+              margin-bottom: 6px;
+            }
+            .voucher-code {
+              font-size: 18px;
+              padding: 8px;
+              margin: 8px 0;
+              letter-spacing: 3px;
+            }
+            .voucher-info {
+              font-size: 10px;
+              margin: 3px 0;
+              justify-content: space-between;
+            }
+            .voucher-footer {
+              font-size: 8px;
+              margin-top: 6px;
+            }
+          }
+
+          /* Landscape orientation optimization for A4 */
+          @media print and (orientation: landscape) and (min-width: 200mm) {
             .page { 
               width: 297mm; 
               height: 210mm;
@@ -298,6 +337,148 @@ export default function VendedorDashboard() {
             `).join('')}
           </div>
         </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Auto print after loading
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  };
+
+  const printVouchersRoll = (vouchersToPrint: any[]) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const siteName = userSite?.name || 'WiFi';
+    const currentDate = new Date().toLocaleDateString('pt-BR');
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Vouchers Cupom - ${siteName}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Courier New', monospace; 
+            background: white;
+            color: black;
+            line-height: 1.3;
+            width: 80mm;
+            font-size: 12px;
+          }
+          .voucher {
+            width: 76mm;
+            padding: 4mm;
+            margin: 0 auto 4mm auto;
+            border: 1px dashed #000;
+            page-break-after: always;
+            text-align: center;
+          }
+          .voucher:last-child {
+            page-break-after: avoid;
+          }
+          .voucher-site {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #000;
+            padding-bottom: 4px;
+          }
+          .voucher-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 6px 0;
+          }
+          .voucher-code {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            background: #000;
+            color: white;
+            padding: 8px 4px;
+            margin: 8px 0;
+            border-radius: 4px;
+            word-break: break-all;
+          }
+          .voucher-info {
+            font-size: 11px;
+            margin: 4px 0;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+          }
+          .voucher-instructions {
+            font-size: 9px;
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px dashed #000;
+            text-align: center;
+            line-height: 1.4;
+          }
+          .voucher-footer {
+            font-size: 8px;
+            margin-top: 8px;
+            padding-top: 4px;
+            border-top: 1px solid #000;
+            color: #666;
+          }
+          
+          @media print {
+            body { width: 80mm; margin: 0; }
+            .voucher { 
+              page-break-after: always;
+              margin-bottom: 0;
+            }
+          }
+          
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
+        </style>
+      </head>
+      <body>
+        ${vouchersToPrint.map((voucher, index) => `
+          <div class="voucher">
+            <div class="voucher-site">${siteName}</div>
+            <div class="voucher-title">VOUCHER WiFi</div>
+            
+            <div class="voucher-code">${voucher.code}</div>
+            
+            <div class="voucher-info">
+              <span><strong>Plano:</strong></span>
+              <span>${voucher.planName}</span>
+            </div>
+            <div class="voucher-info">
+              <span><strong>Tempo:</strong></span>
+              <span>${voucher.duration} min</span>
+            </div>
+            <div class="voucher-info">
+              <span><strong>Valor:</strong></span>
+              <span>R$ ${voucher.unitPrice}</span>
+            </div>
+            
+            <div class="voucher-instructions">
+              1. Conecte-se à rede "${siteName}"<br>
+              2. Abra o navegador<br>
+              3. Digite o código acima<br>
+              4. Aproveite sua internet!
+            </div>
+            
+            <div class="voucher-footer">
+              #${String(index + 1).padStart(3, '0')} | ${currentDate}<br>
+              Sistema Omada WiFi
+            </div>
+          </div>
+        `).join('')}
       </body>
       </html>
     `;
@@ -485,17 +666,30 @@ export default function VendedorDashboard() {
                     </Button>
                     
                     {lastGeneratedVouchers.length > 0 && (
-                      <Button 
-                        onClick={() => {
-                          printVouchers(lastGeneratedVouchers);
-                          setLastGeneratedVouchers([]); // Limpar após imprimir
-                        }}
-                        variant="outline"
-                        className="flex items-center gap-2"
-                      >
-                        <Printer className="w-4 h-4" />
-                        Imprimir ({lastGeneratedVouchers.length})
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => {
+                            printVouchers(lastGeneratedVouchers);
+                            setLastGeneratedVouchers([]);
+                          }}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <Printer className="w-4 h-4" />
+                          A4 ({lastGeneratedVouchers.length})
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            printVouchersRoll(lastGeneratedVouchers);
+                            setLastGeneratedVouchers([]);
+                          }}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <Printer className="w-4 h-4" />
+                          Cupom ({lastGeneratedVouchers.length})
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -6,11 +6,12 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 
 ## Recent Changes (July 31, 2025)
 
-✓ **Sistema de Impressão de Vouchers Otimizado**: Layout responsivo e profissional para impressão
-- **Responsive Print**: Grid adaptativo (3x1, 4x1, 5x1) baseado na quantidade de vouchers
-- **Clean Design**: Removido cabeçalho, nome do site em cada card individual
-- **Page Optimization**: Aproveitamento máximo da página A4 com espaçamento inteligente
-- **Professional Cards**: Cards compactos com todas as informações essenciais
+✓ **Sistema de Impressão Dual: A4 + Cupom Térmico**: Layout adaptável para diferentes impressoras
+- **A4 Print**: Grid responsivo otimizado para papel A4 (até 100 vouchers)
+- **Thermal Roll Print**: Layout específico para impressoras térmicas 58/80mm
+- **Smart Detection**: Sistema detecta automaticamente o tipo de impressora
+- **Dual Buttons**: Opções separadas "A4" e "Cupom" para escolha do usuário
+- **Professional Layout**: Cards otimizados para cada formato de impressão
 
 ✓ **Correção Sistema de Vendas Automáticas**: Corrigido problema de vouchers sendo vendidos ao serem criados
 - **Sale Logic Fixed**: Removida criação automática de vendas na geração de vouchers
