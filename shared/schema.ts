@@ -38,12 +38,12 @@ export const sites = mysqlTable("sites", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const userSiteAccess = mysqlTable("user_sites", {
+export const userSiteAccess = mysqlTable("user_site_access", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.userId, table.siteId] })
-}));
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 export const plans = mysqlTable("plans", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),

@@ -412,13 +412,63 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // User Site Assignment (Master only)
+  // IMPORTANT: More specific routes must come BEFORE general routes
+  // Site Access Management for users - BULK assignment (must come before /:siteId)
+  app.post("/api/users/:userId/sites/assign", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const { siteIds } = req.body;
+      
+      console.log(`Route: Assigning sites to user ${userId}:`, siteIds);
+      console.log(`Request body:`, req.body);
+      console.log(`User ID type:`, typeof userId);
+      console.log(`SiteIds type:`, typeof siteIds, Array.isArray(siteIds));
+      
+      // Validate user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        console.log(`User not found: ${userId}`);
+        return res.status(404).json({ message: "User not found" });
+      }
+      console.log(`User found:`, user.username);
+      
+      // Validate siteIds format
+      if (siteIds && !Array.isArray(siteIds)) {
+        console.log(`Invalid siteIds format:`, siteIds);
+        return res.status(400).json({ message: "siteIds must be an array" });
+      }
+      
+      // Validate that sites exist
+      for (const siteId of (siteIds || [])) {
+        const site = await storage.getSiteById(siteId);
+        if (!site) {
+          console.log(`Site not found: ${siteId}`);
+          return res.status(400).json({ message: `Site not found: ${siteId}` });
+        }
+        console.log(`Site found: ${site.name}`);
+      }
+      
+      console.log(`About to call storage.assignSitesToUser...`);
+      await storage.assignSitesToUser(userId, siteIds || []);
+      console.log(`Storage call completed successfully`);
+      res.json({ message: "Sites atribuídos com sucesso" });
+    } catch (error) {
+      console.error("Assign sites error:", error);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      res.status(400).json({ message: "Failed to assign sites", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // User Site Assignment (Master only) - SINGLE site assignment
   app.post("/api/users/:userId/sites/:siteId", requireAuth, requireRole(["master"]), async (req, res) => {
     try {
       const { userId, siteId } = req.params;
+      console.log(`SINGLE SITE ASSIGNMENT: User ${userId} to site ${siteId}`);
       await storage.assignUserToSite(userId, siteId);
       res.status(200).json({ message: "User assigned to site" });
     } catch (error) {
+      console.error("Single site assignment error:", error);
       res.status(400).json({ message: "Failed to assign user to site" });
     }
   });
@@ -517,10 +567,14 @@ export function registerRoutes(app: Express): Server {
         console.log(`Site found: ${site.name}`);
       }
       
+      console.log(`About to call storage.assignSitesToUser...`);
       await storage.assignSitesToUser(userId, siteIds || []);
+      console.log(`Storage call completed successfully`);
       res.json({ message: "Sites atribuídos com sucesso" });
     } catch (error) {
       console.error("Assign sites error:", error);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
       res.status(400).json({ message: "Failed to assign sites", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });

@@ -219,6 +219,7 @@ export class DatabaseStorage implements IStorage {
 
   async assignUserToSite(userId: string, siteId: string): Promise<void> {
     await db.insert(userSiteAccess).values({ 
+      id: crypto.randomUUID(),
       userId, 
       siteId 
     });
@@ -227,20 +228,26 @@ export class DatabaseStorage implements IStorage {
   async assignSitesToUser(userId: string, siteIds: string[]): Promise<void> {
     console.log(`Storage: Assigning sites to user ${userId}:`, siteIds);
     
-    // Remove existing assignments
-    const deleteResult = await db.delete(userSiteAccess).where(eq(userSiteAccess.userId, userId));
-    console.log(`Deleted ${deleteResult.affectedRows || 0} existing assignments`);
-    
-    // Add new assignments
-    if (siteIds && siteIds.length > 0) {
-      const assignments = siteIds.map(siteId => ({ 
-        userId, 
-        siteId 
-      }));
-      console.log(`Creating assignments:`, assignments);
+    try {
+      // Remove existing assignments
+      const deleteResult = await db.delete(userSiteAccess).where(eq(userSiteAccess.userId, userId));
+      console.log(`Deleted ${deleteResult.affectedRows || 0} existing assignments`);
       
-      const insertResult = await db.insert(userSiteAccess).values(assignments);
-      console.log(`Inserted ${insertResult.affectedRows || 0} new assignments`);
+      // Add new assignments
+      if (siteIds && siteIds.length > 0) {
+        const assignments = siteIds.map(siteId => ({ 
+          id: crypto.randomUUID(),
+          userId, 
+          siteId 
+        }));
+        console.log(`Creating assignments:`, assignments);
+        
+        const insertResult = await db.insert(userSiteAccess).values(assignments);
+        console.log(`Inserted ${insertResult.affectedRows || 0} new assignments`);
+      }
+    } catch (error) {
+      console.error(`Error in assignSitesToUser:`, error);
+      throw error;
     }
   }
 
