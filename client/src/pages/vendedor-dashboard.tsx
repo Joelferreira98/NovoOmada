@@ -139,6 +139,7 @@ export default function VendedorDashboard() {
 
   const printVouchers = (vouchersToPrint: any[]) => {
     console.log('Print function called with vouchers:', vouchersToPrint);
+    console.log('🔍 First voucher structure:', vouchersToPrint[0]);
     
     if (!vouchersToPrint || vouchersToPrint.length === 0) {
       toast({
@@ -265,21 +266,25 @@ export default function VendedorDashboard() {
       <body>
         <div class="page">
           <div class="voucher-grid">
-            ${vouchersToPrint.map(voucher => `
+            ${vouchersToPrint.map(voucher => {
+              const code = voucher?.code || voucher?.omadaVoucher?.code || voucher?.voucherCode || 'N/A';
+              const price = voucher?.unitPrice || voucher?.omadaVoucher?.unitPrice || '0.00';
+              return `
               <div class="voucher">
                 <div class="voucher-site">${siteName}</div>
-                <div class="voucher-code">${voucher.code}</div>
+                <div class="voucher-code">${code}</div>
                 <div class="voucher-info">
                   <span>Plano: ${planName}</span>
-                  <span>R$ ${voucher.unitPrice}</span>
+                  <span>R$ ${price}</span>
                 </div>
                 <div class="voucher-info">
-                  <span>Válido: ${voucher.duracao || '60'}min</span>
+                  <span>Válido: ${voucher?.duracao || '60'}min</span>
                   <span>${currentDate}</span>
                 </div>
                 <div class="voucher-footer">Conecte-se ao WiFi e digite este código</div>
               </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         </div>
       </body>
@@ -410,17 +415,21 @@ export default function VendedorDashboard() {
         </style>
       </head>
       <body>
-        ${vouchersToPrint.map(voucher => `
+        ${vouchersToPrint.map(voucher => {
+          const code = voucher?.code || voucher?.omadaVoucher?.code || voucher?.voucherCode || 'N/A';
+          const price = voucher?.unitPrice || voucher?.omadaVoucher?.unitPrice || '0.00';
+          return `
           <div class="voucher">
             <div class="voucher-site">${siteName}</div>
-            <div class="voucher-code">${voucher.code}</div>
+            <div class="voucher-code">${code}</div>
             <div class="voucher-info">Plano: ${planName}</div>
-            <div class="voucher-info">Valor: R$ ${voucher.unitPrice}</div>
-            <div class="voucher-info">Válido: ${voucher.duracao || '60'} minutos</div>
+            <div class="voucher-info">Valor: R$ ${price}</div>
+            <div class="voucher-info">Válido: ${voucher?.duracao || '60'} minutos</div>
             <div class="voucher-info">Data: ${currentDate}</div>
             <div class="voucher-footer">Conecte-se ao WiFi e digite este código</div>
           </div>
-        `).join('')}
+          `;
+        }).join('')}
       </body>
       </html>
     `;
@@ -819,7 +828,13 @@ export default function VendedorDashboard() {
                                     onClick={() => {
                                       console.log('🖨️ A4 Reprint request for:', print.printTitle);
                                       if (print.voucherCodes && print.voucherCodes.length > 0) {
-                                        printVouchers(print.voucherCodes);
+                                        // Convert codes array to vouchers format for printing
+                                        const vouchersForPrint = print.voucherCodes.map((code: string) => ({
+                                          code: code,
+                                          unitPrice: "10.00", // Default price, will be overridden by print data
+                                          duracao: 60 // Default duration
+                                        }));
+                                        printVouchers(vouchersForPrint);
                                       } else {
                                         toast({
                                           title: "Erro",
@@ -840,7 +855,13 @@ export default function VendedorDashboard() {
                                     onClick={() => {
                                       console.log('🧾 Thermal Reprint request for:', print.printTitle);
                                       if (print.voucherCodes && print.voucherCodes.length > 0) {
-                                        printVouchersRoll(print.voucherCodes);
+                                        // Convert codes array to vouchers format for thermal printing
+                                        const vouchersForPrint = print.voucherCodes.map((code: string) => ({
+                                          code: code,
+                                          unitPrice: "10.00", // Default price, will be overridden by print data
+                                          duracao: 60 // Default duration
+                                        }));
+                                        printVouchersRoll(vouchersForPrint);
                                       } else {
                                         toast({
                                           title: "Erro",
