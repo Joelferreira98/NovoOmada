@@ -6,7 +6,17 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 
 ## Recent Changes (July 31, 2025)
 
-✓ **Dashboard Admin Responsivo Bootstrap - COMPLETO**: Conversão completa para Bootstrap mobile-first
+✓ **Dashboard Admin Padrão Vendedor - COMPLETO**: Implementação completa seguindo padrão visual do vendedor
+- **Background Gradiente**: Mesmo fundo linear-gradient(135deg, #667eea 0%, #764ba2 100%) do vendedor
+- **Layout Grid Bootstrap**: Sistema container-fluid > row > col responsivo idêntico
+- **Sidebar Consistente**: Navegação lateral branca com shadow-lg e bordas consistentes
+- **Cards com Shadow**: Cards brancos com shadow-lg e hover effects suaves
+- **Header Card**: Card de cabeçalho com informações do site igual ao vendedor
+- **Stats Cards**: Cards de estatísticas com ícones gradientes e layouts consistentes
+- **Quick Actions**: Seção de ações rápidas com cards de navegação
+- **Efeitos Hover**: Animações suaves em cards e botões (translateY)
+- **Cores Unificadas**: Paleta de cores idêntica ao dashboard do vendedor
+- **Responsividade**: Mobile-first com col-12 col-lg-9 col-xl-10 para main content
 - **Layout Responsivo**: Sistema de grid Bootstrap (container-fluid, row, col-*) em todo o dashboard admin
 - **Sidebar Bootstrap**: Navegação lateral responsiva com menu colapsável para mobile
 - **Formulários Adaptativos**: Inputs HTML5 com classes Bootstrap (form-control, form-label)

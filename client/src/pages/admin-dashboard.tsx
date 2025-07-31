@@ -188,43 +188,49 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="d-flex min-vh-100" style={{backgroundColor: '#f8fafc'}}>
-      <Sidebar
-        title={`${selectedSite.name}`}
-        subtitle="Painel Administrativo"
-        icon={User}
-        iconBg="bg-primary"
-        items={sidebarItems}
-      />
-
-      <div className="flex-fill">
-        {/* Modern Header */}
-        <div className="bg-white border-bottom shadow-sm">
-          <div className="container-fluid">
-            <div className="row align-items-center py-3">
-              <div className="col">
+    <div className="min-vh-100" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
+      <div className="container-fluid">
+        <div className="row">
+          {/* Sidebar */}
+          <div className="col-12 col-lg-3 col-xl-2 p-0">
+            <div className="bg-white shadow-lg h-100 min-vh-100">
+              {/* Header */}
+              <div className="p-4 border-bottom">
                 <div className="d-flex align-items-center">
-                  <div className="me-3">
-                    <div className="bg-primary bg-opacity-10 p-2 rounded-circle d-inline-flex">
-                      <MapPin className="text-primary" size={20} />
-                    </div>
+                  <div className="bg-primary bg-gradient rounded-circle p-2 me-3">
+                    <User className="text-white" size={20} />
                   </div>
                   <div>
-                    <h1 className="h4 mb-0 fw-semibold text-dark">{selectedSite.name}</h1>
-                    <small className="text-muted">
-                      {selectedSite.location} • 
-                      <span className={`ms-1 badge ${selectedSite.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
-                        {selectedSite.status === 'active' ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </small>
+                    <h5 className="mb-0 fw-bold text-dark">{selectedSite.name}</h5>
+                    <small className="text-muted">Painel Admin</small>
                   </div>
                 </div>
               </div>
-              <div className="col-auto">
-                <div className="d-flex gap-2">
+              
+              {/* Navigation */}
+              <div className="p-3">
+                <div className="d-grid gap-2">
+                  {sidebarItems.map((item, index) => (
+                    <button
+                      key={index}
+                      onClick={item.onClick}
+                      className={`btn text-start d-flex align-items-center ${
+                        item.active 
+                          ? 'btn-primary fw-semibold' 
+                          : 'btn-outline-light text-dark border-0 hover-bg-light'
+                      }`}
+                    >
+                      <item.icon className="me-2" size={18} />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* User Actions */}
+                <div className="mt-4 pt-3 border-top">
                   {userSites && userSites.length > 1 && (
                     <button
-                      className="btn btn-outline-secondary btn-sm d-flex align-items-center"
+                      className="btn btn-outline-secondary btn-sm w-100 mb-2 d-flex align-items-center justify-content-center"
                       onClick={handleChangeSite}
                     >
                       <ArrowLeft size={16} className="me-1" />
@@ -232,7 +238,7 @@ export default function AdminDashboard() {
                     </button>
                   )}
                   <button
-                    className="btn btn-primary btn-sm d-flex align-items-center"
+                    className="btn btn-outline-danger btn-sm w-100 d-flex align-items-center justify-content-center"
                     onClick={() => logoutMutation.mutate()}
                   >
                     <LogOut size={16} className="me-1" />
@@ -242,34 +248,58 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Main Content */}
-        <div className="p-4">
-          <div className="container-fluid">
-            {activeTab === "overview" && <OverviewSection selectedSite={selectedSite} />}
-            {activeTab === "vendedores" && (
-              <VendedoresSection 
-                siteId={selectedSiteId!}
-                vendedores={vendedores}
-                loading={vendedoresLoading}
-                onEdit={setEditingVendedor}
-                onDelete={deleteVendedorMutation.mutate}
-                onAdd={() => setVendedorModalOpen(true)}
-              />
-            )}
-            {activeTab === "plans" && (
-              <PlansSection 
-                siteId={selectedSiteId!}
-                plans={plans}
-                loading={plansLoading}
-                onEdit={setEditingPlan}
-                onDelete={deletePlanMutation.mutate}
-                onAdd={() => setPlanModalOpen(true)}
-              />
-            )}
-            {activeTab === "vouchers" && <VouchersSection siteId={selectedSiteId!} />}
-            {activeTab === "reports" && <ReportsSection siteId={selectedSiteId!} />}
+          {/* Main Content */}
+          <div className="col-12 col-lg-9 col-xl-10 p-0">
+            <div className="p-4">
+              {/* Header Card */}
+              <div className="card bg-white shadow-lg border-0 mb-4">
+                <div className="card-body p-4">
+                  <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center">
+                    <div className="d-flex align-items-center">
+                      <div className="bg-primary bg-gradient rounded-circle p-3 me-3">
+                        <MapPin className="text-white" size={24} />
+                      </div>
+                      <div>
+                        <h1 className="h3 mb-1 fw-bold text-dark">{selectedSite.name}</h1>
+                        <div className="d-flex align-items-center text-muted">
+                          <span>{selectedSite.location}</span>
+                          <span className="mx-2">•</span>
+                          <span className={`badge ${selectedSite.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
+                            {selectedSite.status === 'active' ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              {activeTab === "overview" && <OverviewSection selectedSite={selectedSite} setActiveTab={setActiveTab} />}
+              {activeTab === "vendedores" && (
+                <VendedoresSection 
+                  siteId={selectedSiteId!}
+                  vendedores={vendedores}
+                  loading={vendedoresLoading}
+                  onEdit={setEditingVendedor}
+                  onDelete={deleteVendedorMutation.mutate}
+                  onAdd={() => setVendedorModalOpen(true)}
+                />
+              )}
+              {activeTab === "plans" && (
+                <PlansSection 
+                  siteId={selectedSiteId!}
+                  plans={plans}
+                  loading={plansLoading}
+                  onEdit={setEditingPlan}
+                  onDelete={deletePlanMutation.mutate}
+                  onAdd={() => setPlanModalOpen(true)}
+                />
+              )}
+              {activeTab === "vouchers" && <VouchersSection siteId={selectedSiteId!} />}
+              {activeTab === "reports" && <ReportsSection siteId={selectedSiteId!} />}
+            </div>
           </div>
         </div>
       </div>
@@ -298,7 +328,7 @@ export default function AdminDashboard() {
 }
 
 // Overview Section Component
-function OverviewSection({ selectedSite }: { selectedSite: Site }) {
+function OverviewSection({ selectedSite, setActiveTab }: { selectedSite: Site; setActiveTab: (tab: string) => void }) {
   const { data: vendedores = [] } = useQuery<any[]>({
     queryKey: ["/api/sites", selectedSite.id, "vendedores"],
   });
@@ -309,21 +339,18 @@ function OverviewSection({ selectedSite }: { selectedSite: Site }) {
 
   return (
     <div>
-      {/* Modern Stats Cards */}
-      <div className="row g-4 mb-5">
+      {/* Stats Cards */}
+      <div className="row g-4 mb-4">
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card bg-white shadow-lg border-0 h-100">
             <div className="card-body p-4">
               <div className="d-flex align-items-center">
-                <div className="flex-shrink-0">
-                  <div className="bg-primary bg-gradient rounded-circle p-3 d-flex align-items-center justify-content-center" style={{width: '56px', height: '56px'}}>
-                    <Users className="text-white" size={24} />
-                  </div>
+                <div className="bg-primary bg-gradient rounded-circle p-3 me-3">
+                  <Users className="text-white" size={24} />
                 </div>
-                <div className="flex-grow-1 ms-3">
-                  <div className="text-muted small text-uppercase fw-semibold">Vendedores</div>
-                  <div className="h3 mb-0 fw-bold text-dark">{vendedores.length}</div>
-                  <div className="text-success small"><span className="fw-semibold">Ativos</span></div>
+                <div>
+                  <div className="h4 mb-0 fw-bold text-dark">{vendedores.length}</div>
+                  <small className="text-muted text-uppercase fw-semibold">Vendedores</small>
                 </div>
               </div>
             </div>
@@ -331,18 +358,15 @@ function OverviewSection({ selectedSite }: { selectedSite: Site }) {
         </div>
         
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card bg-white shadow-lg border-0 h-100">
             <div className="card-body p-4">
               <div className="d-flex align-items-center">
-                <div className="flex-shrink-0">
-                  <div className="bg-success bg-gradient rounded-circle p-3 d-flex align-items-center justify-content-center" style={{width: '56px', height: '56px'}}>
-                    <Settings className="text-white" size={24} />
-                  </div>
+                <div className="bg-success bg-gradient rounded-circle p-3 me-3">
+                  <Settings className="text-white" size={24} />
                 </div>
-                <div className="flex-grow-1 ms-3">
-                  <div className="text-muted small text-uppercase fw-semibold">Planos</div>
-                  <div className="h3 mb-0 fw-bold text-dark">{plans.length}</div>
-                  <div className="text-success small"><span className="fw-semibold">Configurados</span></div>
+                <div>
+                  <div className="h4 mb-0 fw-bold text-dark">{plans.length}</div>
+                  <small className="text-muted text-uppercase fw-semibold">Planos</small>
                 </div>
               </div>
             </div>
@@ -350,18 +374,15 @@ function OverviewSection({ selectedSite }: { selectedSite: Site }) {
         </div>
         
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card bg-white shadow-lg border-0 h-100">
             <div className="card-body p-4">
               <div className="d-flex align-items-center">
-                <div className="flex-shrink-0">
-                  <div className="bg-warning bg-gradient rounded-circle p-3 d-flex align-items-center justify-content-center" style={{width: '56px', height: '56px'}}>
-                    <ShoppingCart className="text-white" size={24} />
-                  </div>
+                <div className="bg-warning bg-gradient rounded-circle p-3 me-3">
+                  <ShoppingCart className="text-white" size={24} />
                 </div>
-                <div className="flex-grow-1 ms-3">
-                  <div className="text-muted small text-uppercase fw-semibold">Vouchers</div>
-                  <div className="h3 mb-0 fw-bold text-dark">-</div>
-                  <div className="text-muted small"><span className="fw-semibold">Vendidos hoje</span></div>
+                <div>
+                  <div className="h4 mb-0 fw-bold text-dark">-</div>
+                  <small className="text-muted text-uppercase fw-semibold">Vouchers</small>
                 </div>
               </div>
             </div>
@@ -369,22 +390,17 @@ function OverviewSection({ selectedSite }: { selectedSite: Site }) {
         </div>
         
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card bg-white shadow-lg border-0 h-100">
             <div className="card-body p-4">
               <div className="d-flex align-items-center">
-                <div className="flex-shrink-0">
-                  <div className="bg-info bg-gradient rounded-circle p-3 d-flex align-items-center justify-content-center" style={{width: '56px', height: '56px'}}>
-                    <Wifi className="text-white" size={24} />
-                  </div>
+                <div className="bg-info bg-gradient rounded-circle p-3 me-3">
+                  <Wifi className="text-white" size={24} />
                 </div>
-                <div className="flex-grow-1 ms-3">
-                  <div className="text-muted small text-uppercase fw-semibold">Status</div>
-                  <div className="h3 mb-0 fw-bold text-dark">
+                <div>
+                  <div className="h4 mb-0 fw-bold text-dark">
                     {selectedSite.status === 'active' ? 'Online' : 'Offline'}
                   </div>
-                  <div className={`small fw-semibold ${selectedSite.status === 'active' ? 'text-success' : 'text-danger'}`}>
-                    {selectedSite.status === 'active' ? 'Conectado' : 'Desconectado'}
-                  </div>
+                  <small className="text-muted text-uppercase fw-semibold">Status</small>
                 </div>
               </div>
             </div>
@@ -393,16 +409,16 @@ function OverviewSection({ selectedSite }: { selectedSite: Site }) {
       </div>
 
       {/* Quick Actions */}
-      <div className="row g-4 mb-5">
+      <div className="row g-4 mb-4">
         <div className="col-md-4">
-          <div className="card border-0 shadow-sm h-100 text-center">
-            <div className="card-body p-4">
-              <div className="bg-primary bg-opacity-10 rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{width: '64px', height: '64px'}}>
-                <Users className="text-primary" size={28} />
+          <div className="card bg-white shadow-lg border-0 h-100">
+            <div className="card-body p-4 text-center">
+              <div className="bg-primary bg-gradient rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{width: '64px', height: '64px'}}>
+                <Users className="text-white" size={28} />
               </div>
-              <h5 className="fw-semibold mb-2">Gerenciar Vendedores</h5>
-              <p className="text-muted small mb-3">Adicionar, editar e remover vendedores do sistema</p>
-              <button className="btn btn-primary btn-sm" onClick={() => setActiveTab("vendedores")}>
+              <h5 className="fw-bold mb-2 text-dark">Gerenciar Vendedores</h5>
+              <p className="text-muted mb-3">Adicionar, editar e remover vendedores</p>
+              <button className="btn btn-primary" onClick={() => setActiveTab("vendedores")}>
                 Acessar
               </button>
             </div>
@@ -410,14 +426,14 @@ function OverviewSection({ selectedSite }: { selectedSite: Site }) {
         </div>
         
         <div className="col-md-4">
-          <div className="card border-0 shadow-sm h-100 text-center">
-            <div className="card-body p-4">
-              <div className="bg-success bg-opacity-10 rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{width: '64px', height: '64px'}}>
-                <Settings className="text-success" size={28} />
+          <div className="card bg-white shadow-lg border-0 h-100">
+            <div className="card-body p-4 text-center">
+              <div className="bg-success bg-gradient rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{width: '64px', height: '64px'}}>
+                <Settings className="text-white" size={28} />
               </div>
-              <h5 className="fw-semibold mb-2">Configurar Planos</h5>
-              <p className="text-muted small mb-3">Criar e gerenciar planos de vouchers WiFi</p>
-              <button className="btn btn-success btn-sm" onClick={() => setActiveTab("plans")}>
+              <h5 className="fw-bold mb-2 text-dark">Configurar Planos</h5>
+              <p className="text-muted mb-3">Criar e gerenciar planos de vouchers</p>
+              <button className="btn btn-success" onClick={() => setActiveTab("plans")}>
                 Acessar
               </button>
             </div>
@@ -425,14 +441,14 @@ function OverviewSection({ selectedSite }: { selectedSite: Site }) {
         </div>
         
         <div className="col-md-4">
-          <div className="card border-0 shadow-sm h-100 text-center">
-            <div className="card-body p-4">
-              <div className="bg-warning bg-opacity-10 rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{width: '64px', height: '64px'}}>
-                <ShoppingCart className="text-warning" size={28} />
+          <div className="card bg-white shadow-lg border-0 h-100">
+            <div className="card-body p-4 text-center">
+              <div className="bg-warning bg-gradient rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{width: '64px', height: '64px'}}>
+                <ShoppingCart className="text-white" size={28} />
               </div>
-              <h5 className="fw-semibold mb-2">Gerar Vouchers</h5>
-              <p className="text-muted small mb-3">Criar e imprimir vouchers WiFi rapidamente</p>
-              <button className="btn btn-warning btn-sm text-white" onClick={() => setActiveTab("vouchers")}>
+              <h5 className="fw-bold mb-2 text-dark">Gerar Vouchers</h5>
+              <p className="text-muted mb-3">Criar e imprimir vouchers WiFi</p>
+              <button className="btn btn-warning text-white" onClick={() => setActiveTab("vouchers")}>
                 Acessar
               </button>
             </div>
@@ -441,33 +457,33 @@ function OverviewSection({ selectedSite }: { selectedSite: Site }) {
       </div>
 
       {/* Site Information */}
-      <div className="card border-0 shadow-sm">
-        <div className="card-header bg-white border-0 py-3">
-          <h5 className="card-title mb-0 d-flex align-items-center fw-semibold">
-            <MapPin className="me-2 text-primary" size={20} />
+      <div className="card bg-white shadow-lg border-0">
+        <div className="card-header bg-gradient text-white border-0" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
+          <h5 className="card-title mb-0 d-flex align-items-center">
+            <MapPin className="me-2" size={20} />
             Informações do Site
           </h5>
         </div>
         <div className="card-body p-4">
           <div className="row g-4">
             <div className="col-lg-6">
-              <div className="d-flex align-items-center mb-3">
-                <div className="text-muted small text-uppercase fw-semibold" style={{minWidth: '140px'}}>Nome do Site:</div>
-                <div className="fw-semibold">{selectedSite.name}</div>
+              <div className="mb-3">
+                <strong className="text-muted text-uppercase small">Nome:</strong>
+                <div className="fw-semibold text-dark">{selectedSite.name}</div>
               </div>
-              <div className="d-flex align-items-center mb-3">
-                <div className="text-muted small text-uppercase fw-semibold" style={{minWidth: '140px'}}>Localização:</div>
-                <div className="fw-semibold">{selectedSite.location || "Não informado"}</div>
+              <div className="mb-3">
+                <strong className="text-muted text-uppercase small">Localização:</strong>
+                <div className="fw-semibold text-dark">{selectedSite.location || "Não informado"}</div>
               </div>
             </div>
             <div className="col-lg-6">
-              <div className="d-flex align-items-center mb-3">
-                <div className="text-muted small text-uppercase fw-semibold" style={{minWidth: '140px'}}>ID Omada:</div>
-                <div className="fw-semibold font-monospace text-primary">{selectedSite.omadaSiteId || "Não configurado"}</div>
+              <div className="mb-3">
+                <strong className="text-muted text-uppercase small">ID Omada:</strong>
+                <div className="fw-semibold text-primary font-monospace">{selectedSite.omadaSiteId || "Não configurado"}</div>
               </div>
-              <div className="d-flex align-items-center mb-3">
-                <div className="text-muted small text-uppercase fw-semibold" style={{minWidth: '140px'}}>Sincronização:</div>
-                <div className="fw-semibold">
+              <div className="mb-3">
+                <strong className="text-muted text-uppercase small">Última Sync:</strong>
+                <div className="fw-semibold text-dark">
                   {selectedSite.lastSync 
                     ? new Date(selectedSite.lastSync).toLocaleDateString('pt-BR') + ' às ' + new Date(selectedSite.lastSync).toLocaleTimeString('pt-BR')
                     : "Nunca sincronizado"
