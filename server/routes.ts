@@ -620,7 +620,10 @@ export function registerRoutes(app: Express): Server {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
+        ...(process.env.NODE_ENV === 'development' && {
+          agent: new (await import('https')).Agent({ rejectUnauthorized: false })
+        })
       });
 
       const tokenData = await tokenResponse.json();
@@ -736,7 +739,10 @@ export function registerRoutes(app: Express): Server {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `AccessToken=${accessToken}`
-          }
+          },
+          ...(process.env.NODE_ENV === 'development' && {
+            agent: new (await import('https')).Agent({ rejectUnauthorized: false })
+          })
         });
 
         console.log(`Sites API response status: ${response.status}`);
@@ -757,7 +763,10 @@ export function registerRoutes(app: Express): Server {
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `AccessToken=${newAccessToken}`
-              }
+              },
+              ...(process.env.NODE_ENV === 'development' && {
+                agent: new (await import('https')).Agent({ rejectUnauthorized: false })
+              })
             });
             
             if (!retryResponse.ok) {
@@ -803,7 +812,10 @@ export function registerRoutes(app: Express): Server {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json'
-            }
+            },
+            ...(process.env.NODE_ENV === 'development' && {
+              agent: new (await import('https')).Agent({ rejectUnauthorized: false })
+            })
           });
           
           if (infoResponse.ok) {
