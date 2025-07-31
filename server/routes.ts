@@ -1301,7 +1301,7 @@ export function registerRoutes(app: Express): Server {
       for (const omadaVoucher of omadaVouchers) {
         try {
           const voucher = await storage.createVoucher({
-            code: omadaVoucher.id,
+            code: omadaVoucher.code,
             planId: planId,
             siteId: plan.siteId,
             status: 'available',

@@ -179,10 +179,19 @@ export default function VendedorDashboard() {
           }
           .voucher-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 3mm;
             flex: 1;
             align-content: start;
+          }
+          
+          @media screen and (max-width: 768px) {
+            .voucher-grid { grid-template-columns: repeat(2, 1fr); }
+            .page { width: 100%; padding: 2mm; }
+          }
+          
+          @media screen and (min-width: 769px) and (max-width: 1024px) {
+            .voucher-grid { grid-template-columns: repeat(4, 1fr); }
           }
           
           .voucher {
@@ -335,10 +344,20 @@ export default function VendedorDashboard() {
           }
           .voucher {
             width: 100%;
+            max-width: 80mm;
             padding: 8mm;
             border-bottom: 2px dashed #333;
             page-break-after: always;
             text-align: center;
+            margin: 0 auto;
+          }
+          
+          @media screen and (max-width: 480px) {
+            .voucher { 
+              width: 100%; 
+              max-width: none; 
+              padding: 4mm; 
+            }
           }
           .voucher:last-child {
             border-bottom: none;
