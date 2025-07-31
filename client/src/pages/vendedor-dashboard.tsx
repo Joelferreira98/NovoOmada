@@ -587,44 +587,44 @@ export default function VendedorDashboard() {
 
             {/* Daily Stats */}
             {dailyStats && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                <Card>
-                  <CardContent className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+                <Card className="bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200">
+                  <CardContent className="p-4 md:p-6">
                     <div className="flex items-center">
-                      <div className="bg-amber-100 p-3 rounded-lg">
-                        <TicketIcon className="text-amber-600 text-xl" />
+                      <div className="bg-amber-500 p-2 md:p-3 rounded-lg">
+                        <TicketIcon className="text-white w-5 h-5 md:w-6 md:h-6" />
                       </div>
-                      <div className="ml-4">
-                        <p className="text-2xl font-bold text-slate-800">{dailyStats.vouchersToday}</p>
-                        <p className="text-slate-600 font-medium">Vouchers Hoje</p>
+                      <div className="ml-3 md:ml-4">
+                        <p className="text-lg md:text-2xl font-bold text-slate-800">{dailyStats.vouchersToday}</p>
+                        <p className="text-xs md:text-sm text-slate-600 font-medium">Vouchers Hoje</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
                 
-                <Card>
-                  <CardContent className="p-6">
+                <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+                  <CardContent className="p-4 md:p-6">
                     <div className="flex items-center">
-                      <div className="bg-emerald-100 p-3 rounded-lg">
-                        <DollarSign className="text-emerald-600 text-xl" />
+                      <div className="bg-green-500 p-2 md:p-3 rounded-lg">
+                        <DollarSign className="text-white w-5 h-5 md:w-6 md:h-6" />
                       </div>
-                      <div className="ml-4">
-                        <p className="text-2xl font-bold text-slate-800">R$ {dailyStats.revenueToday}</p>
-                        <p className="text-slate-600 font-medium">Vendas Hoje</p>
+                      <div className="ml-3 md:ml-4">
+                        <p className="text-lg md:text-2xl font-bold text-slate-800">R$ {dailyStats.revenueToday || '0,00'}</p>
+                        <p className="text-xs md:text-sm text-slate-600 font-medium">Vendas Hoje</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
                 
-                <Card>
-                  <CardContent className="p-6">
+                <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+                  <CardContent className="p-4 md:p-6">
                     <div className="flex items-center">
-                      <div className="bg-primary-100 p-3 rounded-lg">
-                        <Calendar className="text-primary-600 text-xl" />
+                      <div className="bg-blue-500 p-2 md:p-3 rounded-lg">
+                        <Calendar className="text-white w-5 h-5 md:w-6 md:h-6" />
                       </div>
-                      <div className="ml-4">
-                        <p className="text-2xl font-bold text-slate-800">R$ {dailyStats.averageDaily}</p>
-                        <p className="text-slate-600 font-medium">Média Diária</p>
+                      <div className="ml-3 md:ml-4">
+                        <p className="text-lg md:text-2xl font-bold text-slate-800">R$ {dailyStats.averageDaily || '0,00'}</p>
+                        <p className="text-xs md:text-sm text-slate-600 font-medium">Média Diária</p>
                       </div>
                     </div>
                   </CardContent>
@@ -632,17 +632,17 @@ export default function VendedorDashboard() {
               </div>
             )}
 
-            {/* Voucher Generation */}
+            {/* Voucher Generation - Mobile Optimized */}
             <Card>
               <CardHeader>
-                <CardTitle>Gerar Novos Vouchers</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Gerar Novos Vouchers</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="plan">Selecionar Plano</Label>
+              <CardContent className="space-y-4 md:space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="plan" className="text-sm md:text-base font-medium">Selecionar Plano</Label>
                     <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-12 md:h-10">
                         <SelectValue placeholder="Escolha um plano" />
                       </SelectTrigger>
                       <SelectContent>
@@ -655,8 +655,8 @@ export default function VendedorDashboard() {
                     </Select>
                   </div>
                   
-                  <div>
-                    <Label htmlFor="quantity">Quantidade de Vouchers</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity" className="text-sm md:text-base font-medium">Quantidade de Vouchers</Label>
                     <Input
                       id="quantity"
                       type="number"
@@ -664,6 +664,7 @@ export default function VendedorDashboard() {
                       max="100"
                       value={quantity}
                       onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                      className="h-12 md:h-10 text-lg md:text-base"
                     />
                   </div>
                 </div>
@@ -702,13 +703,13 @@ export default function VendedorDashboard() {
                       {quantity} voucher(s) × R$ {selectedPlanData?.unitPrice || "0.00"}
                     </p>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <Button 
                       onClick={onGenerateVouchers}
                       disabled={generateVouchersMutation.isPending || !selectedPlan}
-                      className="bg-amber-500 hover:bg-amber-600"
+                      className="bg-amber-500 hover:bg-amber-600 h-12 md:h-10 text-base md:text-sm font-medium flex-1 sm:flex-none"
                     >
-                      <TicketIcon className="w-4 h-4 mr-2" />
+                      <TicketIcon className="w-5 h-5 md:w-4 md:h-4 mr-2" />
                       {generateVouchersMutation.isPending ? "Gerando..." : "Gerar Vouchers"}
                     </Button>
                     
@@ -720,10 +721,12 @@ export default function VendedorDashboard() {
                             setLastGeneratedVouchers([]);
                           }}
                           variant="outline"
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 h-12 md:h-10 flex-1 sm:flex-none"
                         >
-                          <Printer className="w-4 h-4" />
-                          A4 ({lastGeneratedVouchers.length})
+                          <Printer className="w-5 h-5 md:w-4 md:h-4" />
+                          <span className="hidden sm:inline">A4</span>
+                          <span className="sm:hidden">Imprimir A4</span>
+                          <span className="text-xs">({lastGeneratedVouchers.length})</span>
                         </Button>
                         <Button 
                           onClick={() => {
@@ -731,10 +734,12 @@ export default function VendedorDashboard() {
                             setLastGeneratedVouchers([]);
                           }}
                           variant="outline"
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 h-12 md:h-10 flex-1 sm:flex-none"
                         >
-                          <Printer className="w-4 h-4" />
-                          Cupom ({lastGeneratedVouchers.length})
+                          <Printer className="w-5 h-5 md:w-4 md:h-4" />
+                          <span className="hidden sm:inline">Cupom</span>
+                          <span className="sm:hidden">Cupom Térmico</span>
+                          <span className="text-xs">({lastGeneratedVouchers.length})</span>
                         </Button>
                       </div>
                     )}
@@ -743,14 +748,15 @@ export default function VendedorDashboard() {
               </CardContent>
             </Card>
 
-            {/* Recent Vouchers */}
+            {/* Recent Vouchers - Mobile Optimized */}
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Vouchers Recentes</CardTitle>
-                  <Button variant="outline">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <CardTitle className="text-lg md:text-xl">Vouchers Recentes</CardTitle>
+                  <Button variant="outline" className="h-10 text-sm self-end sm:self-auto">
                     <Download className="w-4 h-4 mr-2" />
-                    Exportar Lista
+                    <span className="hidden sm:inline">Exportar Lista</span>
+                    <span className="sm:hidden">Exportar</span>
                   </Button>
                 </div>
               </CardHeader>
@@ -760,90 +766,128 @@ export default function VendedorDashboard() {
                     Nenhum voucher gerado ainda
                   </p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-slate-200">
-                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Código</th>
-                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Plano</th>
-                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Data/Hora</th>
-                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Status</th>
-                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(vouchers as any[]).slice(0, 10).map((voucher: any) => (
-                          <tr key={voucher.id} className="border-b border-slate-100">
-                            <td className="py-3 px-4">
-                              <div className="font-mono text-sm bg-slate-100 px-2 py-1 rounded">
-                                {voucher.code}
-                              </div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="text-sm">
-                                <p className="font-medium text-slate-800">{voucher.plan?.nome}</p>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4 text-slate-600 text-sm">
-                              {new Date(voucher.createdAt).toLocaleString()}
-                            </td>
-                            <td className="py-3 px-4">
-                              <Badge variant={voucher.status === "available" ? "default" : "secondary"}>
-                                {voucher.status === "available" ? "Disponível" : "Usado"}
-                              </Badge>
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="flex space-x-2">
-                                <Button size="sm" variant="ghost" className="text-primary-600">
-                                  <Printer className="w-4 h-4" />
-                                </Button>
+                  <>
+                    {/* Mobile Cards View */}
+                    <div className="md:hidden space-y-3">
+                      {(vouchers as any[]).slice(0, 10).map((voucher: any) => (
+                        <Card key={voucher.id} className="border border-slate-200">
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="font-mono font-bold text-lg">{voucher.code}</div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                voucher.status === 'used' ? 'bg-red-100 text-red-700' : 
+                                voucher.status === 'available' ? 'bg-green-100 text-green-700' : 
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {voucher.status === 'used' ? 'Usado' : 
+                                 voucher.status === 'available' ? 'Disponível' : voucher.status}
+                              </span>
+                            </div>
+                            <div className="text-sm text-slate-600 space-y-1">
+                              <div><strong>Plano:</strong> {voucher.planName}</div>
+                              <div><strong>Data:</strong> {new Date(voucher.createdAt).toLocaleDateString('pt-BR')} às {new Date(voucher.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</div>
+                              <div><strong>Preço:</strong> R$ {voucher.unitPrice}</div>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={() => navigator.clipboard.writeText(voucher.code)}
+                              >
+                                Copiar
+                              </Button>
+                              {voucher.status === 'available' && (
                                 <Button 
+                                  variant="outline" 
                                   size="sm" 
-                                  variant="ghost" 
-                                  className="text-amber-600"
-                                  onClick={() => navigator.clipboard.writeText(voucher.code)}
+                                  className="flex-1 text-red-600 hover:text-red-700"
+                                  onClick={() => {
+                                    if (confirm('Deseja realmente excluir este voucher?')) {
+                                      deleteVoucherMutation.mutate(voucher.id);
+                                    }
+                                  }}
                                 >
-                                  <Copy className="w-4 h-4" />
+                                  Excluir
                                 </Button>
-                                {voucher.status === "available" && (
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button 
-                                        size="sm" 
-                                        variant="ghost" 
-                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Deletar Voucher</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Tem certeza que deseja deletar o voucher <strong>{voucher.code}</strong>?
-                                          Esta ação não pode ser desfeita e o voucher será removido do sistema Omada.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => deleteVoucherMutation.mutate(voucher.id)}
-                                          disabled={deleteVoucherMutation.isPending}
-                                          className="bg-red-600 hover:bg-red-700"
-                                        >
-                                          {deleteVoucherMutation.isPending ? "Deletando..." : "Deletar"}
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                )}
-                              </div>
-                            </td>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                    
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-200">
+                            <th className="text-left py-3 px-4 font-semibold text-slate-700">Código</th>
+                            <th className="text-left py-3 px-4 font-semibold text-slate-700">Plano</th>
+                            <th className="text-left py-3 px-4 font-semibold text-slate-700">Data/Hora</th>
+                            <th className="text-left py-3 px-4 font-semibold text-slate-700">Status</th>
+                            <th className="text-left py-3 px-4 font-semibold text-slate-700">Ações</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {(vouchers as any[]).slice(0, 10).map((voucher: any) => (
+                            <tr key={voucher.id} className="border-b border-slate-100">
+                              <td className="py-3 px-4">
+                                <div className="font-mono text-sm bg-slate-100 px-2 py-1 rounded">
+                                  {voucher.code}
+                                </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="text-sm">
+                                  <p className="font-medium text-slate-800">{voucher.planName}</p>
+                                  <p className="text-slate-600">R$ {voucher.unitPrice}</p>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-slate-600 text-sm">
+                                {new Date(voucher.createdAt).toLocaleDateString('pt-BR')} às {new Date(voucher.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  voucher.status === 'used' ? 'bg-red-100 text-red-700' : 
+                                  voucher.status === 'available' ? 'bg-green-100 text-green-700' : 
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {voucher.status === 'used' ? 'Usado' : 
+                                   voucher.status === 'available' ? 'Disponível' : voucher.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="text-blue-600"
+                                    onClick={() => navigator.clipboard.writeText(voucher.code)}
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </Button>
+                                  {voucher.status === "available" && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost" 
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      onClick={() => {
+                                        if (confirm('Deseja realmente excluir este voucher?')) {
+                                          deleteVoucherMutation.mutate(voucher.id);
+                                        }
+                                      }}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -851,10 +895,10 @@ export default function VendedorDashboard() {
         )}
 
         {activeTab === "sales" && (
-          <div className="space-y-8">
+          <div className="space-y-4 md:space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-slate-800">Relatórios</h1>
-              <p className="text-slate-600 mt-2">Visualize estatísticas e relatórios de vouchers</p>
+              <h1 className="text-xl md:text-3xl font-bold text-slate-800">Relatórios</h1>
+              <p className="text-sm md:text-base text-slate-600 mt-2">Visualize estatísticas e relatórios de vouchers</p>
             </div>
             
             <Card>
@@ -882,10 +926,10 @@ export default function VendedorDashboard() {
         )}
 
         {activeTab === "history" && (
-          <div className="space-y-8">
+          <div className="space-y-4 md:space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-slate-800">Histórico</h1>
-              <p className="text-slate-600 mt-2">Histórico completo de vouchers</p>
+              <h1 className="text-xl md:text-3xl font-bold text-slate-800">Histórico</h1>
+              <p className="text-sm md:text-base text-slate-600 mt-2">Histórico completo de vouchers</p>
             </div>
 
             <Card>
@@ -899,10 +943,10 @@ export default function VendedorDashboard() {
         )}
 
         {activeTab === "print-history" && (
-          <div className="space-y-8">
+          <div className="space-y-4 md:space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-slate-800">Histórico de Impressões</h1>
-              <p className="text-slate-600 mt-2">Reimpressão de vouchers anteriores</p>
+              <h1 className="text-xl md:text-3xl font-bold text-slate-800">Histórico de Impressões</h1>
+              <p className="text-sm md:text-base text-slate-600 mt-2">Reimpressão de vouchers anteriores</p>
             </div>
 
             <Card>
