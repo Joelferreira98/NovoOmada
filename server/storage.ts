@@ -6,6 +6,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
+import crypto from "crypto";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -93,8 +94,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    await db.insert(users).values(insertUser);
-    const [user] = await db.select().from(users).where(eq(users.username, insertUser.username));
+    // Generate UUID for the user
+    const userId = crypto.randomUUID();
+    const userWithId = { ...insertUser, id: userId };
+    
+    await db.insert(users).values(userWithId);
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
     return user;
   }
 
@@ -241,21 +246,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePlan(id: string, plan: Partial<Plan>): Promise<Plan | undefined> {
-    const [updatedPlan] = await db
+    await db
       .update(plans)
       .set(plan)
-      .where(eq(plans.id, id))
-      .returning();
+      .where(eq(plans.id, id));
+    const [updatedPlan] = await db.select().from(plans).where(eq(plans.id, id));
     return updatedPlan;
   }
 
   async deletePlan(id: string): Promise<boolean> {
     const result = await db.delete(plans).where(eq(plans.id, id));
-    return (result.rowCount || 0) > 0;
+    return (result.affectedRows || 0) > 0;
   }
 
   async createVoucher(voucher: InsertVoucher): Promise<Voucher> {
-    const [newVoucher] = await db.insert(vouchers).values(voucher).returning();
+    const voucherId = crypto.randomUUID();
+    const voucherWithId = { ...voucher, id: voucherId };
+    
+    await db.insert(vouchers).values(voucherWithId);
+    const [newVoucher] = await db.select().from(vouchers).where(eq(vouchers.id, voucherId));
     return newVoucher;
   }
 
@@ -337,11 +346,14 @@ export class DatabaseStorage implements IStorage {
       ));
 
     if (siteId) {
-      voucherQuery = voucherQuery.where(and(
-        eq(vouchers.createdBy, userId),
-        eq(vouchers.siteId, siteId),
-        sql`${vouchers.createdAt} >= ${today}`
-      ));
+      voucherQuery = db
+        .select({ count: sql<number>`count(*)` })
+        .from(vouchers)
+        .where(and(
+          eq(vouchers.createdBy, userId),
+          eq(vouchers.siteId, siteId),
+          sql`${vouchers.createdAt} >= ${today}`
+        ));
     }
 
     const [voucherResult] = await voucherQuery;
@@ -355,11 +367,14 @@ export class DatabaseStorage implements IStorage {
       ));
 
     if (siteId) {
-      salesQuery = salesQuery.where(and(
-        eq(sales.sellerId, userId),
-        eq(sales.siteId, siteId),
-        sql`${sales.createdAt} >= ${today}`
-      ));
+      salesQuery = db
+        .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
+        .from(sales)
+        .where(and(
+          eq(sales.sellerId, userId),
+          eq(sales.siteId, siteId),
+          sql`${sales.createdAt} >= ${today}`
+        ));
     }
 
     const [salesResult] = await salesQuery;
