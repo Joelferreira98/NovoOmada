@@ -75,7 +75,7 @@ export function ProtectedRoute({
     }
     
     // If admin is trying to access non-admin routes, redirect to admin
-    if (!path.startsWith("/admin") && path !== "/site-selection" && path !== "/") {
+    if (!path.startsWith("/admin") && path !== "/site-selection" && path !== "/reports" && path !== "/") {
       return (
         <Route path={path}>
           <Redirect to="/admin" />
@@ -84,7 +84,7 @@ export function ProtectedRoute({
     }
   }
 
-  if (user.role === "vendedor" && !path.startsWith("/vendedor") && path !== "/") {
+  if (user.role === "vendedor" && !path.startsWith("/vendedor") && path !== "/reports" && path !== "/") {
     return (
       <Route path={path}>
         <Redirect to="/vendedor" />
