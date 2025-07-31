@@ -45,6 +45,7 @@ Preferred communication style: Simple, everyday language.
 - **Reporting**: Advanced analytics on voucher usage, price, and duration distribution, directly from Omada API.
 - **Authentication Flow**: Login, session creation, and role-based dashboard redirection.
 - **Voucher Generation Flow**: Frontend request to backend, database record creation, Omada API integration, and return of voucher codes.
+- **Navigation**: Simplified navigation with direct links to reports page from vendor dashboard.
 - **Monorepo Structure**: Shared TypeScript types for full-stack type safety.
 - **Scalability**: Stateless API design with external session storage.
 

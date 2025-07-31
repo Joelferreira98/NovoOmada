@@ -473,8 +473,8 @@ export default function VendedorDashboard() {
     { 
       icon: BarChart3, 
       label: "Relatórios", 
-      active: activeTab === "sales",
-      onClick: () => setActiveTab("sales")
+      active: false,
+      onClick: () => window.location.href = "/reports"
     },
     { 
       icon: History, 
@@ -737,36 +737,7 @@ export default function VendedorDashboard() {
             </div>
           )}
 
-          {/* Reports Tab */}
-          {activeTab === "sales" && (
-            <div className="mb-4">
-              <div className="mb-4">
-                <h1 className="h2 h1-lg fw-bold text-dark mb-2">Relatórios</h1>
-                <p className="text-muted">Visualize estatísticas e relatórios</p>
-              </div>
-              
-              <div className="card">
-                <div className="card-header">
-                  <h5 className="card-title mb-0 d-flex align-items-center">
-                    <BarChart3 className="me-2" size={20} />
-                    Acessar Relatórios Detalhados
-                  </h5>
-                </div>
-                <div className="card-body">
-                  <p className="text-muted mb-3">
-                    Acesse o sistema completo de relatórios para visualizar estatísticas detalhadas.
-                  </p>
-                  <Button 
-                    onClick={() => window.location.href = "/reports"}
-                    className="btn btn-primary"
-                  >
-                    <BarChart3 className="me-2" size={18} />
-                    Abrir Relatórios
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {/* History Tab */}
           {activeTab === "history" && (
