@@ -318,18 +318,21 @@ async function syncVoucherStatus(vouchers: any[], siteId: string) {
     // Sincronizar cada grupo
     for (const [groupId, groupVouchers] of voucherGroups) {
       try {
-        const detailResponse = await fetch(
+        // Use node-fetch for sync with SSL
+        const nodeFetch = (await import('node-fetch')).default;
+        const https = await import('https');
+        const syncAgent = process.env.NODE_ENV === 'development' 
+          ? new https.Agent({ rejectUnauthorized: false })
+          : undefined;
+
+        const detailResponse = await nodeFetch(
           `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${groupId}?page=1&pageSize=1000`,
           {
             headers: {
               'Authorization': `AccessToken=${accessToken}`,
               'Content-Type': 'application/json',
             },
-            ...(process.env.NODE_ENV === 'development' && {
-              agent: new (await import('https')).Agent({
-                rejectUnauthorized: false
-              })
-            })
+            agent: syncAgent
           }
         );
 
@@ -1413,7 +1416,14 @@ export function registerRoutes(app: Express): Server {
       console.log('Creating voucher group at URL:', voucherApiUrl);
       console.log('Creating voucher group with data:', JSON.stringify(voucherGroupData, null, 2));
 
-      const createResponse = await fetch(
+      // Use node-fetch for voucher creation with SSL
+      const nodeFetch = (await import('node-fetch')).default;
+      const https = await import('https');
+      const createAgent = process.env.NODE_ENV === 'development' 
+        ? new https.Agent({ rejectUnauthorized: false })
+        : undefined;
+
+      const createResponse = await nodeFetch(
         voucherApiUrl,
         {
           method: 'POST',
@@ -1422,11 +1432,7 @@ export function registerRoutes(app: Express): Server {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(voucherGroupData),
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          agent: createAgent
         }
       );
 
@@ -1453,18 +1459,19 @@ export function registerRoutes(app: Express): Server {
       const voucherGroupUrl = `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${voucherGroupId}?${voucherGroupParams}`;
       console.log(`Fetching voucher group details from: ${voucherGroupUrl}`);
       
-      const vouchersResponse = await fetch(
+      // Use node-fetch for voucher details with SSL
+      const detailsAgent = process.env.NODE_ENV === 'development' 
+        ? new https.Agent({ rejectUnauthorized: false })
+        : undefined;
+
+      const vouchersResponse = await nodeFetch(
         voucherGroupUrl,
         {
           method: 'GET',
           headers: {
             'Authorization': `AccessToken=${accessToken}`,
           },
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          agent: detailsAgent
         }
       );
 
