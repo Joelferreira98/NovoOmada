@@ -6,6 +6,17 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 
 ## Recent Changes (July 31, 2025)
 
+✓ **Sistema de Histórico de Impressões Completo**: Funcionalidade completa de reimpressão implementada
+- **Print History Database**: Tabela print_history criada automaticamente no MySQL
+- **Auto Save**: Todas as impressões (A4 e térmicas) são salvas automaticamente
+- **Reprint Interface**: Aba "Reimprimir Vouchers" com botões para reimprimir, download e exclusão
+- **Smart JSON Handling**: Sistema robusto de parsing JSON para códigos de vouchers
+- **Debug Logging**: Logs detalhados para monitoramento do sistema
+
+✓ **Menu Atualizado**: Substituído "Caixa" por "Relatórios" no dashboard do vendedor
+- **Direct Access**: Link direto para o sistema completo de relatórios
+- **Better UX**: Acesso mais intuitivo às funcionalidades de análise de dados
+
 ✓ **Sistema de Impressão Dual: A4 + Cupom Térmico**: Layout adaptável para diferentes impressoras
 - **A4 Print**: Grid responsivo otimizado para papel A4 (até 100 vouchers)
 - **Thermal Roll Print**: Layout específico para impressoras térmicas 58/80mm

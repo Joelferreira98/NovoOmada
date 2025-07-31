@@ -33,7 +33,7 @@ export default function VendedorDashboard() {
 
   const userSite = (userSites as any[])[0]; // Vendedor só tem acesso a um site
 
-  const { data: dailyStats } = useQuery({
+  const { data: dailyStats = {} } = useQuery({
     queryKey: ["/api/stats/daily", userSite?.id],
     enabled: !!userSite,
   });
@@ -541,10 +541,10 @@ export default function VendedorDashboard() {
       onClick: () => setActiveTab("generate")
     },
     { 
-      icon: Calculator, 
-      label: "Caixa", 
-      active: activeTab === "cash",
-      onClick: () => window.location.href = "/cash"
+      icon: BarChart3, 
+      label: "Relatórios", 
+      active: activeTab === "reports",
+      onClick: () => window.location.href = "/reports"
     },
     { 
       icon: TrendingUp, 
