@@ -58,10 +58,11 @@ interface PlanModalProps {
   siteName: string;
   plan?: any; // For editing existing plans
   mode?: "create" | "edit";
+  onClose?: () => void;
 }
 
-export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModalProps) {
-  const [open, setOpen] = useState(false);
+export function PlanModal({ siteId, siteName, plan, mode = "create", onClose }: PlanModalProps) {
+  const [open, setOpen] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isEdit = mode === "edit";
@@ -108,6 +109,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
     },
     onSuccess: () => {
       setOpen(false);
+      onClose?.();
       form.reset();
       toast({
         title: isEdit ? "Plano atualizado" : "Plano criado com sucesso",
@@ -150,9 +152,15 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
     planMutation.mutate(finalData);
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      onClose?.();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
         {isEdit ? (
           <Button variant="outline" size="sm">
             <Settings className="h-4 w-4 mr-2" />

@@ -27,7 +27,7 @@ import {
 import { useLocation } from "wouter";
 import { Site } from "@shared/schema";
 import { VendedorModal } from "@/components/modals/vendedor-modal";
-import { PlanModal } from "@/components/modals/plan-modal";
+import { PlanModal } from "@/components/modals/plan-modal-fixed";
 import { Sidebar } from "@/components/layout/sidebar";
 
 export default function AdminDashboard() {
@@ -607,6 +607,7 @@ function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAd
           siteName={site?.name || ""}
           vendedor={null}
           mode="create"
+          onClose={() => setShowCreateModal(false)}
         />
       )}
       
@@ -616,6 +617,7 @@ function VendedoresSection({ siteId, vendedores, loading, onEdit, onDelete, onAd
           siteName={site?.name || ""}
           vendedor={editingVendedor}
           mode="edit"
+          onClose={() => setEditingVendedor(null)}
         />
       )}
     </div>
@@ -733,6 +735,7 @@ function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) 
           siteName={site?.name || ""}
           plan={null}
           mode="create"
+          onClose={() => setShowCreateModal(false)}
         />
       )}
       
@@ -742,6 +745,7 @@ function PlansSection({ siteId, plans, loading, onEdit, onDelete, onAdd }: any) 
           siteName={site?.name || ""}
           plan={editingPlan}
           mode="edit"
+          onClose={() => setEditingPlan(null)}
         />
       )}
     </div>

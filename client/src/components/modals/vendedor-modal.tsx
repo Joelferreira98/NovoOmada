@@ -44,10 +44,11 @@ interface VendedorModalProps {
   siteName: string;
   vendedor?: any;
   mode?: "create" | "edit";
+  onClose?: () => void;
 }
 
-export function VendedorModal({ siteId, siteName, vendedor, mode = "create" }: VendedorModalProps) {
-  const [open, setOpen] = useState(false);
+export function VendedorModal({ siteId, siteName, vendedor, mode = "create", onClose }: VendedorModalProps) {
+  const [open, setOpen] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -91,6 +92,7 @@ export function VendedorModal({ siteId, siteName, vendedor, mode = "create" }: V
     },
     onSuccess: () => {
       setOpen(false);
+      onClose?.();
       form.reset();
       toast({
         title: mode === "edit" ? "Vendedor atualizado com sucesso" : "Vendedor criado com sucesso",
@@ -115,20 +117,15 @@ export function VendedorModal({ siteId, siteName, vendedor, mode = "create" }: V
     vendedorMutation.mutate(data);
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      onClose?.();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {mode === "edit" ? (
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Criar Vendedor
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
