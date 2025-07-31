@@ -47,6 +47,8 @@ const planFormSchema = insertPlanSchema.extend({
   durationUnit: z.string().default("horas").optional(), // Helper field for UI
   userLimit: z.number().min(1).max(10).default(1).optional(), // Number of concurrent users
   omadaLimitType: z.number().min(0).max(2).default(1).optional(), // Omada API mapping: 0=Limited Usage, 1=Limited Online Users, 2=Unlimited
+  tipoCodigo: z.string().default("mixed").optional(), // Helper field for UI
+  tipoLimite: z.string().default("duration").optional(), // Helper field for UI
 });
 
 type PlanFormData = z.infer<typeof planFormSchema>;
@@ -126,9 +128,26 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
   });
 
   const onSubmit = (data: PlanFormData) => {
+    // Convert tipoCodigo to correct codeForm JSON format for Omada API
+    let codeForm = "[0,1]"; // Default mixed
+    if (data.tipoCodigo === "digits") {
+      codeForm = "[0]"; // Only numbers
+    } else if (data.tipoCodigo === "letters") {
+      codeForm = "[1]"; // Only letters
+    } else if (data.tipoCodigo === "mixed") {
+      codeForm = "[0,1]"; // Numbers and letters
+    }
+    
     // Remove the helper fields before sending to backend, keep userLimit and omadaLimitType
-    const { durationUnit, ...planData } = data;
-    planMutation.mutate(planData);
+    const { durationUnit, tipoCodigo, ...planData } = data;
+    
+    // Add the correctly formatted codeForm
+    const finalData = {
+      ...planData,
+      codeForm: codeForm
+    };
+    
+    planMutation.mutate(finalData);
   };
 
   return (

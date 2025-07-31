@@ -2094,6 +2094,46 @@ export function registerRoutes(app: Express): Server {
   });
 
   const httpServer = createServer(app);
+  // Endpoint temporário para corrigir planos existentes com codeForm incorreto
+  app.post("/api/fix-plans", requireAuth, requireRole(["master", "admin"]), async (req, res) => {
+    try {
+      console.log('Fixing codeForm for plans that should have only numbers...');
+      
+      // Usar SQL direto para encontrar e corrigir planos
+      const { pool } = await import("./db");
+      
+      // Buscar planos que podem ter codeForm incorreto
+      const [plans] = await pool.execute(`
+        SELECT id, nome, codeForm FROM plans 
+        WHERE codeForm = '[0,1]' AND (
+          nome LIKE '%APENAS NUM%' OR 
+          nome LIKE '%SÓ NUM%' OR
+          nome LIKE '%NUMEROS%' OR
+          nome LIKE '%10 HORAS%'
+        )
+      `);
+      
+      let fixedCount = 0;
+      for (const plan of plans as any[]) {
+        // Atualizar para apenas números
+        await pool.execute(`
+          UPDATE plans SET codeForm = '[0]' WHERE id = ?
+        `, [plan.id]);
+        
+        console.log(`Fixed plan "${plan.nome}": ${plan.codeForm} -> [0]`);
+        fixedCount++;
+      }
+      
+      res.json({ 
+        message: `Fixed ${fixedCount} plans to use only numbers`, 
+        fixedPlans: fixedCount 
+      });
+    } catch (error: any) {
+      console.error("Error fixing plans:", error);
+      res.status(500).json({ message: error.message || "Failed to fix plans" });
+    }
+  });
+
   return httpServer;
 }
 
