@@ -289,11 +289,18 @@ export default function VendedorDashboard() {
     printWindow.document.write(printContent);
     printWindow.document.close();
     
-    // Save to print history
+    // Save to print history with proper code extraction
+    const validCodes = vouchersToPrint
+      .map(v => v?.code || v?.omadaVoucher?.code || v?.voucherCode || null)
+      .filter(code => code !== null && code !== undefined && code !== '');
+      
+    console.log('🔍 Extracted voucher codes for A4 history:', validCodes);
+    console.log('🔍 Original vouchers structure:', vouchersToPrint.slice(0, 3));
+    
     savePrintHistoryMutation.mutate({
       printType: 'a4',
-      voucherCodes: vouchersToPrint.map(v => v.code),
-      printTitle: `${planName} - ${currentDate} - ${vouchersToPrint.length} vouchers`,
+      voucherCodes: validCodes,
+      printTitle: `${planName} - ${currentDate} - ${validCodes.length} vouchers`,
       htmlContent: printContent
     });
 
@@ -421,11 +428,18 @@ export default function VendedorDashboard() {
     printWindow.document.write(printContent);
     printWindow.document.close();
     
-    // Save to print history
+    // Save to print history with proper code extraction
+    const validCodes = vouchersToPrint
+      .map(v => v?.code || v?.omadaVoucher?.code || v?.voucherCode || null)
+      .filter(code => code !== null && code !== undefined && code !== '');
+      
+    console.log('🔍 Extracted voucher codes for thermal history:', validCodes);
+    console.log('🔍 Original vouchers structure:', vouchersToPrint.slice(0, 3));
+    
     savePrintHistoryMutation.mutate({
       printType: 'thermal',
-      voucherCodes: vouchersToPrint.map(v => v.code),
-      printTitle: `${planName} Térmico - ${currentDate} - ${vouchersToPrint.length} vouchers`,
+      voucherCodes: validCodes,
+      printTitle: `${planName} Térmico - ${currentDate} - ${validCodes.length} vouchers`,
       htmlContent: printContent
     });
 
