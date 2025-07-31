@@ -6,6 +6,14 @@ This is a full-stack web application built for managing WiFi vouchers through Om
 
 ## Recent Changes (July 31, 2025)
 
+✓ **Sistema de Reimpressão Dual A4/Cupom - COMPLETO**: Funcionalidade completa de reimpressão com múltiplos formatos
+- **Reimpressão A4**: Botão dedicado para reimprimir vouchers em formato A4 padrão
+- **Reimpressão Térmica**: Botão dedicado para reimprimir vouchers em formato cupom térmico
+- **Download Duplo**: Opções de download em JSON (códigos) e HTML (página completa)
+- **Validação Robusta**: Verificação de códigos válidos antes da reimpressão
+- **Interface Agrupada**: Botões organizados em grupos para melhor usabilidade
+- **Feedback Visual**: Tooltips explicativos e mensagens de erro específicas
+
 ✓ **Dashboard Admin Padrão Vendedor - COMPLETO**: Implementação completa seguindo padrão visual do vendedor
 - **Background Gradiente**: Mesmo fundo linear-gradient(135deg, #667eea 0%, #764ba2 100%) do vendedor
 - **Layout Grid Bootstrap**: Sistema container-fluid > row > col responsivo idêntico

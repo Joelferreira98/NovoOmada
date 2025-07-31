@@ -798,28 +798,72 @@ export default function VendedorDashboard() {
                               </div>
                               
                               <div className="d-flex gap-2 flex-wrap">
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    const printWindow = window.open('', '_blank');
-                                    if (printWindow) {
-                                      printWindow.document.write(print.htmlContent);
-                                      printWindow.document.close();
-                                      printWindow.onload = () => {
-                                        printWindow.focus();
-                                        printWindow.print();
-                                      };
-                                    }
-                                  }}
-                                  className="btn btn-primary btn-sm"
-                                >
-                                  <Printer className="me-1" size={16} />
-                                  Reimprimir
-                                </Button>
+                                {/* Botões de Reimpressão - A4 e Cupom */}
+                                <div className="btn-group" role="group" aria-label="Opções de reimpressão">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      console.log('🖨️ A4 Reprint request for:', print.printTitle);
+                                      if (print.voucherCodes && print.voucherCodes.length > 0) {
+                                        printVouchers(print.voucherCodes);
+                                      } else {
+                                        toast({
+                                          title: "Erro",
+                                          description: "Códigos de vouchers não encontrados",
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }}
+                                    className="btn btn-primary btn-sm"
+                                    title="Reimprimir em formato A4"
+                                  >
+                                    <Printer className="me-1" size={16} />
+                                    A4
+                                  </button>
+                                  
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      console.log('🧾 Thermal Reprint request for:', print.printTitle);
+                                      if (print.voucherCodes && print.voucherCodes.length > 0) {
+                                        printVouchersRoll(print.voucherCodes);
+                                      } else {
+                                        toast({
+                                          title: "Erro",
+                                          description: "Códigos de vouchers não encontrados",
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }}
+                                    className="btn btn-secondary btn-sm"
+                                    title="Reimprimir em cupom térmico"
+                                  >
+                                    <Printer className="me-1" size={16} />
+                                    Cupom
+                                  </button>
+                                </div>
                                 
-                                <Button
-                                  size="sm"
-                                  variant="outline"
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const dataStr = JSON.stringify(print.voucherCodes, null, 2);
+                                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                                    const url = URL.createObjectURL(dataBlob);
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = `vouchers-${print.printTitle.replace(/[^a-zA-Z0-9]/g, '-')}.json`;
+                                    link.click();
+                                    URL.revokeObjectURL(url);
+                                  }}
+                                  className="btn btn-outline-info btn-sm"
+                                  title="Download dos códigos em JSON"
+                                >
+                                  <Download className="me-1" size={16} />
+                                  JSON
+                                </button>
+                                
+                                <button
+                                  type="button"
                                   onClick={() => {
                                     const blob = new Blob([print.htmlContent], { type: 'text/html' });
                                     const url = window.URL.createObjectURL(blob);
@@ -829,11 +873,12 @@ export default function VendedorDashboard() {
                                     a.click();
                                     window.URL.revokeObjectURL(url);
                                   }}
-                                  className="btn btn-outline-secondary btn-sm"
+                                  className="btn btn-outline-warning btn-sm"
+                                  title="Download do HTML original"
                                 >
                                   <Download className="me-1" size={16} />
-                                  Download
-                                </Button>
+                                  HTML
+                                </button>
                               </div>
                             </div>
                           </div>
