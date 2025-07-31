@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as React from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Redirect } from "wouter";
@@ -24,7 +25,9 @@ type OmadaCredentialsForm = z.infer<typeof insertOmadaCredentialsSchema>;
 export default function MasterDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("sync");
+  const [activeTab, setActiveTab] = useState<
+    "sync" | "sites" | "admins" | "vendedores" | "configuracoes"
+  >("sync");
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [editUserModalOpen, setEditUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -180,8 +183,8 @@ export default function MasterDashboard() {
     { 
       icon: Settings, 
       label: "Configurações", 
-      active: activeTab === "settings",
-      onClick: () => setActiveTab("settings")
+      active: activeTab === "configuracoes",
+      onClick: () => setActiveTab("configuracoes")
     },
   ];
 
@@ -549,6 +552,8 @@ export default function MasterDashboard() {
           </div>
         )}
 
+        {activeTab === "configuracoes" && <AppSettingsSection />}
+
         </div>
       </div>
 
@@ -562,6 +567,190 @@ export default function MasterDashboard() {
         onOpenChange={setEditUserModalOpen}
         user={selectedUser}
       />
+    </div>
+  );
+}
+
+// Componente para configurações da aplicação
+function AppSettingsSection() {
+  const { toast } = useToast();
+  const [settingsForm, setSettingsForm] = useState({
+    appName: "",
+    logoUrl: "",
+    faviconUrl: "",
+    primaryColor: "#007bff"
+  });
+
+  const { data: appSettings, isLoading } = useQuery({
+    queryKey: ["/api/app-settings"],
+  });
+
+  // Preencher formulário com dados existentes  
+  React.useEffect(() => {
+    if (appSettings) {
+      setSettingsForm({
+        appName: appSettings.appName || "Omada Voucher System",
+        logoUrl: appSettings.logoUrl || "",
+        faviconUrl: appSettings.faviconUrl || "",
+        primaryColor: appSettings.primaryColor || "#007bff"
+      });
+    }
+  }, [appSettings]);
+
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (settings: any) => {
+      const res = await apiRequest("PUT", "/api/app-settings", settings);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/app-settings"] });
+      toast({
+        title: "Configurações salvas",
+        description: "As configurações da aplicação foram atualizadas com sucesso"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao salvar configurações",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    setSettingsForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSave = () => {
+    saveSettingsMutation.mutate(settingsForm);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="d-flex justify-content-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Carregando...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4">
+      <div className="mb-4">
+        <h1 className="h2 h1-lg fw-bold text-dark mb-2">Configurações da Aplicação</h1>
+        <p className="text-muted">Personalize o nome, logo e aparência do sistema</p>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h5 className="card-title mb-0 d-flex align-items-center">
+            <Settings className="me-2" size={20} />
+            Personalização
+          </h5>
+        </div>
+        <div className="card-body">
+          <div className="row g-3">
+            <div className="col-12 col-md-6">
+              <label htmlFor="appName" className="form-label">Nome da Aplicação</label>
+              <input
+                id="appName"
+                type="text"
+                className="form-control"
+                value={settingsForm.appName}
+                onChange={(e) => handleInputChange("appName", e.target.value)}
+                placeholder="Nome do sistema"
+              />
+              <div className="form-text">
+                Este nome aparecerá no título da aplicação e nos cabeçalhos
+              </div>
+            </div>
+            
+            <div className="col-12 col-md-6">
+              <label htmlFor="primaryColor" className="form-label">Cor Primária</label>
+              <input
+                id="primaryColor"
+                type="color"
+                className="form-control form-control-color"
+                value={settingsForm.primaryColor}
+                onChange={(e) => handleInputChange("primaryColor", e.target.value)}
+              />
+              <div className="form-text">
+                Cor principal da interface (botões, links, etc.)
+              </div>
+            </div>
+            
+            <div className="col-12">
+              <label htmlFor="logoUrl" className="form-label">URL do Logo</label>
+              <input
+                id="logoUrl"
+                type="url"
+                className="form-control"
+                value={settingsForm.logoUrl}
+                onChange={(e) => handleInputChange("logoUrl", e.target.value)}
+                placeholder="https://exemplo.com/logo.png"
+              />
+              <div className="form-text">
+                URL de uma imagem para usar como logo (opcional)
+              </div>
+            </div>
+            
+            <div className="col-12">
+              <label htmlFor="faviconUrl" className="form-label">URL do Favicon</label>
+              <input
+                id="faviconUrl"
+                type="url"
+                className="form-control"
+                value={settingsForm.faviconUrl}
+                onChange={(e) => handleInputChange("faviconUrl", e.target.value)}
+                placeholder="https://exemplo.com/favicon.ico"
+              />
+              <div className="form-text">
+                URL do ícone que aparece na aba do navegador (opcional)
+              </div>
+            </div>
+          </div>
+
+          <div className="d-flex flex-column flex-lg-row gap-3 mt-4">
+            <button 
+              onClick={handleSave}
+              disabled={saveSettingsMutation.isPending}
+              className="btn btn-primary d-flex align-items-center"
+            >
+              <Save className="me-2" size={16} />
+              {saveSettingsMutation.isPending ? "Salvando..." : "Salvar Configurações"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Preview Section */}
+      {(settingsForm.logoUrl || settingsForm.appName !== "Omada Voucher System") && (
+        <div className="card mt-4">
+          <div className="card-header">
+            <h5 className="card-title mb-0">Visualização</h5>
+          </div>
+          <div className="card-body">
+            <div className="d-flex align-items-center p-3 bg-light rounded">
+              {settingsForm.logoUrl && (
+                <img 
+                  src={settingsForm.logoUrl} 
+                  alt="Logo" 
+                  className="me-3"
+                  style={{ height: "40px", objectFit: "contain" }}
+                />
+              )}
+              <h4 className="mb-0" style={{ color: settingsForm.primaryColor }}>
+                {settingsForm.appName}
+              </h4>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

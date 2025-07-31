@@ -1,12 +1,13 @@
 import { 
   users, sites, plans, vouchers, sales, omadaCredentials, userSiteAccess,
-  voucherGroups, cashClosures, printHistory,
+  voucherGroups, cashClosures, printHistory, appSettings,
   type User, type InsertUser, type Site, type InsertSite, 
   type Plan, type InsertPlan, type Voucher, type InsertVoucher,
   type OmadaCredentials, type InsertOmadaCredentials, type Sale,
   type VoucherGroup, type InsertVoucherGroup,
   type CashClosure, type InsertCashClosure,
-  type PrintHistory, type InsertPrintHistory
+  type PrintHistory, type InsertPrintHistory,
+  type AppSettings, type InsertAppSettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -86,6 +87,10 @@ export interface IStorage {
   savePrintHistory(printData: InsertPrintHistory): Promise<PrintHistory>;
   getPrintHistory(vendedorId: string, siteId: string): Promise<PrintHistory[]>;
   deletePrintHistory(id: string): Promise<boolean>;
+
+  // App Settings
+  getAppSettings(): Promise<AppSettings | null>;
+  updateAppSettings(settings: InsertAppSettings): Promise<AppSettings>;
 
   sessionStore: session.Store;
 }
@@ -860,6 +865,90 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error getting voucher by ID:', error);
       return null;
+    }
+  }
+
+  // App Settings methods
+  async getAppSettings(): Promise<AppSettings | null> {
+    try {
+      const { pool } = await import("./db");
+      const [rows] = await pool.execute(
+        'SELECT * FROM app_settings ORDER BY created_at DESC LIMIT 1'
+      );
+      
+      const results = rows as any[];
+      if (results.length === 0) return null;
+      
+      const row = results[0];
+      return {
+        id: row.id,
+        appName: row.app_name,
+        logoUrl: row.logo_url,
+        faviconUrl: row.favicon_url,
+        primaryColor: row.primary_color,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      };
+    } catch (error) {
+      console.error('Error getting app settings:', error);
+      return null;
+    }
+  }
+
+  async updateAppSettings(settings: InsertAppSettings): Promise<AppSettings> {
+    try {
+      const { pool } = await import("./db");
+      
+      // Create table if it doesn't exist
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS app_settings (
+          id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+          app_name VARCHAR(100) NOT NULL DEFAULT 'Omada Voucher System',
+          logo_url VARCHAR(500),
+          favicon_url VARCHAR(500),
+          primary_color VARCHAR(7) DEFAULT '#007bff',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Check if settings exist
+      const existing = await this.getAppSettings();
+      
+      if (existing) {
+        // Update existing settings
+        await pool.execute(`
+          UPDATE app_settings 
+          SET app_name = ?, logo_url = ?, favicon_url = ?, primary_color = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `, [
+          settings.appName,
+          settings.logoUrl,
+          settings.faviconUrl,
+          settings.primaryColor,
+          existing.id
+        ]);
+        
+        return await this.getAppSettings() as AppSettings;
+      } else {
+        // Create new settings
+        const settingsId = crypto.randomUUID();
+        await pool.execute(`
+          INSERT INTO app_settings (id, app_name, logo_url, favicon_url, primary_color)
+          VALUES (?, ?, ?, ?, ?)
+        `, [
+          settingsId,
+          settings.appName,
+          settings.logoUrl,
+          settings.faviconUrl,
+          settings.primaryColor
+        ]);
+        
+        return await this.getAppSettings() as AppSettings;
+      }
+    } catch (error) {
+      console.error('Error updating app settings:', error);
+      throw error;
     }
   }
 }

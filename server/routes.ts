@@ -2619,6 +2619,47 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // App Settings API routes
+  app.get("/api/app-settings", async (req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      if (!settings) {
+        // Return default settings if none exist
+        return res.json({
+          id: null,
+          appName: "Omada Voucher System",
+          logoUrl: null,
+          faviconUrl: null,
+          primaryColor: "#007bff",
+          createdAt: null,
+          updatedAt: null
+        });
+      }
+      res.json(settings);
+    } catch (error) {
+      console.error('Error getting app settings:', error);
+      res.status(500).json({ message: "Failed to get app settings" });
+    }
+  });
+
+  app.put("/api/app-settings", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      const { appName, logoUrl, faviconUrl, primaryColor } = req.body;
+      
+      const settings = await storage.updateAppSettings({
+        appName: appName || "Omada Voucher System",
+        logoUrl: logoUrl || null,
+        faviconUrl: faviconUrl || null,
+        primaryColor: primaryColor || "#007bff"
+      });
+      
+      res.json(settings);
+    } catch (error) {
+      console.error('Error updating app settings:', error);
+      res.status(500).json({ message: "Failed to update app settings" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

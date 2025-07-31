@@ -241,3 +241,22 @@ export type CashClosure = typeof cashClosures.$inferSelect;
 export type InsertCashClosure = z.infer<typeof insertCashClosureSchema>;
 export type PrintHistory = typeof printHistory.$inferSelect;
 export type InsertPrintHistory = z.infer<typeof insertPrintHistorySchema>;
+
+export const appSettings = mysqlTable("app_settings", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
+  appName: varchar("app_name", { length: 100 }).notNull().default("Omada Voucher System"),
+  logoUrl: varchar("logo_url", { length: 500 }),
+  faviconUrl: varchar("favicon_url", { length: 500 }),
+  primaryColor: varchar("primary_color", { length: 7 }).default("#007bff"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AppSettings = typeof appSettings.$inferSelect;
+export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;
