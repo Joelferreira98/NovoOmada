@@ -10,6 +10,7 @@ import https from "https";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { omadaFetch, makeOmadaRequest } from "./fetch-utils";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), 'server/uploads');
@@ -129,13 +130,7 @@ async function renewOmadaTokenWithCallbacks(credentials: any): Promise<string> {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
-      // Ignore SSL certificate issues for development
-      ...(process.env.NODE_ENV === 'development' && {
-        agent: new (await import('https')).Agent({
-          rejectUnauthorized: false
-        })
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!tokenResponse.ok) {
@@ -205,13 +200,7 @@ async function validateToken(token: string, credentials: any): Promise<boolean> 
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `AccessToken=${token}`
-      },
-      // Ignore SSL certificate issues for development
-      ...(process.env.NODE_ENV === 'development' && {
-        agent: new (await import('https')).Agent({
-          rejectUnauthorized: false
-        })
-      })
+      }
     });
 
     if (!testResponse.ok) {
@@ -434,21 +423,13 @@ async function getValidOmadaToken(credentials: any): Promise<string> {
     'client_secret': credentials.clientSecret
   };
   
-  // Use node-fetch with proper SSL configuration
-  const nodeFetch = (await import('node-fetch')).default;
-  const https = await import('https');
-  
-  const agent = process.env.NODE_ENV === 'development' 
-    ? new https.Agent({ rejectUnauthorized: false })
-    : undefined;
-
-  const tokenResponse = await nodeFetch(tokenUrl, {
+  // Use omadaFetch for SSL certificate handling
+  const tokenResponse = await omadaFetch(tokenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(requestBody),
-    agent
+    body: JSON.stringify(requestBody)
   });
 
   if (!tokenResponse.ok) {
@@ -620,10 +601,7 @@ export function registerRoutes(app: Express): Server {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const tokenData = await tokenResponse.json();
@@ -740,9 +718,6 @@ export function registerRoutes(app: Express): Server {
             'Content-Type': 'application/json',
             'Authorization': `AccessToken=${accessToken}`
           },
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-          })
         });
 
         console.log(`Sites API response status: ${response.status}`);
@@ -764,9 +739,6 @@ export function registerRoutes(app: Express): Server {
                 'Content-Type': 'application/json',
                 'Authorization': `AccessToken=${newAccessToken}`
               },
-              ...(process.env.NODE_ENV === 'development' && {
-                agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-              })
             });
             
             if (!retryResponse.ok) {
@@ -813,9 +785,6 @@ export function registerRoutes(app: Express): Server {
             headers: {
               'Content-Type': 'application/json'
             },
-            ...(process.env.NODE_ENV === 'development' && {
-              agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-            })
           });
           
           if (infoResponse.ok) {
@@ -1519,9 +1488,6 @@ export function registerRoutes(app: Express): Server {
         const groupListResponse = await omadaFetch(groupListUrl, {
           method: 'GET',
           headers: { 'Authorization': `AccessToken=${accessToken}` },
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-          })
         });
         
         if (groupListResponse.ok) {
@@ -1660,12 +1626,7 @@ export function registerRoutes(app: Express): Server {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -1724,12 +1685,7 @@ export function registerRoutes(app: Express): Server {
             'Authorization': `AccessToken=${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -1789,12 +1745,7 @@ export function registerRoutes(app: Express): Server {
           'Authorization': `AccessToken=${accessToken}`,
           'Content-Type': 'application/json',
         },
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
       });
 
       if (!response.ok) {
@@ -1854,12 +1805,7 @@ export function registerRoutes(app: Express): Server {
           'Authorization': `AccessToken=${accessToken}`,
           'Content-Type': 'application/json',
         },
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
       });
 
       if (!response.ok) {
@@ -1918,12 +1864,7 @@ export function registerRoutes(app: Express): Server {
             'Authorization': `AccessToken=${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -1959,7 +1900,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(500).json({ message: "Omada credentials not configured" });
       }
 
-      // Get access token
+      // Get access token using omadaFetch
       const tokenResponse = await omadaFetch(`${credentials.omadaUrl}/openapi/authorize/token`, {
         method: 'POST',
         headers: {
@@ -1969,13 +1910,8 @@ export function registerRoutes(app: Express): Server {
           grant_type: 'client_credentials',
           client_id: credentials.clientId,
           client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
+        }
       });
 
       if (!tokenResponse.ok) {
@@ -1993,12 +1929,7 @@ export function registerRoutes(app: Express): Server {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -2045,13 +1976,8 @@ export function registerRoutes(app: Express): Server {
           grant_type: 'client_credentials',
           client_id: credentials.clientId,
           client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
+        }
       });
 
       if (!tokenResponse.ok) {
@@ -2074,12 +2000,7 @@ export function registerRoutes(app: Express): Server {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
       });
 
       if (!groupResponse.ok) {
@@ -2124,13 +2045,8 @@ export function registerRoutes(app: Express): Server {
           grant_type: 'client_credentials',
           client_id: credentials.clientId,
           client_secret: credentials.clientSecret,
-        }),
-        // Ignore SSL certificate issues for self-signed certificates
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({
-            rejectUnauthorized: false
-          })
-        })
+        }
+        }
       });
 
       if (!tokenResponse.ok) {
@@ -2148,12 +2064,7 @@ export function registerRoutes(app: Express): Server {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -2187,12 +2098,7 @@ export function registerRoutes(app: Express): Server {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
               },
-              // Ignore SSL certificate issues for self-signed certificates
-              ...(process.env.NODE_ENV === 'development' && {
-                agent: new (await import('https')).Agent({
-                  rejectUnauthorized: false
-                })
-              })
+              }
             }
           );
 
@@ -2222,12 +2128,7 @@ export function registerRoutes(app: Express): Server {
                   'Authorization': `Bearer ${accessToken}`,
                   'Content-Type': 'application/json',
                 },
-                // Ignore SSL certificate issues for self-signed certificates
-                ...(process.env.NODE_ENV === 'development' && {
-                  agent: new (await import('https')).Agent({
-                    rejectUnauthorized: false
-                  })
-                })
+                }
               }
             );
 
@@ -2302,6 +2203,33 @@ export function registerRoutes(app: Express): Server {
   // FUNCIONALIDADES DO VENDEDOR
 
   // Print History API Routes
+  app.get("/api/print-history/:siteId", requireAuth, async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      
+      // Check if user has access to this site
+      if (req.user!.role === "vendedor") {
+        const userSites = await storage.getUserSites(req.user!.id);
+        const hasAccess = userSites.some(site => site.id === siteId);
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied to this site" });
+        }
+      } else if (req.user!.role === "admin") {
+        const userSites = await storage.getUserSites(req.user!.id);
+        const hasAccess = userSites.some(site => site.id === siteId);
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied to this site" });
+        }
+      }
+      
+      const history = await storage.getPrintHistoryBySite(siteId);
+      res.json(history);
+    } catch (error: any) {
+      console.error("Error fetching print history:", error);
+      res.status(500).json({ message: "Failed to fetch print history" });
+    }
+  });
+
   app.post("/api/print-history", requireAuth, requireRole(["vendedor"]), async (req, res) => {
     try {
       const { printType, voucherCodes, printTitle, htmlContent } = req.body;
@@ -2440,12 +2368,7 @@ export function registerRoutes(app: Express): Server {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(voucherData),
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -2471,12 +2394,7 @@ export function registerRoutes(app: Express): Server {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          // Ignore SSL certificate issues for self-signed certificates
-          ...(process.env.NODE_ENV === 'development' && {
-            agent: new (await import('https')).Agent({
-              rejectUnauthorized: false
-            })
-          })
+          }
         }
       );
 
@@ -2723,12 +2641,7 @@ export function registerRoutes(app: Express): Server {
               'Authorization': `Bearer ${freshAccessToken}`,
               'Content-Type': 'application/x-www-form-urlencoded',
             },
-            // Ignore SSL certificate issues for self-signed certificates
-            ...(process.env.NODE_ENV === 'development' && {
-              agent: new (await import('https')).Agent({
-                rejectUnauthorized: false
-              })
-            })
+            }
           }
         );
 
