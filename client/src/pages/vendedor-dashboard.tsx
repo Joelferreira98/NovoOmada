@@ -614,7 +614,16 @@ export default function VendedorDashboard() {
                         </h5>
                       </div>
                       <div className="card-body">
-                        <div className="d-flex flex-column gap-3">
+                        <div 
+                          className="d-flex flex-column gap-3"
+                          style={{ 
+                            pointerEvents: 'auto',
+                            position: 'relative',
+                            zIndex: 100
+                          }}
+                          onMouseEnter={() => console.log('Entered print buttons area')}
+                          onMouseLeave={() => console.log('Left print buttons area')}
+                        >
                           <div className="text-center mb-3">
                             <p className="text-success fw-semibold mb-1">
                               ✓ {lastGeneratedVouchers.length} vouchers gerados com sucesso!
@@ -626,68 +635,73 @@ export default function VendedorDashboard() {
                           
                           <button 
                             type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log('A4 print button clicked!');
+                            onClick={() => {
+                              console.log('🖨️ A4 print button clicked!');
                               console.log('Current vouchers:', lastGeneratedVouchers);
                               console.log('Vouchers length:', lastGeneratedVouchers?.length);
                               if (lastGeneratedVouchers && lastGeneratedVouchers.length > 0) {
                                 printVouchers(lastGeneratedVouchers);
                                 setLastGeneratedVouchers([]);
                               } else {
-                                console.error('No vouchers available for printing!');
+                                console.error('❌ No vouchers available for printing!');
                               }
                             }}
-                            className="btn btn-outline-primary w-100"
-                            style={{ height: '48px' }}
+                            onMouseDown={() => console.log('A4 button mouse down')}
+                            onMouseUp={() => console.log('A4 button mouse up')}
+                            className="btn btn-primary w-100"
+                            style={{ 
+                              height: '48px', 
+                              zIndex: 1000, 
+                              position: 'relative',
+                              pointerEvents: 'auto'
+                            }}
                           >
-                            <div className="d-flex align-items-center justify-content-center">
-                              <Printer className="me-2" size={20} />
-                              <div className="text-start">
-                                <div>Imprimir A4</div>
-                                <small className="text-muted">Formato padrão ({lastGeneratedVouchers.length} vouchers)</small>
-                              </div>
-                            </div>
+                            <Printer className="me-2" size={20} />
+                            Imprimir A4 ({lastGeneratedVouchers?.length || 0} vouchers)
                           </button>
                           
                           <button 
                             type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log('Thermal print button clicked!');
+                            onClick={() => {
+                              console.log('🧾 Thermal print button clicked!');
                               console.log('Current vouchers:', lastGeneratedVouchers);
                               console.log('Vouchers length:', lastGeneratedVouchers?.length);
                               if (lastGeneratedVouchers && lastGeneratedVouchers.length > 0) {
                                 printVouchersRoll(lastGeneratedVouchers);
                                 setLastGeneratedVouchers([]);
                               } else {
-                                console.error('No vouchers available for thermal printing!');
+                                console.error('❌ No vouchers available for thermal printing!');
                               }
                             }}
-                            className="btn btn-outline-secondary w-100"
-                            style={{ height: '48px' }}
+                            onMouseDown={() => console.log('Thermal button mouse down')}
+                            onMouseUp={() => console.log('Thermal button mouse up')}
+                            className="btn btn-secondary w-100"
+                            style={{ 
+                              height: '48px', 
+                              zIndex: 1000, 
+                              position: 'relative',
+                              pointerEvents: 'auto'
+                            }}
                           >
-                            <div className="d-flex align-items-center justify-content-center">
-                              <Printer className="me-2" size={20} />
-                              <div className="text-start">
-                                <div>Cupom Térmico</div>
-                                <small className="text-muted">58mm/80mm ({lastGeneratedVouchers.length} vouchers)</small>
-                              </div>
-                            </div>
+                            <Printer className="me-2" size={20} />
+                            Cupom Térmico ({lastGeneratedVouchers?.length || 0} vouchers)
                           </button>
                           
                           <button 
                             type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log('Cancel button clicked!');
+                            onClick={() => {
+                              console.log('❌ Cancel button clicked!');
                               setLastGeneratedVouchers([]);
                             }}
-                            className="btn btn-outline-danger w-100"
-                            style={{ height: '40px' }}
+                            onMouseDown={() => console.log('Cancel button mouse down')}
+                            onMouseUp={() => console.log('Cancel button mouse up')}
+                            className="btn btn-danger w-100"
+                            style={{ 
+                              height: '40px', 
+                              zIndex: 1000, 
+                              position: 'relative',
+                              pointerEvents: 'auto'
+                            }}
                           >
                             Cancelar Impressão
                           </button>
