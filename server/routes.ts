@@ -490,23 +490,38 @@ export function registerRoutes(app: Express): Server {
       
       console.log(`Route: Assigning sites to user ${userId}:`, siteIds);
       console.log(`Request body:`, req.body);
+      console.log(`User ID type:`, typeof userId);
+      console.log(`SiteIds type:`, typeof siteIds, Array.isArray(siteIds));
       
       // Validate user exists
       const user = await storage.getUser(userId);
       if (!user) {
+        console.log(`User not found: ${userId}`);
         return res.status(404).json({ message: "User not found" });
       }
+      console.log(`User found:`, user.username);
       
       // Validate siteIds format
       if (siteIds && !Array.isArray(siteIds)) {
+        console.log(`Invalid siteIds format:`, siteIds);
         return res.status(400).json({ message: "siteIds must be an array" });
+      }
+      
+      // Validate that sites exist
+      for (const siteId of (siteIds || [])) {
+        const site = await storage.getSiteById(siteId);
+        if (!site) {
+          console.log(`Site not found: ${siteId}`);
+          return res.status(400).json({ message: `Site not found: ${siteId}` });
+        }
+        console.log(`Site found: ${site.name}`);
       }
       
       await storage.assignSitesToUser(userId, siteIds || []);
       res.json({ message: "Sites atribuídos com sucesso" });
     } catch (error) {
       console.error("Assign sites error:", error);
-      res.status(500).json({ message: "Failed to assign sites", error: error instanceof Error ? error.message : "Unknown error" });
+      res.status(400).json({ message: "Failed to assign sites", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
