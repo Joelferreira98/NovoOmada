@@ -74,6 +74,120 @@ async function renewOmadaToken(credentials: any): Promise<string> {
   return accessToken;
 }
 
+// Função para sincronizar status dos vouchers com a API do Omada
+async function syncVoucherStatus(vouchers: any[], siteId: string) {
+  try {
+    console.log(`Synchronizing status for ${vouchers.length} vouchers`);
+    
+    if (vouchers.length === 0) return;
+
+    const credentials = await storage.getOmadaCredentials();
+    if (!credentials) {
+      console.log('No Omada credentials found, skipping sync');
+      return;
+    }
+
+    const site = await storage.getSiteById(siteId);
+    if (!site) {
+      console.log('Site not found, skipping sync');
+      return;
+    }
+
+    const accessToken = await getValidOmadaToken(credentials);
+    
+    // Agrupar vouchers por grupo do Omada para otimizar chamadas à API
+    const voucherGroups = new Map<string, any[]>();
+    vouchers.forEach(voucher => {
+      if (voucher.omadaGroupId) {
+        if (!voucherGroups.has(voucher.omadaGroupId)) {
+          voucherGroups.set(voucher.omadaGroupId, []);
+        }
+        voucherGroups.get(voucher.omadaGroupId)!.push(voucher);
+      }
+    });
+
+    // Sincronizar cada grupo
+    for (const [groupId, groupVouchers] of voucherGroups) {
+      try {
+        const detailResponse = await fetch(
+          `${credentials.omadaUrl}/openapi/v1/${credentials.omadacId}/sites/${site.omadaSiteId}/hotspot/voucher-groups/${groupId}?page=1&pageSize=1000`,
+          {
+            headers: {
+              'Authorization': `AccessToken=${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            ...(process.env.NODE_ENV === 'development' && {
+              agent: new (await import('https')).Agent({
+                rejectUnauthorized: false
+              })
+            })
+          }
+        );
+
+        if (!detailResponse.ok) {
+          console.error(`Failed to fetch voucher group ${groupId}: ${detailResponse.status}`);
+          continue;
+        }
+
+        const detailData = await detailResponse.json();
+        if (detailData.errorCode !== 0) {
+          console.error(`Omada API error for group ${groupId}: ${detailData.msg}`);
+          continue;
+        }
+
+        const omadaVouchers = detailData.result?.data || [];
+        
+        // Atualizar status dos vouchers locais baseado nos dados do Omada
+        for (const localVoucher of groupVouchers) {
+          const omadaVoucher = omadaVouchers.find((ov: any) => ov.id === localVoucher.omadaVoucherId);
+          if (omadaVoucher) {
+            let newStatus = 'available';
+            
+            // Status do Omada: 0=unused, 1=used, 2=expired, 3=in_use
+            switch (omadaVoucher.status) {
+              case 0:
+                newStatus = 'available';
+                break;
+              case 1:
+                newStatus = 'used';
+                break;
+              case 2:
+                newStatus = 'expired';
+                break;
+              case 3:
+                newStatus = 'in_use';
+                break;
+            }
+            
+            // Atualizar apenas se o status mudou
+            if (localVoucher.status !== newStatus) {
+              console.log(`Updating voucher ${localVoucher.code} status from ${localVoucher.status} to ${newStatus}`);
+              await storage.updateVoucherStatus(localVoucher.id, newStatus);
+              
+              // Se o voucher foi usado, criar uma venda
+              if (newStatus === 'used' && localVoucher.status !== 'used') {
+                await storage.createSale({
+                  voucherId: localVoucher.id,
+                  sellerId: localVoucher.vendedorId,
+                  siteId: localVoucher.siteId,
+                  amount: localVoucher.unitPrice
+                });
+                console.log(`Created sale record for voucher ${localVoucher.code}`);
+              }
+            }
+          }
+        }
+      } catch (groupError) {
+        console.error(`Error syncing group ${groupId}:`, groupError);
+      }
+    }
+    
+    console.log('Voucher status sync completed');
+  } catch (error) {
+    console.error('Error in syncVoucherStatus:', error);
+  }
+}
+
 async function getValidOmadaToken(credentials: any): Promise<string> {
   const now = Date.now();
   
@@ -1864,7 +1978,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Buscar vouchers do vendedor
+  // Buscar vouchers do vendedor com sincronização de status
   app.get("/api/vouchers/:siteId", requireAuth, async (req, res) => {
     try {
       const { siteId } = req.params;
@@ -1881,15 +1995,22 @@ export function registerRoutes(app: Express): Server {
         return res.status(403).json({ message: "Access denied to this site" });
       }
 
+      // Buscar vouchers locais
       const vouchers = await storage.getVouchersByVendedor(req.user!.id, siteId);
-      res.json(vouchers);
+      
+      // Sincronizar status com Omada API
+      await syncVoucherStatus(vouchers, siteId);
+      
+      // Buscar vouchers atualizados
+      const updatedVouchers = await storage.getVouchersByVendedor(req.user!.id, siteId);
+      res.json(updatedVouchers);
     } catch (error: any) {
       console.error("Error fetching vouchers:", error);
       res.status(500).json({ message: error.message || "Failed to fetch vouchers" });
     }
   });
 
-  // Estatísticas diárias do vendedor
+  // Estatísticas diárias do vendedor com sincronização
   app.get("/api/stats/daily/:siteId", requireAuth, async (req, res) => {
     try {
       const { siteId } = req.params;
@@ -1905,6 +2026,10 @@ export function registerRoutes(app: Express): Server {
       if (!hasAccess) {
         return res.status(403).json({ message: "Access denied to this site" });
       }
+
+      // Sincronizar status dos vouchers antes de calcular estatísticas
+      const vouchers = await storage.getVouchersByVendedor(req.user!.id, siteId);
+      await syncVoucherStatus(vouchers, siteId);
 
       const stats = await storage.getVendedorDailyStats(req.user!.id, siteId);
       res.json(stats);

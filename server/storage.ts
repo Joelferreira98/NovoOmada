@@ -487,12 +487,14 @@ export class DatabaseStorage implements IStorage {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Contar apenas vouchers VENDIDOS (status 'used'), não todos os gerados
     let voucherQuery = db
       .select({ count: sql<number>`count(*)` })
       .from(vouchers)
       .where(and(
         eq(vouchers.vendedorId, userId),
-        sql`${vouchers.createdAt} >= ${today}`
+        eq(vouchers.status, 'used'), // CORREÇÃO: apenas vouchers usados são vendas
+        sql`${vouchers.usedAt} >= ${today}` // CORREÇÃO: usar usedAt em vez de createdAt
       ));
 
     if (siteId) {
@@ -502,7 +504,8 @@ export class DatabaseStorage implements IStorage {
         .where(and(
           eq(vouchers.vendedorId, userId),
           eq(vouchers.siteId, siteId),
-          sql`${vouchers.createdAt} >= ${today}`
+          eq(vouchers.status, 'used'), // CORREÇÃO: apenas vouchers usados são vendas
+          sql`${vouchers.usedAt} >= ${today}` // CORREÇÃO: usar usedAt em vez de createdAt
         ));
     }
 
@@ -573,13 +576,15 @@ export class DatabaseStorage implements IStorage {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // CORREÇÃO: Contar apenas vouchers VENDIDOS (status 'used'), não gerados
     const [voucherResult] = await db
       .select({ count: sql<number>`count(*)` })
       .from(vouchers)
       .where(and(
         eq(vouchers.vendedorId, vendedorId),
         eq(vouchers.siteId, siteId),
-        sql`${vouchers.createdAt} >= ${today}`
+        eq(vouchers.status, 'used'), // CORREÇÃO: apenas vouchers usados
+        sql`${vouchers.usedAt} >= ${today}` // CORREÇÃO: usar usedAt
       ));
 
     const [salesResult] = await db
@@ -608,7 +613,7 @@ export class DatabaseStorage implements IStorage {
     const avgDaily = (parseFloat(avgSalesResult.total) / 30).toFixed(2);
 
     return {
-      vouchersToday: voucherResult.count,
+      vouchersToday: voucherResult.count, // CORRIGIDO: agora conta apenas vouchers vendidos
       revenueToday: salesResult.total,
       averageDaily: avgDaily
     };
