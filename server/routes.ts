@@ -634,15 +634,26 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/sites/:siteId/plans", requireAuth, requireRole(["admin"]), async (req, res) => {
     try {
       const { siteId } = req.params;
+      console.log("Creating plan for site:", siteId);
+      console.log("Request body:", JSON.stringify(req.body, null, 2));
+      console.log("User ID:", req.user!.id);
+      
       const validatedData = insertPlanSchema.parse({
         ...req.body,
         siteId,
         createdBy: req.user!.id
       });
+      
+      console.log("Validated data:", JSON.stringify(validatedData, null, 2));
       const plan = await storage.createPlan(validatedData);
+      console.log("Plan created successfully:", plan.id);
       res.status(201).json(plan);
     } catch (error) {
-      res.status(400).json({ message: "Invalid plan data" });
+      console.error("Plan creation error:", error);
+      res.status(400).json({ 
+        message: "Invalid plan data", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
 

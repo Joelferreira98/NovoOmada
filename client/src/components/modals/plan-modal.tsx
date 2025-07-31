@@ -122,7 +122,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
 
   const planMutation = useMutation({
     mutationFn: async (data: PlanFormData) => {
-      const url = isEdit ? `/api/plans/${plan.id}` : "/api/plans";
+      const url = isEdit ? `/api/plans/${plan.id}` : `/api/sites/${siteId}/plans`;
       const method = isEdit ? "PUT" : "POST";
       const response = await apiRequest(method, url, data);
       return await response.json();
@@ -137,7 +137,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
           : `Plano "${form.getValues('nome')}" foi criado para o site "${siteName}"`,
       });
       // Invalidate plans query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/sites/${siteId}/plans`] });
     },
     onError: (error: Error) => {
       toast({
