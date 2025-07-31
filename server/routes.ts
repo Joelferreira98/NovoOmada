@@ -2176,8 +2176,8 @@ export function registerRoutes(app: Express): Server {
         // Forçar renovação do token para operação crítica de delete
         console.log('Forcing token refresh for voucher deletion...');
         
-        // Limpar cache de token
-        tokenCache.delete('omada_token');
+        // Limpar cache de token (usando clear() pois é um Map)
+        omadaTokenCache.clear();
         
         // Obter token fresco
         const freshAccessToken = await getValidOmadaToken(credentials);
