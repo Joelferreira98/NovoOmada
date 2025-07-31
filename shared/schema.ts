@@ -47,46 +47,16 @@ export const userSiteAccess = mysqlTable("user_site_access", {
 
 export const plans = mysqlTable("plans", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
-  // Basic info
-  nome: text("nome").notNull(), // Plan name (1-32 chars)
-  
-  // Voucher code settings
-  comprimentoVoucher: int("comprimento_voucher").notNull().default(8), // Code length (6-10)
-  tipoCodigo: text("tipo_codigo").notNull().default("numerico_letra"), // "numerico", "letra", "numerico_letra"
-  codeForm: text("code_form").notNull().default("[0,1]"), // JSON string: [0] numbers, [1] letters
-  
-  // Limit settings
-  tipoLimite: text("tipo_limite").notNull().default("uso_limitado"), // "uso_limitado", "usuarios_simultaneos", "ilimitado"
-  limitNum: int("limit_num").default(1), // Usage count or concurrent users (1-999)
-  
-  // Duration settings
-  durationType: int("duration_type").notNull().default(0), // 0: Client duration, 1: Voucher duration
-  duration: int("duration").notNull(), // Duration in minutes (1-14400000)
-  timingType: int("timing_type").notNull().default(0), // 0: Timing by time, 1: Timing by usage
-  
-  // Speed limits (rate limiting)
-  downLimitEnable: boolean("down_limit_enable").notNull().default(false),
-  downLimit: int("down_limit").default(0), // Kbps (0-10485760)
-  upLimitEnable: boolean("up_limit_enable").notNull().default(false),
-  upLimit: int("up_limit").default(0), // Kbps (0-10485760)
-  
-  // Traffic limits
-  trafficLimitEnable: boolean("traffic_limit_enable").notNull().default(false),
-  trafficLimit: int("traffic_limit").default(0), // MB (1-10485760)
-  trafficLimitFrequency: int("traffic_limit_frequency").default(0), // 0: total, 1: daily, 2: weekly, 3: monthly
-  
-  // Pricing
-  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  currency: varchar("currency", { length: 10 }).default("BRL"),
-  
-  // Portal and misc settings
-  applyToAllPortals: boolean("apply_to_all_portals").notNull().default(true),
-  logout: boolean("logout").notNull().default(true),
-  validityType: int("validity_type").notNull().default(0), // 0: Anytime, 1: Between times, 2: Scheduled
-  printComments: text("print_comments"),
-  
-  status: planStatusEnum.default("active").notNull(),
   siteId: varchar("site_id", { length: 36 }).notNull().references(() => sites.id, { onDelete: "cascade" }),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  comprimentoVoucher: int("comprimento_voucher").notNull(),
+  tipoCodigo: varchar("tipo_codigo", { length: 20 }).notNull(),
+  tipoLimite: varchar("tipo_limite", { length: 20 }).notNull(),
+  codeForm: varchar("code_form", { length: 50 }),
+  duration: int("duration").notNull(),
+  downLimit: int("down_limit").default(0),
+  upLimit: int("up_limit").default(0),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
   createdBy: varchar("created_by", { length: 36 }).notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -38,15 +38,14 @@ import { z } from "zod";
 
 // Validation schema with enhanced rules for plan creation
 const planFormSchema = insertPlanSchema.extend({
-  nome: z.string().min(1, "Nome é obrigatório").max(32, "Nome deve ter no máximo 32 caracteres"),
+  nome: z.string().min(1, "Nome é obrigatório").max(100, "Nome deve ter no máximo 100 caracteres"),
   comprimentoVoucher: z.number().min(6, "Mínimo 6 caracteres").max(10, "Máximo 10 caracteres"),
   duration: z.number().min(1, "Mínimo 1 minuto").max(14400000, "Máximo 14.400.000 minutos"),
   unitPrice: z.string().min(1, "Preço é obrigatório"),
   downLimit: z.number().min(0).max(10485760).optional(),
   upLimit: z.number().min(0).max(10485760).optional(),
-  trafficLimit: z.number().min(0).max(10485760).optional(),
   durationUnit: z.string().default("horas").optional(), // Helper field for UI
-}).omit({ description: true });
+});
 
 type PlanFormData = z.infer<typeof planFormSchema>;
 
@@ -68,52 +67,26 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
     defaultValues: isEdit ? {
       nome: plan?.nome || "",
       comprimentoVoucher: plan?.comprimentoVoucher || 8,
-      tipoCodigo: plan?.tipoCodigo || "numerico_letra",
-      tipoLimite: plan?.tipoLimite || "uso_limitado",
-      limitNum: plan?.limitNum || 1,
-      durationType: plan?.durationType || 0,
+      tipoCodigo: plan?.tipoCodigo || "mixed",
+      tipoLimite: plan?.tipoLimite || "duration",
+      codeForm: plan?.codeForm || "[0,1]",
       duration: plan?.duration || 60,
       durationUnit: "horas",
-      timingType: plan?.timingType || 0,
-      downLimitEnable: plan?.downLimitEnable || false,
       downLimit: plan?.downLimit || 0,
-      upLimitEnable: plan?.upLimitEnable || false,
       upLimit: plan?.upLimit || 0,
-      trafficLimitEnable: plan?.trafficLimitEnable || false,
-      trafficLimit: plan?.trafficLimit || 0,
-      trafficLimitFrequency: plan?.trafficLimitFrequency || 0,
       unitPrice: plan?.unitPrice || "0.00",
-      currency: plan?.currency || "BRL",
-      applyToAllPortals: plan?.applyToAllPortals ?? true,
-      logout: plan?.logout ?? true,
-      validityType: plan?.validityType || 0,
-      printComments: plan?.printComments || "",
-      status: plan?.status || "active",
       siteId: siteId,
     } : {
       nome: "",
       comprimentoVoucher: 8,
-      tipoCodigo: "numerico_letra",
-      tipoLimite: "uso_limitado",
-      limitNum: 1,
-      durationType: 0,
+      tipoCodigo: "mixed",
+      tipoLimite: "duration",
+      codeForm: "[0,1]",
       duration: 60,
       durationUnit: "horas",
-      timingType: 0,
-      downLimitEnable: false,
       downLimit: 0,
-      upLimitEnable: false,
       upLimit: 0,
-      trafficLimitEnable: false,
-      trafficLimit: 0,
-      trafficLimitFrequency: 0,
       unitPrice: "0.00",
-      currency: "BRL",
-      applyToAllPortals: true,
-      logout: true,
-      validityType: 0,
-      printComments: "",
-      status: "active",
       siteId: siteId,
     },
   });
@@ -248,9 +221,9 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="numerico">Apenas Números</SelectItem>
-                        <SelectItem value="letra">Apenas Letras</SelectItem>
-                        <SelectItem value="numerico_letra">Números e Letras</SelectItem>
+                        <SelectItem value="digits">Apenas Números</SelectItem>
+                        <SelectItem value="letters">Apenas Letras</SelectItem>
+                        <SelectItem value="mixed">Números e Letras</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -270,9 +243,9 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="uso_limitado">Uso Limitado</SelectItem>
-                        <SelectItem value="usuarios_simultaneos">Usuários Simultâneos</SelectItem>
-                        <SelectItem value="ilimitado">Ilimitado</SelectItem>
+                        <SelectItem value="unlimited">Ilimitado</SelectItem>
+                        <SelectItem value="duration">Por Duração</SelectItem>
+                        <SelectItem value="data">Por Dados</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -352,30 +325,7 @@ export function PlanModal({ siteId, siteName, plan, mode = "create" }: PlanModal
                   />
                 </div>
               </div>
-              {form.watch("tipoLimite") !== "ilimitado" && (
-                <FormField
-                  control={form.control}
-                  name="limitNum"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {form.watch("tipoLimite") === "uso_limitado" ? "Número de Usos" : "Usuários Simultâneos"}
-                      </FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min={1} 
-                          max={999} 
-                          {...field}
-                          value={field.value || 1}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+
             </div>
 
             {/* Speed Limits */}
