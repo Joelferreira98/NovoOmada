@@ -93,8 +93,8 @@ export interface IStorage {
   deletePrintHistory(id: string): Promise<boolean>;
 
   // App Settings
-  getAppSettings(): Promise<AppSettings | null>;
-  updateAppSettings(settings: InsertAppSettings): Promise<AppSettings>;
+  getAppSettings(): Promise<AppSettings | undefined>;
+  updateAppSettings(data: Partial<AppSettings>): Promise<AppSettings>;
 
   sessionStore: session.Store;
 }
@@ -1044,6 +1044,52 @@ export class DatabaseStorage implements IStorage {
       return results;
     } catch (error) {
       console.error('❌ Error getting print history by site:', error);
+      throw error;
+    }
+  }
+
+  // App Settings methods
+  async getAppSettings(): Promise<AppSettings | undefined> {
+    try {
+      const [settings] = await db.select().from(appSettings).limit(1);
+      return settings;
+    } catch (error) {
+      console.error('Error getting app settings:', error);
+      return undefined;
+    }
+  }
+
+  async updateAppSettings(data: Partial<AppSettings>): Promise<AppSettings> {
+    try {
+      // Get existing settings or create new ones
+      const existing = await this.getAppSettings();
+      
+      if (existing) {
+        // Update existing settings
+        await db.update(appSettings)
+          .set(data)
+          .where(eq(appSettings.id, existing.id));
+        
+        const [updated] = await db.select().from(appSettings).where(eq(appSettings.id, existing.id));
+        return updated;
+      } else {
+        // Create new settings
+        const settingsId = crypto.randomUUID();
+        const newSettings = {
+          id: settingsId,
+          appName: data.appName || "Omada Voucher System",
+          logoUrl: data.logoUrl || null,
+          faviconUrl: data.faviconUrl || null,
+          primaryColor: data.primaryColor || "#007bff",
+          ...data
+        };
+        
+        await db.insert(appSettings).values(newSettings);
+        const [created] = await db.select().from(appSettings).where(eq(appSettings.id, settingsId));
+        return created;
+      }
+    } catch (error) {
+      console.error('Error updating app settings:', error);
       throw error;
     }
   }
