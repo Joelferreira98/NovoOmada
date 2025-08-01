@@ -1080,8 +1080,11 @@ export class DatabaseStorage implements IStorage {
           appName: data.appName || "Omada Voucher System",
           logoUrl: data.logoUrl || null,
           faviconUrl: data.faviconUrl || null,
+          themeColor: data.themeColor || "#2563eb",
           primaryColor: data.primaryColor || "#007bff",
-          ...data
+          hasCustomIcons: data.hasCustomIcons || false,
+          manifestData: data.manifestData || null,
+          updatedBy: data.updatedBy || null
         };
         
         await db.insert(appSettings).values(newSettings);

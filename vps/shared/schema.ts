@@ -132,7 +132,6 @@ export const printHistory = mysqlTable("print_history", {
 export const appSettings = mysqlTable("app_settings", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   appName: varchar("app_name", { length: 100 }).notNull().default("Omada Vouchers"),
-  appDescription: text("app_description").default("Sistema de gestão de vouchers WiFi"),
   logoUrl: varchar("logo_url", { length: 500 }),
   faviconUrl: varchar("favicon_url", { length: 500 }),
   themeColor: varchar("theme_color", { length: 7 }).notNull().default("#2563eb"),
