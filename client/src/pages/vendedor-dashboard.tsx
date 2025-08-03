@@ -493,43 +493,75 @@ export default function VendedorDashboard() {
   ];
 
   return (
-    <div className="d-flex bg-light min-vh-100">
-      <Sidebar
-        title="Vendedor"
-        subtitle={userSite?.name || "Site não encontrado"}
-        icon={User}
-        iconBg="bg-warning"
-        items={sidebarItems}
-      />
+    <div className="bg-light min-vh-100">
+      <div className="container-fluid h-100">
+        <div className="row h-100">
+          {/* Sidebar */}
+          <div className="col-12 col-lg-3 col-xl-2 p-0">
+            <div className="bg-white shadow-lg h-100">
+              <div className="p-4">
+                {/* Logo/Title */}
+                <div className="d-flex align-items-center mb-4">
+                  <div className="bg-warning bg-gradient rounded-circle p-3 me-3">
+                    <User className="text-white" size={24} />
+                  </div>
+                  <div>
+                    <h2 className="h5 fw-bold text-dark mb-0">Vendedor</h2>
+                    <small className="text-muted">{userSite?.name || "Site não encontrado"}</small>
+                  </div>
+                </div>
 
-      <div className="flex-fill p-3 p-lg-4 overflow-auto">
-        <div className="container-fluid px-0">
-          
-          {/* Header with Profile Menu */}
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <div>
-              <h1 className="h2 fw-bold text-dark mb-0">Dashboard Vendedor</h1>
-              <p className="text-muted">Bem-vindo, {user?.username}</p>
+                {/* Navigation */}
+                <div className="d-grid gap-2">
+                  {sidebarItems.map((item, index) => (
+                    <button
+                      key={index}
+                      onClick={item.onClick}
+                      className={`btn text-start d-flex align-items-center ${
+                        item.active 
+                          ? 'btn-primary fw-semibold' 
+                          : 'btn-outline-light text-dark border-0 hover-bg-light'
+                      }`}
+                    >
+                      <item.icon className="me-2" size={18} />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="btn btn-outline-secondary d-flex align-items-center gap-2">
-                  <User size={16} />
-                  {user?.username}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setLocation("/profile")}>
-                  <User size={16} className="me-2" />
-                  Meu Perfil
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
-                  <LogOut size={16} className="me-2" />
-                  Sair
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
+
+          {/* Main Content */}
+          <div className="col-12 col-lg-9 col-xl-10 p-0">
+            <div className="p-4">
+              {/* Header with Profile Menu */}
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h1 className="h2 fw-bold text-dark mb-0">Dashboard Vendedor</h1>
+                  <p className="text-muted">Bem-vindo, {user?.username}</p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="btn btn-outline-secondary d-flex align-items-center gap-2">
+                      <User size={16} />
+                      {user?.username}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setLocation("/profile")}>
+                      <User size={16} className="me-2" />
+                      Meu Perfil
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                      <LogOut size={16} className="me-2" />
+                      Sair
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Content */}
           
           {/* Generate Tab */}
           {activeTab === "generate" && (
@@ -932,9 +964,22 @@ export default function VendedorDashboard() {
               </div>
             </div>
           )}
-
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <Modal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        title="Gerar Vouchers"
+      >
+        <GenerateVoucherForm 
+          siteId={userSite?.id || ""} 
+          onClose={handleCloseModal} 
+        />
+      </Modal>
     </div>
   );
 }
