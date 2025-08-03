@@ -10,6 +10,9 @@ import ReportsPage from "@/pages/reports-page";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import MasterDashboard from "@/pages/master-dashboard";
+import ModernMasterDashboard from "@/pages/modern-master-dashboard";
+import ModernAdminDashboard from "@/pages/modern-admin-dashboard";
+import ModernVendedorDashboard from "@/pages/modern-vendedor-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
 import SiteSelectionPage from "@/pages/site-selection-page";
 import VendedorDashboard from "@/pages/vendedor-dashboard";
@@ -21,11 +24,14 @@ import VoucherSyncPage from "@/pages/voucher-sync-page";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={MasterDashboard} />
+      <ProtectedRoute path="/" component={ModernMasterDashboard} />
       <ProtectedRoute path="/master" component={MasterDashboard} />
-      <ProtectedRoute path="/admin" component={AdminDashboard} />
+      <ProtectedRoute path="/modern" component={ModernMasterDashboard} />
+      <ProtectedRoute path="/admin" component={ModernAdminDashboard} />
+      <ProtectedRoute path="/admin-old" component={AdminDashboard} />
       <ProtectedRoute path="/site-selection" component={SiteSelectionPage} />
-      <ProtectedRoute path="/vendedor" component={VendedorDashboard} />
+      <ProtectedRoute path="/vendedor" component={ModernVendedorDashboard} />
+      <ProtectedRoute path="/vendedor-old" component={VendedorDashboard} />
       <ProtectedRoute path="/reports" component={ReportsPage} />
       <ProtectedRoute path="/cash" component={CashPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
