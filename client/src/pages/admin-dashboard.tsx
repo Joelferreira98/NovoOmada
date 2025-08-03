@@ -125,11 +125,11 @@ export default function AdminDashboard() {
         return;
       }
       
-      if (userSites.length === 0) {
+      if (Array.isArray(userSites) && userSites.length === 0) {
         setLocation("/auth");
-      } else if (userSites.length > 1 && !currentStoredSiteId) {
+      } else if (Array.isArray(userSites) && userSites.length > 1 && !currentStoredSiteId) {
         setLocation("/site-selection");
-      } else if (userSites.length === 1 && !currentStoredSiteId) {
+      } else if (Array.isArray(userSites) && userSites.length === 1 && !currentStoredSiteId) {
         const siteId = userSites[0].id;
         localStorage.setItem("selectedSiteId", siteId);
         setSelectedSiteId(siteId);
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
                 
                 {/* User Actions */}
                 <div className="mt-4 pt-3 border-top">
-                  {userSites && userSites.length > 1 && (
+                  {userSites && Array.isArray(userSites) && userSites.length > 1 && (
                     <button
                       className="btn btn-outline-secondary btn-sm w-100 mb-2 d-flex align-items-center justify-content-center"
                       onClick={handleChangeSite}

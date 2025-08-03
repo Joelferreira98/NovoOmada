@@ -117,11 +117,12 @@ async function renewOmadaTokenWithCallbacks(credentials: any): Promise<string> {
   console.log('Starting token renewal with callback system...');
   
   try {
-    const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
+    const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token`;
     const requestBody = {
-      'omadacId': credentials.omadacId,
-      'client_id': credentials.clientId,
-      'client_secret': credentials.clientSecret
+      grant_type: 'client_credentials',
+      omadacId: credentials.omadacId,
+      client_id: credentials.clientId,
+      client_secret: credentials.clientSecret
     };
     
     const tokenResponse = await fetch(tokenUrl, {
@@ -427,11 +428,12 @@ async function getValidOmadaToken(credentials: any): Promise<string> {
   // Get new token
   console.log('Getting fresh token from Omada API using client credentials');
   
-  const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
+  const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token`;
   const requestBody = {
-    'omadacId': credentials.omadacId,
-    'client_id': credentials.clientId,
-    'client_secret': credentials.clientSecret
+    grant_type: 'client_credentials',
+    omadacId: credentials.omadacId,
+    client_id: credentials.clientId,
+    client_secret: credentials.clientSecret
   };
   
   // Use node-fetch with proper SSL configuration
@@ -605,11 +607,12 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ success: false, message: "Nenhuma credencial configurada" });
       }
 
-      const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token?grant_type=client_credentials`;
+      const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token`;
       const requestBody = {
-        'omadacId': credentials.omadacId,
-        'client_id': credentials.clientId,
-        'client_secret': credentials.clientSecret
+        grant_type: 'client_credentials',
+        omadacId: credentials.omadacId,
+        client_id: credentials.clientId,
+        client_secret: credentials.clientSecret
       };
       
       console.log(`Test Request - URL: ${tokenUrl}`);
