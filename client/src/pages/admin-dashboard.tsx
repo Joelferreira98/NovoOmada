@@ -30,6 +30,7 @@ import { Site } from "@shared/schema";
 import { VendedorModal } from "@/components/modals/vendedor-modal";
 import { PlanModal } from "@/components/modals/plan-modal-fixed";
 import { Sidebar } from "@/components/layout/sidebar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function AdminDashboard() {
   const { user, logoutMutation } = useAuth();
@@ -253,7 +254,33 @@ export default function AdminDashboard() {
           {/* Main Content */}
           <div className="col-12 col-lg-9 col-xl-10 p-0">
             <div className="p-4">
-              {/* Header Card */}
+              {/* Header with Profile Menu */}
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h1 className="h2 fw-bold text-dark mb-0">Dashboard Admin</h1>
+                  <p className="text-muted">Bem-vindo, {user?.username}</p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="btn btn-outline-secondary d-flex align-items-center gap-2">
+                      <User size={16} />
+                      {user?.username}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setLocation("/profile")}>
+                      <User size={16} className="me-2" />
+                      Meu Perfil
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                      <LogOut size={16} className="me-2" />
+                      Sair
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Site Card */}
               <div className="card bg-white shadow-lg border-0 mb-4">
                 <div className="card-body p-4">
                   <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center">
@@ -262,7 +289,7 @@ export default function AdminDashboard() {
                         <MapPin className="text-white" size={24} />
                       </div>
                       <div>
-                        <h1 className="h3 mb-1 fw-bold text-dark">{selectedSite.name}</h1>
+                        <h2 className="h4 mb-1 fw-bold text-dark">{selectedSite.name}</h2>
                         <div className="d-flex align-items-center text-muted">
                           <span>{selectedSite.location}</span>
                           <span className="mx-2">•</span>
@@ -271,6 +298,15 @@ export default function AdminDashboard() {
                           </span>
                         </div>
                       </div>
+                    </div>
+                    <div className="mt-3 mt-lg-0">
+                      <button 
+                        className="btn btn-outline-primary d-flex align-items-center gap-2"
+                        onClick={handleChangeSite}
+                      >
+                        <RefreshCw size={16} />
+                        Trocar Site
+                      </button>
                     </div>
                   </div>
                 </div>

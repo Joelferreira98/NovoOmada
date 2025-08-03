@@ -1,20 +1,22 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sidebar } from "@/components/layout/sidebar";
-import { User, TicketIcon, TrendingUp, History, DollarSign, Calendar, Printer, Copy, Download, Calculator, BarChart3, Trash2 } from "lucide-react";
+import { User, TicketIcon, TrendingUp, History, DollarSign, Calendar, Printer, Copy, Download, Calculator, BarChart3, Trash2, LogOut } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function VendedorDashboard() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("generate");
   const [selectedPlan, setSelectedPlan] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -503,11 +505,37 @@ export default function VendedorDashboard() {
       <div className="flex-fill p-3 p-lg-4 overflow-auto">
         <div className="container-fluid px-0">
           
+          {/* Header with Profile Menu */}
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h1 className="h2 fw-bold text-dark mb-0">Dashboard Vendedor</h1>
+              <p className="text-muted">Bem-vindo, {user?.username}</p>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="btn btn-outline-secondary d-flex align-items-center gap-2">
+                  <User size={16} />
+                  {user?.username}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setLocation("/profile")}>
+                  <User size={16} className="me-2" />
+                  Meu Perfil
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                  <LogOut size={16} className="me-2" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
           {/* Generate Tab */}
           {activeTab === "generate" && (
             <div className="mb-4">
               <div className="mb-4">
-                <h1 className="h2 h1-lg fw-bold text-dark mb-2">Geração de Vouchers</h1>
+                <h2 className="h3 fw-bold text-dark mb-2">Geração de Vouchers</h2>
                 <p className="text-muted">Crie vouchers de acesso à internet</p>
               </div>
 

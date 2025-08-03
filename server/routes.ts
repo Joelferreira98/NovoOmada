@@ -1024,32 +1024,50 @@ export function registerRoutes(app: Express): Server {
       const userData = req.body;
       const requestingUser = req.user!;
       
-      // Role-based restrictions: Master can update anyone, Admin can update vendedores
-      if (requestingUser.role === "master") {
+      // Role-based restrictions: Users can update their own profile, Master can update anyone, Admin can update vendedores
+      if (requestingUser.id === userId) {
+        // User updating their own profile - only allow username and email changes
+        const { username, email } = userData;
+        const updatedUser = await storage.updateUser(userId, { username, email });
+        if (!updatedUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        const { password, ...userResponse } = updatedUser;
+        res.json(userResponse);
+      } else if (requestingUser.role === "master") {
         // Master can update any user
+        if (userData.password) {
+          userData.password = await hashPassword(userData.password);
+        }
+        
+        const updatedUser = await storage.updateUser(userId, userData);
+        if (!updatedUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        
+        const { password, ...userResponse } = updatedUser;
+        res.json(userResponse);
       } else if (requestingUser.role === "admin") {
         // Admin can only update vendedores
         const targetUser = await storage.getUser(userId);
         if (!targetUser || targetUser.role !== "vendedor") {
           return res.status(403).json({ message: "Admins só podem atualizar vendedores" });
         }
+        
+        if (userData.password) {
+          userData.password = await hashPassword(userData.password);
+        }
+        
+        const updatedUser = await storage.updateUser(userId, userData);
+        if (!updatedUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        
+        const { password, ...userResponse } = updatedUser;
+        res.json(userResponse);
       } else {
         return res.status(403).json({ message: "Sem permissão para atualizar usuários" });
       }
-      
-      // If password is being updated, hash it
-      if (userData.password) {
-        userData.password = await hashPassword(userData.password);
-      }
-      
-      const updatedUser = await storage.updateUser(userId, userData);
-      if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Remove password from response
-      const { password, ...userResponse } = updatedUser;
-      res.json(userResponse);
     } catch (error) {
       console.error("Update user error:", error);
       res.status(500).json({ message: "Failed to update user" });
@@ -2576,25 +2594,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update user profile
-  app.put("/api/users/:id", requireAuth, async (req, res) => {
-    try {
-      const userId = req.params.id;
-      
-      // Only allow users to update their own profile or admins/masters to update others
-      if (req.user!.id !== userId && !["admin", "master"].includes(req.user!.role)) {
-        return res.status(403).json({ message: "Permission denied" });
-      }
-      
-      const { username, email } = req.body;
-      const updatedUser = await storage.updateUser(userId, { username, email });
-      
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Error updating user profile:", error);
-      res.status(500).json({ message: "Failed to update profile" });
-    }
-  });
+  // Remove duplicate route - now handled by /api/users/:userId above
 
   // Update user password
   app.put("/api/users/:id/password", requireAuth, async (req, res) => {

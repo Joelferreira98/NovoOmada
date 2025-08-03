@@ -2,14 +2,15 @@ import { useState } from "react";
 import * as React from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Crown, FolderSync, Building, ShieldQuestion, Settings, Save, Plus, Users, Mail, Calendar, Edit, Trash2, Upload, X } from "lucide-react";
+import { Crown, FolderSync, Building, ShieldQuestion, Settings, Save, Plus, Users, Mail, Calendar, Edit, Trash2, Upload, X, User, LogOut } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertOmadaCredentialsSchema } from "@shared/schema";
@@ -23,8 +24,9 @@ import { EditUserModal } from "@/components/modals/edit-user-modal";
 type OmadaCredentialsForm = z.infer<typeof insertOmadaCredentialsSchema>;
 
 export default function MasterDashboard() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<
     "sync" | "sites" | "admins" | "vendedores" | "configuracoes"
   >("sync");
@@ -206,6 +208,31 @@ export default function MasterDashboard() {
 
       <div className="flex-fill p-3 p-lg-4 overflow-auto">
         <div className="container-fluid px-0">
+          {/* Header with Profile Menu */}
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h1 className="h2 fw-bold text-dark mb-0">Dashboard Master</h1>
+              <p className="text-muted">Bem-vindo, {user?.username}</p>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="d-flex align-items-center gap-2">
+                  <User className="h-4 w-4" />
+                  {user?.username}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setLocation("/profile")}>
+                  <User className="h-4 w-4 mr-2" />
+                  Meu Perfil
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           {activeTab === "sync" && (
             <div className="mb-4">
               <div className="mb-4">
