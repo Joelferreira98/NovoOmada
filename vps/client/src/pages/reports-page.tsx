@@ -21,9 +21,17 @@ interface VoucherSummary {
 }
 
 interface AllTimeVoucherSummary {
-  current: VoucherSummary;
-  unused: VoucherSummary;
-  created: VoucherSummary;
+  current?: VoucherSummary;
+  unused?: VoucherSummary;
+  created?: VoucherSummary;
+  // Novos campos diretos da API Omada
+  totalCount?: number;
+  usedCount?: number;
+  unusedCount?: number;
+  expiredCount?: number;
+  inUseCount?: number;
+  totalAmount?: number;
+  currency?: string;
 }
 
 interface VoucherUsage {
@@ -82,10 +90,20 @@ export default function ReportsPage() {
   }, [userSites, selectedSiteId]);
 
   // Get voucher summary (all time)
-  const { data: voucherSummary, isLoading: summaryLoading } = useQuery<AllTimeVoucherSummary>({
+  const { data: voucherSummary, isLoading: summaryLoading, error: summaryError } = useQuery<AllTimeVoucherSummary>({
     queryKey: ["/api/reports/voucher-summary", selectedSiteId],
     enabled: !!selectedSiteId,
   });
+
+  // Log for debugging mobile issues
+  useEffect(() => {
+    if (voucherSummary) {
+      console.log('📊 Voucher Summary Data:', voucherSummary);
+    }
+    if (summaryError) {
+      console.error('❌ Summary Error:', summaryError);
+    }
+  }, [voucherSummary, summaryError]);
 
   // Get voucher history statistics
   const { data: voucherHistory, isLoading: historyLoading } = useQuery<VoucherHistoryStats>({
@@ -246,13 +264,25 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {summaryLoading ? "..." : voucherSummary?.current?.count || 0}
+                  {summaryLoading ? (
+                    <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
+                  ) : (
+                    voucherSummary?.inUseCount || voucherSummary?.current?.count || 0
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Duração total: {formatDuration(voucherSummary?.current?.duration || 0)}
+                  {summaryLoading ? (
+                    <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
+                  ) : (
+                    `Total: ${voucherSummary?.totalCount || 0}`
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Valor: {formatCurrency(voucherSummary?.current?.amount || "0", voucherSummary?.current?.currency || "BRL")}
+                  {summaryLoading ? (
+                    <div className="animate-pulse bg-gray-200 h-4 w-20 rounded"></div>
+                  ) : (
+                    formatCurrency(String(voucherSummary?.totalAmount || 0), voucherSummary?.currency || "BRL")
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -264,13 +294,25 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {summaryLoading ? "..." : voucherSummary?.unused?.count || 0}
+                  {summaryLoading ? (
+                    <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
+                  ) : (
+                    voucherSummary?.unusedCount || voucherSummary?.unused?.count || 0
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Duração total: {formatDuration(voucherSummary?.unused?.duration || 0)}
+                  {summaryLoading ? (
+                    <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
+                  ) : (
+                    `Usados: ${voucherSummary?.usedCount || 0}`
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Valor: {formatCurrency(voucherSummary?.unused?.amount || "0", voucherSummary?.unused?.currency || "BRL")}
+                  {summaryLoading ? (
+                    <div className="animate-pulse bg-gray-200 h-4 w-20 rounded"></div>
+                  ) : (
+                    `Expirados: ${voucherSummary?.expiredCount || 0}`
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -282,13 +324,25 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {summaryLoading ? "..." : voucherSummary?.created?.count || 0}
+                  {summaryLoading ? (
+                    <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
+                  ) : (
+                    voucherSummary?.totalCount || voucherSummary?.created?.count || 0
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Duração total: {formatDuration(voucherSummary?.created?.duration || 0)}
+                  {summaryLoading ? (
+                    <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
+                  ) : (
+                    `Em uso: ${voucherSummary?.inUseCount || 0}`
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Valor: {formatCurrency(voucherSummary?.created?.amount || "0", voucherSummary?.created?.currency || "BRL")}
+                  {summaryLoading ? (
+                    <div className="animate-pulse bg-gray-200 h-4 w-20 rounded"></div>
+                  ) : (
+                    formatCurrency(String(voucherSummary?.totalAmount || 0), voucherSummary?.currency || "BRL")
+                  )}
                 </p>
               </CardContent>
             </Card>
