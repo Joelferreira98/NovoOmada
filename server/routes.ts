@@ -125,18 +125,21 @@ async function renewOmadaTokenWithCallbacks(credentials: any): Promise<string> {
       client_secret: credentials.clientSecret
     };
     
-    const tokenResponse = await fetch(tokenUrl, {
+    // Use node-fetch with proper SSL configuration for consistency
+    const nodeFetch = (await import('node-fetch')).default;
+    const https = await import('https');
+    
+    const agent = process.env.NODE_ENV === 'development' 
+      ? new https.Agent({ rejectUnauthorized: false })
+      : undefined;
+
+    const tokenResponse = await nodeFetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
-      // Ignore SSL certificate issues for development
-      ...(process.env.NODE_ENV === 'development' && {
-        agent: new (await import('https')).Agent({
-          rejectUnauthorized: false
-        })
-      })
+      agent
     });
 
     if (!tokenResponse.ok) {
@@ -592,10 +595,31 @@ export function registerRoutes(app: Express): Server {
         credentials = await storage.createOmadaCredentials(validatedData);
       }
       
+      // Clear token cache when credentials are updated
+      console.log('🧹 Clearing token cache due to credential update...');
+      tokenCache = null;
+      if (tokenCache?.renewalTimer) {
+        clearTimeout(tokenCache.renewalTimer);
+      }
+      
       res.status(200).json(credentials);
     } catch (error) {
       console.error("Validation error:", error);
       res.status(400).json({ message: "Invalid data", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Clear token cache when credentials change
+  app.post("/api/omada-credentials/clear-cache", requireAuth, requireRole(["master"]), async (req, res) => {
+    try {
+      console.log('🧹 Clearing Omada token cache...');
+      tokenCache = null;
+      if (tokenCache?.renewalTimer) {
+        clearTimeout(tokenCache.renewalTimer);
+      }
+      res.json({ success: true, message: "Cache de tokens limpo com sucesso" });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Erro ao limpar cache" });
     }
   });
 
@@ -618,15 +642,21 @@ export function registerRoutes(app: Express): Server {
       console.log(`Test Request - URL: ${tokenUrl}`);
       console.log(`Test Request - Body:`, JSON.stringify(requestBody, null, 2));
       
-      const tokenResponse = await fetch(tokenUrl, {
+      // Use node-fetch with proper SSL configuration for consistency
+      const nodeFetch = (await import('node-fetch')).default;
+      const https = await import('https');
+      
+      const agent = process.env.NODE_ENV === 'development' 
+        ? new https.Agent({ rejectUnauthorized: false })
+        : undefined;
+
+      const tokenResponse = await nodeFetch(tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
-        ...(process.env.NODE_ENV === 'development' && {
-          agent: new (await import('https')).Agent({ rejectUnauthorized: false })
-        })
+        agent
       });
 
       const tokenData = await tokenResponse.json();
@@ -642,7 +672,11 @@ export function registerRoutes(app: Express): Server {
           success: false, 
           message: "❌ Credenciais inválidas ou problema de conectividade",
           error: tokenData.msg || `HTTP ${tokenResponse.status}`,
-          details: `URL: ${credentials.omadaUrl}, Omada ID: ${credentials.omadacId}`
+          details: `URL: ${credentials.omadaUrl}, Omada ID: ${credentials.omadacId}`,
+          errorCode: tokenData.errorCode,
+          troubleshooting: tokenData.errorCode === -44116 ? 
+            "Erro -44116: Verifique se Client ID, Client Secret e Omada ID estão corretos" : 
+            "Verifique conectividade e formato da URL"
         });
       }
     } catch (error) {

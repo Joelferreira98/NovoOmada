@@ -989,7 +989,7 @@ function VouchersSection({ siteId }: { siteId: string }) {
                 <div className="card-body">
                   <div className="mb-3">
                     <label htmlFor="plan-select" className="form-label">Plano</label>
-                    {!plans || plans.length === 0 ? (
+                    {!plans || !Array.isArray(plans) || plans.length === 0 ? (
                       <div className="alert alert-warning" role="alert">
                         <small>Nenhum plano disponível. Crie um plano primeiro.</small>
                       </div>
