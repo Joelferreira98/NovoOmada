@@ -601,6 +601,7 @@ export function registerRoutes(app: Express): Server {
 
   // Middleware to check role
   const requireRole = (roles: string[]) => (req: any, res: any, next: any) => {
+    console.log(`🔍 Role check: User role "${req.user?.role}", Required roles:`, roles);
     if (!req.user || !roles.includes(req.user.role)) {
       console.log(`❌ Access denied: User role "${req.user?.role}" not in required roles:`, roles);
       return res.status(403).json({ message: "Insufficient permissions" });
@@ -1683,31 +1684,36 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Site not found" });
       }
 
-      // Check if user has access to this site
-      const userSites = await storage.getUserSites(req.user!.id);
-      const hasAccess = userSites.some(s => s.id === siteId);
-      
-      if (!hasAccess && req.user!.role !== "master") {
-        return res.status(403).json({ message: "Access denied to this site" });
+      // Master users have access to all sites
+      if (req.user!.role === "master") {
+        console.log('✅ Master user accessing site:', siteId);
+      } else {
+        // Check if non-master user has access to this site
+        const userSites = await storage.getUserSites(req.user!.id);
+        const hasAccess = userSites.some(s => s.id === siteId);
+        
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied to this site" });
+        }
       }
 
-      // Get Omada credentials with environment fallback
+      // Get Omada credentials with new values
       let credentials = await storage.getOmadaCredentials();
       if (!credentials) {
-        console.log('❌ No credentials in database, using environment variables');
+        console.log('❌ No credentials in database, using new provided values');
         credentials = {
           id: 'env',
-          omadaUrl: process.env.OMADA_URL!,
-          omadacId: process.env.OMADA_OMADAC_ID!,
-          clientId: process.env.OMADA_CLIENT_ID!,
-          clientSecret: process.env.OMADA_CLIENT_SECRET!,
+          omadaUrl: 'https://omada.camstm.com:8043',
+          omadacId: '640f0d2bb72b160b90a5d4fe',
+          clientId: 'a72febf8cc2647e2a74737f4c500268b',
+          clientSecret: 'b4e60e503bb943b7ab7172f2f6f1669e',
           createdAt: new Date(),
           updatedAt: new Date()
         };
-        
-        if (!credentials.omadaUrl || !credentials.omadacId || !credentials.clientId || !credentials.clientSecret) {
-          return res.status(500).json({ message: "Omada credentials not configured" });
-        }
+      } else {
+        // Update with new credentials
+        credentials.clientId = 'a72febf8cc2647e2a74737f4c500268b';
+        credentials.clientSecret = 'b4e60e503bb943b7ab7172f2f6f1669e';
       }
 
       console.log(`🔍 Attempting to fetch voucher summary for site ${site.nome} (${site.omadaSiteId})`);
@@ -1757,19 +1763,13 @@ export function registerRoutes(app: Express): Server {
       } catch (error: any) {
         console.error('❌ Omada API connection failed:', error.message);
         
-        // Return sample data to demonstrate functionality when API is unavailable
-        const sampleData = {
-          totalCount: 150,
-          usedCount: 89,
-          unusedCount: 45,
-          expiredCount: 16,
-          inUseCount: 12,
-          totalAmount: 1250.50,
-          currency: "BRL"
-        };
-        
-        console.log('⚠️ Returning sample data due to API connectivity issues');
-        res.json(sampleData);
+        // Since we cannot connect to Omada with current credentials, 
+        // return error indicating configuration issue
+        res.status(503).json({ 
+          message: "Serviço temporariamente indisponível. Verifique as credenciais do Omada.",
+          error: "API_CONNECTION_FAILED",
+          details: error.message 
+        });
       }
     } catch (error: any) {
       console.error("Error fetching voucher summary:", error);

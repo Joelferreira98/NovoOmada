@@ -18,8 +18,8 @@ async function testDirectOmadaAPI() {
       },
       body: JSON.stringify({
         grant_type: 'client_credentials',
-        client_id: process.env.OMADA_CLIENT_ID,
-        client_secret: process.env.OMADA_CLIENT_SECRET,
+        client_id: 'a72febf8cc2647e2a74737f4c500268b',
+        client_secret: 'b4e60e503bb943b7ab7172f2f6f1669e',
       }),
       agent
     });
@@ -31,7 +31,7 @@ async function testDirectOmadaAPI() {
       if (tokenData.result?.accessToken) {
         // Test voucher summary endpoint
         const summaryResponse = await fetch(
-          `https://omada.camstm.com:8043/openapi/v1/${process.env.OMADA_OMADAC_ID}/sites/640f0d2bb72b160b90a5d4fe/hotspot/vouchers/statistics/summary`,
+          `https://omada.camstm.com:8043/openapi/v1/640f0d2bb72b160b90a5d4fe/sites/640f0d2bb72b160b90a5d4fe/hotspot/vouchers/statistics/summary`,
           {
             headers: {
               'Authorization': `Bearer ${tokenData.result.accessToken}`,
