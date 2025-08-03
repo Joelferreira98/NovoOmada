@@ -6,7 +6,7 @@
 **Arquivo**: `vps/server/voucher-sync.ts`
 
 #### Características Principais:
-- **Sincronização automática a cada 5 minutos**
+- **Sincronização automática a cada 1 minuto**
 - **Análise de status dos vouchers no controlador Omada**
 - **Atualização automática do banco local**
 - **Criação automática de registros de venda**

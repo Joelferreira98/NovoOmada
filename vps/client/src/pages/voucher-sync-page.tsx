@@ -294,7 +294,7 @@ export default function VoucherSyncPage() {
             <div>
               <h4 className="font-medium mb-2">Sincronização Automática</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Executa a cada 5 minutos automaticamente</li>
+                <li>• Executa a cada 1 minuto automaticamente</li>
                 <li>• Verifica status de todos os vouchers no Omada</li>
                 <li>• Atualiza banco local com mudanças de status</li>
                 <li>• Cria registros de venda quando vouchers são usados</li>

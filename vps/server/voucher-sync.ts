@@ -37,7 +37,7 @@ interface VoucherGroupDetail extends OmadaVoucherGroup {
 export class VoucherSyncService {
   private isRunning = false;
   private lastSyncTime: Date | null = null;
-  private syncIntervalMs = 5 * 60 * 1000; // 5 minutos
+  private syncIntervalMs = 1 * 60 * 1000; // 1 minuto
 
   /**
    * Inicia sincronização automática de vouchers para todos os sites ativos
