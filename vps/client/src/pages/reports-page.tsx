@@ -32,6 +32,8 @@ interface AllTimeVoucherSummary {
   inUseCount?: number;
   totalAmount?: number;
   currency?: string;
+  dataSource?: string; // Indicador se são dados reais ou de exemplo
+  message?: string; // Mensagem explicativa
 }
 
 interface VoucherUsage {
@@ -233,24 +235,43 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
+      {/* Data Source Indicator */}
+      {voucherSummary?.dataSource === "SAMPLE" && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-orange-800">
+              <div className="h-2 w-2 rounded-full bg-orange-500"></div>
+              <span className="text-sm font-medium">Dados de Exemplo</span>
+            </div>
+            <p className="text-sm text-orange-700 mt-1">
+              {voucherSummary.message || "Configure credenciais válidas do Omada para ver dados reais"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Reports Tabs */}
       <Tabs defaultValue="summary" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 tabs-list">
-          <TabsTrigger value="summary" className="gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Resumo Geral
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 tabs-list">
+          <TabsTrigger value="summary" className="gap-1 text-xs md:text-sm px-2 md:px-4">
+            <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Resumo</span>
+            <span className="sm:hidden">Resumo</span>
           </TabsTrigger>
-          <TabsTrigger value="history" className="gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Histórico
+          <TabsTrigger value="history" className="gap-1 text-xs md:text-sm px-2 md:px-4">
+            <TrendingUp className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Histórico</span>
+            <span className="sm:hidden">Histórico</span>
           </TabsTrigger>
-          <TabsTrigger value="distribution" className="gap-2">
-            <PieChart className="h-4 w-4" />
-            Distribuição
+          <TabsTrigger value="distribution" className="gap-1 text-xs md:text-sm px-2 md:px-4">
+            <PieChart className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Distribuição</span>
+            <span className="sm:hidden">Distrib.</span>
           </TabsTrigger>
-          <TabsTrigger value="price" className="gap-2">
-            <DollarSign className="h-4 w-4" />
-            Por Preço
+          <TabsTrigger value="price" className="gap-1 text-xs md:text-sm px-2 md:px-4">
+            <DollarSign className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Por Preço</span>
+            <span className="sm:hidden">Preço</span>
           </TabsTrigger>
         </TabsList>
 

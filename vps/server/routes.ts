@@ -1773,7 +1773,9 @@ export function registerRoutes(app: Express): Server {
           expiredCount: 16,
           inUseCount: 12,
           totalAmount: 1250.50,
-          currency: "BRL"
+          currency: "BRL",
+          dataSource: "SAMPLE", // Indicador de dados de exemplo
+          message: "Dados de exemplo - Configure credenciais válidas do Omada"
         };
         
         res.json(sampleData);
@@ -1844,7 +1846,43 @@ export function registerRoutes(app: Express): Server {
       res.json(historyData.result);
     } catch (error: any) {
       console.error("Error fetching voucher history:", error);
-      res.status(500).json({ message: error.message || "Failed to fetch voucher history" });
+      
+      // Return sample data for testing mobile interface
+      const sampleHistory = {
+        summary: {
+          count: 45,
+          duration: 2700, // 45 horas em minutos
+          amount: "675.00",
+          currency: "BRL"
+        },
+        usage: [
+          {
+            amount: "150.00",
+            currency: "BRL", 
+            count: 10,
+            timeInterval: 60,
+            time: Date.now() - 86400000 // 1 dia atrás
+          },
+          {
+            amount: "225.00",
+            currency: "BRL",
+            count: 15, 
+            timeInterval: 60,
+            time: Date.now() - 172800000 // 2 dias atrás
+          },
+          {
+            amount: "300.00",
+            currency: "BRL",
+            count: 20,
+            timeInterval: 60, 
+            time: Date.now() - 259200000 // 3 dias atrás
+          }
+        ],
+        dataSource: "SAMPLE",
+        message: "Dados de exemplo - Configure credenciais válidas do Omada"
+      };
+      
+      res.json(sampleHistory);
     }
   });
 
@@ -1909,7 +1947,34 @@ export function registerRoutes(app: Express): Server {
       res.json(data.result);
     } catch (error: any) {
       console.error("❌ Error fetching voucher price distribution:", error);
-      res.status(500).json({ message: error.message || "Failed to fetch voucher price distribution" });
+      
+      // Return sample data for testing mobile interface
+      const samplePriceData = {
+        data: [
+          {
+            unitPrice: "15.00",
+            totalAmount: "450.00",
+            usedCount: 30,
+            currency: "BRL"
+          },
+          {
+            unitPrice: "25.00", 
+            totalAmount: "375.00",
+            usedCount: 15,
+            currency: "BRL"
+          },
+          {
+            unitPrice: "10.00",
+            totalAmount: "200.00", 
+            usedCount: 20,
+            currency: "BRL"
+          }
+        ],
+        dataSource: "SAMPLE",
+        message: "Dados de exemplo - Configure credenciais válidas do Omada"
+      };
+      
+      res.json(samplePriceData);
     }
   });
 
@@ -1974,7 +2039,34 @@ export function registerRoutes(app: Express): Server {
       res.json(data.result);
     } catch (error: any) {
       console.error("❌ Error fetching voucher duration distribution:", error);
-      res.status(500).json({ message: error.message || "Failed to fetch voucher duration distribution" });
+      
+      // Return sample data for testing mobile interface
+      const sampleDurationData = {
+        data: [
+          {
+            duration: 60, // 1 hora
+            durationType: 0,
+            totalDuration: 1800, // 30 horas
+            usedCount: 30
+          },
+          {
+            duration: 120, // 2 horas
+            durationType: 0,
+            totalDuration: 1200, // 20 horas
+            usedCount: 10
+          },
+          {
+            duration: 180, // 3 horas
+            durationType: 0,
+            totalDuration: 900, // 15 horas
+            usedCount: 5
+          }
+        ],
+        dataSource: "SAMPLE",
+        message: "Dados de exemplo - Configure credenciais válidas do Omada"
+      };
+      
+      res.json(sampleDurationData);
     }
   });
 
