@@ -3054,6 +3054,63 @@ export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
 
 
+  // Voucher sync callback routes
+  app.post("/api/voucher-sync/start", requireAuth, requireRole(["master", "admin"]), async (req, res) => {
+    try {
+      const { voucherSyncService } = await import('./voucher-sync');
+      await voucherSyncService.startAutoSync();
+      res.json({ success: true, message: "Sincronização automática iniciada" });
+    } catch (error: any) {
+      console.error("Error starting voucher sync:", error);
+      res.status(500).json({ message: error.message || "Failed to start voucher sync" });
+    }
+  });
+
+  app.post("/api/voucher-sync/stop", requireAuth, requireRole(["master", "admin"]), async (req, res) => {
+    try {
+      const { voucherSyncService } = await import('./voucher-sync');
+      voucherSyncService.stopAutoSync();
+      res.json({ success: true, message: "Sincronização automática parada" });
+    } catch (error: any) {
+      console.error("Error stopping voucher sync:", error);
+      res.status(500).json({ message: error.message || "Failed to stop voucher sync" });
+    }
+  });
+
+  app.get("/api/voucher-sync/status", requireAuth, requireRole(["master", "admin"]), async (req, res) => {
+    try {
+      const { voucherSyncService } = await import('./voucher-sync');
+      const status = voucherSyncService.getStatus();
+      res.json(status);
+    } catch (error: any) {
+      console.error("Error getting voucher sync status:", error);
+      res.status(500).json({ message: error.message || "Failed to get voucher sync status" });
+    }
+  });
+
+  app.post("/api/voucher-sync/site/:siteId", requireAuth, requireRole(["master", "admin"]), async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      const { voucherSyncService } = await import('./voucher-sync');
+      await voucherSyncService.forceSiteSync(siteId);
+      res.json({ success: true, message: `Sincronização do site ${siteId} concluída` });
+    } catch (error: any) {
+      console.error("Error syncing site:", error);
+      res.status(500).json({ message: error.message || "Failed to sync site" });
+    }
+  });
+
+  app.post("/api/voucher-sync/all", requireAuth, requireRole(["master", "admin"]), async (req, res) => {
+    try {
+      const { voucherSyncService } = await import('./voucher-sync');
+      await voucherSyncService.syncAllSites();
+      res.json({ success: true, message: "Sincronização de todos os sites concluída" });
+    } catch (error: any) {
+      console.error("Error syncing all sites:", error);
+      res.status(500).json({ message: error.message || "Failed to sync all sites" });
+    }
+  });
+
   return httpServer;
 }
 

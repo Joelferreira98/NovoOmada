@@ -15,6 +15,7 @@ import SiteSelectionPage from "@/pages/site-selection-page";
 import VendedorDashboard from "@/pages/vendedor-dashboard";
 import CashPage from "@/pages/cash-page";
 import ProfilePage from "@/pages/profile-page";
+import VoucherSyncPage from "@/pages/voucher-sync-page";
 
 
 function Router() {
@@ -28,6 +29,7 @@ function Router() {
       <ProtectedRoute path="/reports" component={ReportsPage} />
       <ProtectedRoute path="/cash" component={CashPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/voucher-sync" component={VoucherSyncPage} />
 
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />

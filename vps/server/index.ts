@@ -77,5 +77,16 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start voucher sync service automatically after 5 seconds
+    setTimeout(async () => {
+      try {
+        const { voucherSyncService } = await import('./voucher-sync');
+        await voucherSyncService.startAutoSync();
+        console.log('🔄 Voucher sync service started automatically');
+      } catch (error) {
+        console.log('⚠️ Could not start voucher sync service:', error);
+      }
+    }, 5000);
   });
 })();

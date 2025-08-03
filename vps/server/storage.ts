@@ -453,6 +453,39 @@ export class DatabaseStorage implements IStorage {
     return updatedVoucher;
   }
 
+  // Voucher sync methods for callback system
+  async getVoucherByCode(code: string): Promise<Voucher | undefined> {
+    try {
+      const [voucher] = await db.select().from(vouchers).where(eq(vouchers.code, code));
+      return voucher;
+    } catch (error) {
+      console.error('Error getting voucher by code:', error);
+      return undefined;
+    }
+  }
+
+  async updateVoucherStatusById(voucherId: string, status: string): Promise<void> {
+    try {
+      await db
+        .update(vouchers)
+        .set({ status: status as any, updatedAt: new Date() })
+        .where(eq(vouchers.id, voucherId));
+    } catch (error) {
+      console.error('Error updating voucher status:', error);
+      throw error;
+    }
+  }
+
+  async getSaleByVoucherId(voucherId: string): Promise<Sale | undefined> {
+    try {
+      const [sale] = await db.select().from(sales).where(eq(sales.voucherId, voucherId));
+      return sale;
+    } catch (error) {
+      console.error('Error getting sale by voucher ID:', error);
+      return undefined;
+    }
+  }
+
   async createSale(sale: Omit<Sale, 'id' | 'createdAt'>): Promise<Sale> {
     const saleId = crypto.randomUUID();
     
