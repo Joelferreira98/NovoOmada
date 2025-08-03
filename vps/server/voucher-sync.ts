@@ -2,7 +2,6 @@
 // Sincroniza status dos vouchers entre Omada Controller e banco local
 
 import { storage } from './storage';
-import { getValidOmadaToken } from './omada-token-manager';
 import { omadaFetch } from './fetch-utils';
 
 interface OmadaVoucherGroup {
@@ -37,7 +36,8 @@ interface VoucherGroupDetail extends OmadaVoucherGroup {
 export class VoucherSyncService {
   private isRunning = false;
   private lastSyncTime: Date | null = null;
-  private syncIntervalMs = 1 * 60 * 1000; // 1 minuto
+  private syncIntervalMs = 5 * 60 * 1000; // 5 minutos para reduzir carga
+  private tokenCache: any = null;
 
   /**
    * Inicia sincronização automática de vouchers para todos os sites ativos
@@ -62,6 +62,83 @@ export class VoucherSyncService {
         console.error('❌ Erro na sincronização automática:', error);
       }
     }, this.syncIntervalMs);
+  }
+
+  /**
+   * Obtém token Omada válido usando cache local
+   */
+  private async getValidOmadaToken(credentials: any): Promise<string> {
+    const now = Date.now();
+    
+    // Verificar cache local primeiro
+    if (this.tokenCache && 
+        this.tokenCache.omadacId === credentials.omadacId && 
+        this.tokenCache.expires > now + 60000) { // 1 minuto de margem
+      console.log('🔑 Usando token local em cache');
+      return this.tokenCache.token;
+    }
+    
+    console.log('🔄 Obtendo novo token para sincronização');
+    
+    try {
+      const tokenUrl = `${credentials.omadaUrl}/openapi/authorize/token`;
+      const requestBody = {
+        grant_type: 'client_credentials',
+        omadacId: credentials.omadacId,
+        client_id: credentials.clientId,
+        client_secret: credentials.clientSecret
+      };
+      
+      // Usar node-fetch com SSL desabilitado para desenvolvimento
+      const nodeFetch = (await import('node-fetch')).default;
+      const https = await import('https');
+      
+      const agent = process.env.NODE_ENV === 'development' 
+        ? new https.Agent({ rejectUnauthorized: false })
+        : undefined;
+
+      const tokenResponse = await nodeFetch(tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        agent
+      });
+
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        throw new Error(`Token request failed: ${tokenResponse.status} - ${errorText}`);
+      }
+
+      const tokenData = await tokenResponse.json() as any;
+      
+      if (tokenData.errorCode !== 0) {
+        throw new Error(`Token error: ${tokenData.msg || 'Authentication failed'}`);
+      }
+
+      const accessToken = tokenData.result?.accessToken;
+      if (!accessToken) {
+        throw new Error('No access token received from Omada API');
+      }
+
+      const expiresIn = tokenData.result.expiresIn || 7200; // Default 2 horas
+      const expiryTime = now + (expiresIn * 1000) - 300000; // 5 minutos antes da expiração
+      
+      // Cache local do token
+      this.tokenCache = {
+        token: accessToken,
+        expires: expiryTime,
+        omadacId: credentials.omadacId
+      };
+
+      console.log('✅ Token obtido com sucesso para sincronização');
+      return accessToken;
+
+    } catch (error) {
+      console.error('❌ Erro ao obter token para sincronização:', error);
+      throw error;
+    }
   }
 
   /**
@@ -116,8 +193,8 @@ export class VoucherSyncService {
         throw new Error('Credenciais do Omada não configuradas');
       }
 
-      // Obter token de acesso válido
-      const accessToken = await getValidOmadaToken(credentials);
+      // Obter token de acesso válido usando mesmo método do sistema principal
+      const accessToken = await this.getValidOmadaToken(credentials);
 
       // 1. Buscar todos os grupos de vouchers do site
       const voucherGroups = await this.getVoucherGroups(credentials, omadaSiteId, accessToken);
