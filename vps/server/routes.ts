@@ -1469,7 +1469,7 @@ export function registerRoutes(app: Express): Server {
           }
         },
         trafficLimitEnable: false,
-        unitPrice: parseFloat(plan.unitPrice) || 0, // ✅ ADICIONADO: Unit price explícito
+        unitPrice: parseFloat(plan.unitPrice || "0") || 0, // ✅ CORRIGIDO: Unit price explícito com string segura
         currency: "BRL", // ✅ ADICIONADO: Moeda
         applyToAllPortals: true,
         portals: [],
@@ -2609,7 +2609,7 @@ export function registerRoutes(app: Express): Server {
           }
         },
         trafficLimitEnable: false,
-        unitPrice: parseFloat(plan.unitPrice), // preço decimal direto
+        unitPrice: parseFloat(plan.unitPrice || "0") || 0, // preço decimal direto com fallback
         currency: "BRL",
         applyToAllPortals: true,
         portals: [],

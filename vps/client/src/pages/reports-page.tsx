@@ -109,7 +109,7 @@ export default function ReportsPage() {
 
   // Get voucher history statistics
   const { data: voucherHistory, isLoading: historyLoading } = useQuery<VoucherHistoryStats>({
-    queryKey: ["/api/reports/voucher-history", selectedSiteId, dateRange.from.getTime(), dateRange.to.getTime()],
+    queryKey: ["/api/reports/voucher-history", selectedSiteId, Math.floor(dateRange.from.getTime() / 1000), Math.floor(dateRange.to.getTime() / 1000)],
     enabled: !!selectedSiteId,
   });
 
@@ -127,7 +127,7 @@ export default function ReportsPage() {
 
   // Get voucher distribution by duration
   const { data: durationDistribution, isLoading: distributionLoading } = useQuery<VoucherDurationDistribution[]>({
-    queryKey: ["/api/reports/voucher-distribution", selectedSiteId, dateRange.from.getTime(), dateRange.to.getTime()],
+    queryKey: ["/api/reports/voucher-distribution", selectedSiteId, Math.floor(dateRange.from.getTime() / 1000), Math.floor(dateRange.to.getTime() / 1000)],
     enabled: !!selectedSiteId,
   });
 
