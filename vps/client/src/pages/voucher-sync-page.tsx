@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { RefreshCw, Play, Square, Sync, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { RefreshCw, Play, Square, RotateCcw, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -185,7 +185,7 @@ export default function VoucherSyncPage() {
 
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-2">
-                <Sync className="h-5 w-5 text-purple-500" />
+                <RotateCcw className="h-5 w-5 text-purple-500" />
                 <div>
                   <p className="text-sm font-medium">Última Sincronização</p>
                   <p className="text-sm text-muted-foreground">
@@ -267,7 +267,7 @@ export default function VoucherSyncPage() {
                   {syncSiteMutation.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Sync className="h-4 w-4" />
+                    <RotateCcw className="h-4 w-4" />
                   )}
                   Sincronizar
                 </Button>
@@ -277,7 +277,7 @@ export default function VoucherSyncPage() {
 
           {userSites.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              <Sync className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <RotateCcw className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhum site encontrado para sincronização</p>
             </div>
           )}
